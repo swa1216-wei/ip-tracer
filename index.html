@@ -52,7 +52,7 @@
                 </h1>
                 <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
                     📍 <strong>探測來源：</strong>固定 Taiwan 探針節點發起（未達 BR 自動重測 2 次機制生效中）<br>
-                    ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">2026-10-14 19:52:51 (UTC+8)</span><br>
+                    ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">2026-10-14 20:35:45 (UTC+8)</span><br>
                     🔄 <strong>畫面狀態：</strong>每隔15-30分鐘自動重整
                 </div>
             </div>
@@ -138,12 +138,12 @@
     <tr id="log-0" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-71-0-8.emome-ip.hinet.net (111.71.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.483 ms  0.296 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  2.183 ms *
- 3  168-95-85-114.tpe4-3332.hinet.net (168.95.85.114)  2.351 ms *
+ 1  _gateway (168.95.98.254)  7.136 ms  7.231 ms
+ 2  168-95-152-90.tchn-3331.hinet.net (168.95.152.90)  7.339 ms  7.461 ms
+ 3  * *
  4  * *
- 5  220-128-2-9.tpdb-3311.hinet.net (220.128.2.9)  3.157 ms *
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  2.707 ms *
+ 5  220-128-4-81.tpdb-3311.hinet.net (220.128.4.81)  9.468 ms  9.570 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  10.315 ms  10.413 ms
  7  * *
  8  * *
  9  * *
@@ -182,12 +182,12 @@
     <tr id="log-1" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-71-212-8.emome-ip.hinet.net (111.71.212.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.310 ms  0.244 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.106 ms  1.097 ms
- 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.427 ms  1.419 ms
+ 1  _gateway (198.18.4.1)  0.543 ms  1.021 ms
+ 2  * *
+ 3  * *
  4  * *
- 5  220-128-3-85.tpdb-3311.hinet.net (220.128.3.85)  1.364 ms  1.341 ms
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  1.526 ms  1.511 ms
+ 5  220-128-2-9.tpdb-3311.hinet.net (220.128.2.9)  1.590 ms  1.587 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  2.042 ms  2.067 ms
  7  * *
  8  * *
  9  * *
@@ -214,10 +214,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-2')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -226,13 +226,13 @@
     <tr id="log-2" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-71-213-8.emome-ip.hinet.net (111.71.213.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.1)  0.123 ms  0.145 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.707 ms  1.827 ms
- 3  168-95-170-102.snuh-3331.hinet.net (168.95.170.102)  1.925 ms  2.038 ms
- 4  * *
- 5  220-128-1-9.tpdb-3312.hinet.net (220.128.1.9)  2.211 ms  3.252 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  5.967 ms  6.053 ms
- 7  * *
+ 1  _gateway (172.17.0.1)  0.075 ms  0.014 ms
+ 2  192.168.10.1 (192.168.10.1)  0.169 ms  0.141 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  1.789 ms  1.782 ms
+ 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  1.959 ms  2.531 ms
+ 5  * *
+ 6  220-128-4-97.tpdb-3312.hinet.net (220.128.4.97)  10.013 ms  10.012 ms
+ 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  2.478 ms  2.470 ms
  8  * *
  9  * *
 10  * *
@@ -270,13 +270,13 @@
     <tr id="log-3" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-71-214-8.emome-ip.hinet.net (111.71.214.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.336 ms  0.275 ms
- 2  192.168.1.254 (192.168.1.254)  1.032 ms  0.757 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  5.151 ms  5.031 ms
- 4  168-95-165-18.ntnk-3312.hinet.net (168.95.165.18)  5.064 ms  5.169 ms
+ 1  _gateway (198.18.4.1)  0.432 ms  0.389 ms
+ 2  * *
+ 3  * *
+ 4  220-128-13-22.pcpd-3062.hinet.net (220.128.13.22)  10.294 ms  10.313 ms
  5  * *
- 6  220-128-17-213.tchn-3335.hinet.net (220.128.17.213)  4.943 ms  4.900 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  4.502 ms  4.370 ms
+ 6  220-128-17-37.tchn-3335.hinet.net (220.128.17.37)  8.339 ms  8.773 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  8.272 ms  8.270 ms
  8  * *
  9  * *
 10  * *
@@ -302,10 +302,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-4')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -314,13 +314,13 @@
     <tr id="log-4" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-71-215-8.emome-ip.hinet.net (111.71.215.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.283 ms  0.239 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  0.858 ms  0.975 ms
- 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.486 ms  1.477 ms
- 4  220-128-12-246.pcpd-3061.hinet.net (220.128.12.246)  4.003 ms  3.994 ms
- 5  * *
- 6  220-128-17-81.tchn-3336.hinet.net (220.128.17.81)  3.679 ms  3.790 ms
- 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  3.453 ms  3.446 ms
+ 1  * *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.942 ms  1.989 ms
+ 3  * *
+ 4  * *
+ 5  220-128-16-73.tchn-3336.hinet.net (220.128.16.73)  2.333 ms  2.514 ms
+ 6  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  1.941 ms  1.981 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -358,12 +358,12 @@
     <tr id="log-5" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-71-64-8.emome-ip.hinet.net (111.71.64.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.254)  0.157 ms  0.175 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  4.334 ms  4.451 ms
- 3  168-95-171-162.snuh-3332.hinet.net (168.95.171.162)  4.565 ms  4.699 ms
+ 1  _gateway (192.168.1.254)  0.158 ms  0.171 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  3.827 ms  3.975 ms
+ 3  168-95-171-162.snuh-3332.hinet.net (168.95.171.162)  4.364 ms  4.493 ms
  4  * *
- 5  220-128-2-249.tpdb-3312.hinet.net (220.128.2.249)  6.219 ms  6.331 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  5.971 ms  6.071 ms
+ 5  220-128-2-249.tpdb-3312.hinet.net (220.128.2.249)  5.469 ms  5.548 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  5.670 ms  5.768 ms
  7  * *
  8  * *
  9  * *
@@ -402,13 +402,13 @@
     <tr id="log-6" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-82-0-8.emome-ip.hinet.net (111.82.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.405 ms  0.347 ms
- 2  192.168.1.254 (192.168.1.254)  0.636 ms  0.729 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  1.703 ms  1.758 ms
- 4  168-95-165-18.ntnk-3312.hinet.net (168.95.165.18)  1.877 ms  1.878 ms
+ 1  _gateway (10.20.10.254)  0.404 ms  0.274 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.439 ms *
+ 3  * 168-95-84-114.tpe4-3331.hinet.net (168.95.84.114)  2.515 ms
+ 4  220-128-8-242.tyfo-3031.hinet.net (220.128.8.242)  4.584 ms *
  5  * *
- 6  220-128-17-213.tchn-3335.hinet.net (220.128.17.213)  5.392 ms  5.470 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  3.152 ms  2.921 ms
+ 6  220-128-17-189.tchn-3335.hinet.net (220.128.17.189)  5.750 ms *
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  6.676 ms *
  8  * *
  9  * *
 10  * *
@@ -434,10 +434,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>4</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-3)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-3)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-7')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -446,12 +446,12 @@
     <tr id="log-7" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-82-128-8.emome-ip.hinet.net (111.82.128.8), 20 hops max, 60 byte packets
- 1  _gateway (10.0.0.1)  0.132 ms  0.181 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  0.727 ms  1.247 ms
- 3  168-95-153-146.tchn-3336.hinet.net (168.95.153.146)  1.275 ms  2.030 ms
- 4  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  2.078 ms  2.108 ms
- 5  * *
- 6  * *
+ 1  _gateway (10.10.10.254)  0.386 ms  0.328 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  4.263 ms  4.077 ms
+ 3  * *
+ 4  * *
+ 5  * 220-128-16-73.tchn-3336.hinet.net (220.128.16.73)  4.442 ms
+ 6  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  4.260 ms *
  7  * *
  8  * *
  9  * *
@@ -478,10 +478,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.101</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-8')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -490,13 +490,13 @@
     <tr id="log-8" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-83-0-8.emome-ip.hinet.net (111.83.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.379 ms  0.623 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  0.970 ms *
- 3  168-95-164-18.ntnk-3311.hinet.net (168.95.164.18)  1.524 ms  1.368 ms
- 4  * *
- 5  220-128-17-9.tchn-3335.hinet.net (220.128.17.9)  2.114 ms  2.380 ms
- 6  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  5.638 ms *
- 7  * *
+ 1  _gateway (10.20.10.254)  0.328 ms  0.252 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.120 ms *
+ 3  * 168-95-85-118.tpe4-3332.hinet.net (168.95.85.118)  2.942 ms
+ 4  220-128-9-126.tylc-3032.hinet.net (220.128.9.126)  5.432 ms *
+ 5  * *
+ 6  * *
+ 7  * 210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  5.533 ms
  8  * *
  9  * *
 10  * *
@@ -522,10 +522,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>5</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-2)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.101</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3 (-2)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-9')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -534,13 +534,13 @@
     <tr id="log-9" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-83-128-8.emome-ip.hinet.net (111.83.128.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  6.588 ms  6.692 ms
- 2  * 168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  6.768 ms
- 3  * *
- 4  220-128-17-73.tchn-3335.hinet.net (220.128.17.73)  6.843 ms  7.231 ms
- 5  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  6.945 ms  7.057 ms
- 6  * *
- 7  * *
+ 1  _gateway (192.168.50.1)  0.432 ms  0.364 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.111 ms  1.789 ms
+ 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.158 ms  1.185 ms
+ 4  220-128-12-246.pcpd-3061.hinet.net (220.128.12.246)  5.538 ms  5.530 ms
+ 5  * *
+ 6  220-128-16-17.tchn-3335.hinet.net (220.128.16.17)  3.547 ms  3.875 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  5.549 ms  5.568 ms
  8  * *
  9  * *
 10  * *
@@ -566,10 +566,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>4</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-3)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-3)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-10')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -578,12 +578,12 @@
     <tr id="log-10" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-83-192-8.emome-ip.hinet.net (111.83.192.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.329 ms  0.258 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.293 ms  2.766 ms
- 3  168-95-164-18.ntnk-3311.hinet.net (168.95.164.18)  2.411 ms *
- 4  * *
- 5  220-128-16-37.tchn-3336.hinet.net (220.128.16.37)  2.553 ms *
- 6  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  6.118 ms *
+ 1  _gateway (10.0.0.1)  0.163 ms  0.182 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.483 ms  1.513 ms
+ 3  168-95-153-146.tchn-3336.hinet.net (168.95.153.146)  1.984 ms  2.075 ms
+ 4  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  1.710 ms  1.742 ms
+ 5  * *
+ 6  * *
  7  * *
  8  * *
  9  * *
@@ -610,10 +610,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-11')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -622,14 +622,14 @@
     <tr id="log-11" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 111-83-64-8.emome-ip.hinet.net (111.83.64.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.078 ms  0.015 ms
- 2  192.168.10.1 (192.168.10.1)  0.177 ms  0.149 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  1.654 ms  1.739 ms
- 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  1.731 ms  1.811 ms
+ 1  _gateway (10.20.10.254)  0.438 ms  0.369 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.823 ms *
+ 3  * 168-95-84-26.tpe4-3331.hinet.net (168.95.84.26)  3.018 ms
+ 4  220-128-8-242.tyfo-3031.hinet.net (220.128.8.242)  5.012 ms *
  5  * *
- 6  * *
- 7  220-128-17-17.tchn-3336.hinet.net (220.128.17.17)  4.413 ms  4.531 ms
- 8  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  4.394 ms  4.503 ms
+ 6  220-128-17-85.tchn-3336.hinet.net (220.128.17.85)  5.270 ms *
+ 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  6.015 ms *
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -654,10 +654,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-12')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -666,13 +666,13 @@
     <tr id="log-12" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-136-0-8.emome-ip.hinet.net (114.136.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.301 ms  0.241 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.960 ms  2.734 ms
- 3  168-95-84-118.tpe4-3331.hinet.net (168.95.84.118)  2.998 ms *
+ 1  _gateway (10.0.0.1)  0.234 ms  0.250 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.325 ms  1.334 ms
+ 3  168-95-153-146.tchn-3336.hinet.net (168.95.153.146)  1.505 ms  1.646 ms
  4  * *
  5  * *
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  7.514 ms *
- 7  * *
+ 6  220-128-4-81.tpdb-3311.hinet.net (220.128.4.81)  10.609 ms  10.630 ms
+ 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  3.776 ms  3.809 ms
  8  * *
  9  * *
 10  * *
@@ -710,13 +710,13 @@
     <tr id="log-13" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-136-128-8.emome-ip.hinet.net (114.136.128.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.2.1)  0.677 ms *
- 2  h254.s98.ts.hinet.net (168.95.98.254)  9.513 ms  9.582 ms
- 3  168-95-153-82.tchn-3332.hinet.net (168.95.153.82)  10.182 ms  10.394 ms
- 4  * *
+ 1  _gateway (172.17.0.1)  0.074 ms  0.015 ms
+ 2  * *
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  2.330 ms  2.356 ms
+ 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  3.070 ms  3.151 ms
  5  * *
- 6  220-128-3-189.tpdb-3311.hinet.net (220.128.3.189)  12.643 ms  12.640 ms
- 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  12.636 ms  13.459 ms
+ 6  220-128-2-253.tpdb-3311.hinet.net (220.128.2.253)  2.296 ms  3.010 ms
+ 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  3.001 ms  3.079 ms
  8  * *
  9  * *
 10  * *
@@ -742,10 +742,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-14')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -754,13 +754,13 @@
     <tr id="log-14" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-136-192-8.emome-ip.hinet.net (114.136.192.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.420 ms  0.260 ms
- 2  * *
- 3  168-95-164-38.ntnk-3311.hinet.net (168.95.164.38)  3.934 ms *
+ 1  _gateway (192.168.50.1)  0.299 ms  0.286 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.979 ms  0.971 ms
+ 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.590 ms  1.581 ms
  4  * *
- 5  * *
- 6  * *
- 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  6.343 ms *
+ 5  220-128-1-9.tpdb-3312.hinet.net (220.128.1.9)  1.624 ms  1.607 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  1.703 ms  1.695 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -786,10 +786,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-15')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -798,13 +798,13 @@
     <tr id="log-15" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-136-64-8.emome-ip.hinet.net (114.136.64.8), 20 hops max, 60 byte packets
- 1  _gateway (198.18.4.1)  0.243 ms  0.190 ms
- 2  * *
- 3  168-95-75-226.pcpc-3332.hinet.net (168.95.75.226)  1.564 ms  1.554 ms
+ 1  _gateway (192.168.2.1)  0.852 ms  0.951 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.959 ms  10.009 ms
+ 3  168-95-153-82.tchn-3332.hinet.net (168.95.153.82)  10.579 ms  11.315 ms
  4  * *
- 5  220-128-2-249.tpdb-3312.hinet.net (220.128.2.249)  2.129 ms  2.125 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  1.522 ms  1.518 ms
- 7  * *
+ 5  * *
+ 6  220-128-2-249.tpdb-3312.hinet.net (220.128.2.249)  26.241 ms  26.237 ms
+ 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  14.041 ms  14.037 ms
  8  * *
  9  * *
 10  * *
@@ -830,10 +830,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.209</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-16')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -842,14 +842,14 @@
     <tr id="log-16" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-137-0-8.emome-ip.hinet.net (114.137.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.516 ms  0.463 ms
- 2  192.168.1.254 (192.168.1.254)  0.686 ms  0.822 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  4.702 ms  4.174 ms
- 4  168-95-165-38.ntnk-3312.hinet.net (168.95.165.38)  4.083 ms  4.048 ms
- 5  * *
- 6  220-128-17-30.tylc-3032.hinet.net (220.128.17.30)  5.655 ms  5.608 ms
- 7  220-128-9-17.tyfo-3335.hinet.net (220.128.9.17)  5.749 ms  5.605 ms
- 8  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  4.919 ms  4.751 ms
+ 1  * *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.761 ms  10.046 ms
+ 3  168-95-153-106.tchn-3332.hinet.net (168.95.153.106)  9.542 ms  9.591 ms
+ 4  * *
+ 5  220-128-16-58.tyfo-3031.hinet.net (220.128.16.58)  11.530 ms  11.574 ms
+ 6  * 220-128-8-77.tyfo-3335.hinet.net (220.128.8.77)  11.923 ms
+ 7  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  11.577 ms  11.607 ms
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -874,10 +874,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:-2)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.209</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (-2)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-17')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -886,14 +886,14 @@
     <tr id="log-17" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-137-128-8.emome-ip.hinet.net (114.137.128.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.076 ms  0.013 ms
- 2  192.168.10.1 (192.168.10.1)  0.124 ms  0.191 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  3.648 ms  3.731 ms
- 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  3.907 ms  3.900 ms
- 5  * *
- 6  220-128-9-117.tylc-3032.hinet.net (220.128.9.117)  4.480 ms  4.473 ms
- 7  220-128-9-185.tyfo-3335.hinet.net (220.128.9.185)  4.464 ms  4.457 ms
- 8  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  4.316 ms  4.310 ms
+ 1  _gateway (192.168.1.1)  0.145 ms  0.187 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  3.135 ms  3.193 ms
+ 3  168-95-170-102.snuh-3331.hinet.net (168.95.170.102)  3.278 ms  3.374 ms
+ 4  220-128-9-2.tyfo-3031.hinet.net (220.128.9.2)  3.543 ms  3.598 ms
+ 5  220-128-8-97.tyfo-3335.hinet.net (220.128.8.97)  3.701 ms  4.076 ms
+ 6  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  3.813 ms  3.947 ms
+ 7  * *
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -918,10 +918,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+2)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.213</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2 (+2)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-18')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -930,14 +930,14 @@
     <tr id="log-18" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-137-192-8.emome-ip.hinet.net (114.137.192.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  6.283 ms  6.355 ms
- 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  6.456 ms  6.620 ms
- 3  * *
- 4  220-128-17-114.tylc-3032.hinet.net (220.128.17.114)  8.699 ms  8.803 ms
- 5  220-128-5-105.tylc-3326.hinet.net (220.128.5.105)  8.281 ms  8.368 ms
- 6  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  8.461 ms  8.578 ms
- 7  * *
- 8  * *
+ 1  _gateway (10.10.10.254)  0.475 ms  0.329 ms
+ 2  192.168.1.254 (192.168.1.254)  0.794 ms  1.154 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  5.372 ms  5.251 ms
+ 4  168-95-165-38.ntnk-3312.hinet.net (168.95.165.38)  6.141 ms  6.177 ms
+ 5  220-128-19-14.chch-3032.hinet.net (220.128.19.14)  8.056 ms  7.985 ms
+ 6  220-128-19-34.tylc-3032.hinet.net (220.128.19.34)  8.316 ms  8.279 ms
+ 7  220-128-10-241.tylc-3326.hinet.net (220.128.10.241)  7.619 ms  7.196 ms
+ 8  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  9.574 ms  9.600 ms
  9  * *
 10  * *
 11  * *
@@ -974,12 +974,12 @@
     <tr id="log-19" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-137-32-8.emome-ip.hinet.net (114.137.32.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.507 ms  0.419 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  2.172 ms *
- 3  168-95-84-26.tpe4-3331.hinet.net (168.95.84.26)  2.090 ms  2.791 ms
- 4  220-128-8-242.tyfo-3031.hinet.net (220.128.8.242)  3.275 ms *
- 5  * *
- 6  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  9.688 ms *
+ 1  _gateway (198.18.4.1)  0.528 ms  0.480 ms
+ 2  * *
+ 3  168-95-74-226.pcpc-3331.hinet.net (168.95.74.226)  2.818 ms  2.816 ms
+ 4  220-128-5-62.tyfo-3031.hinet.net (220.128.5.62)  2.732 ms  2.729 ms
+ 5  220-128-5-21.tylc-3326.hinet.net (220.128.5.21)  2.428 ms  2.426 ms
+ 6  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  2.546 ms  2.719 ms
  7  * *
  8  * *
  9  * *
@@ -1006,10 +1006,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+2)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.209</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (+2)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-20')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1018,14 +1018,14 @@
     <tr id="log-20" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-137-64-8.emome-ip.hinet.net (114.137.64.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.076 ms  0.014 ms
- 2  192.168.10.1 (192.168.10.1)  0.139 ms  0.196 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  1.741 ms  1.747 ms
- 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  1.738 ms  1.816 ms
- 5  * *
- 6  220-128-9-117.tylc-3032.hinet.net (220.128.9.117)  2.676 ms  2.858 ms
- 7  * 220-128-10-129.tyfo-3335.hinet.net (220.128.10.129)  2.931 ms
- 8  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  2.826 ms  2.904 ms
+ 1  _gateway (168.95.98.254)  3.535 ms  3.784 ms
+ 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  4.742 ms  4.865 ms
+ 3  * *
+ 4  220-128-17-114.tylc-3032.hinet.net (220.128.17.114)  6.647 ms  6.831 ms
+ 5  220-128-10-129.tyfo-3335.hinet.net (220.128.10.129)  7.280 ms *
+ 6  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  6.733 ms  6.956 ms
+ 7  * *
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -1062,13 +1062,13 @@
     <tr id="log-21" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 114-137-96-8.emome-ip.hinet.net (114.137.96.8), 20 hops max, 60 byte packets
- 1  * *
- 2  * *
- 3  168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  2.267 ms  2.422 ms
+ 1  _gateway (10.0.0.1)  0.148 ms  0.192 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.423 ms  1.441 ms
+ 3  168-95-152-146.tchn-3335.hinet.net (168.95.152.146)  1.637 ms  1.783 ms
  4  * *
- 5  220-128-16-210.tyfo-3031.hinet.net (220.128.16.210)  3.838 ms  3.843 ms
- 6  220-128-5-9.tylc-3326.hinet.net (220.128.5.9)  3.456 ms  3.625 ms
- 7  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  3.612 ms  4.443 ms
+ 5  220-128-16-218.tyfo-3031.hinet.net (220.128.16.218)  3.429 ms *
+ 6  220-128-5-5.tylc-3326.hinet.net (220.128.5.5)  3.190 ms  3.229 ms
+ 7  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  3.439 ms  3.466 ms
  8  * *
  9  * *
 10  * *
@@ -1094,10 +1094,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-22')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1106,13 +1106,13 @@
     <tr id="log-22" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-136-0-8.emome-ip.hinet.net (223.136.0.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.074 ms  0.014 ms
- 2  192.168.10.1 (192.168.10.1)  0.130 ms  0.193 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  1.818 ms  1.905 ms
- 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  1.898 ms  1.983 ms
- 5  * *
- 6  220-128-4-81.tpdb-3311.hinet.net (220.128.4.81)  1.951 ms  1.944 ms
- 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  22.173 ms  22.166 ms
+ 1  _gateway (10.20.10.254)  0.495 ms  0.285 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.272 ms *
+ 3  168-95-84-26.tpe4-3331.hinet.net (168.95.84.26)  2.739 ms *
+ 4  * *
+ 5  220-128-3-85.tpdb-3311.hinet.net (220.128.3.85)  28.647 ms *
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  3.175 ms *
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -1138,10 +1138,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-23')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1150,13 +1150,13 @@
     <tr id="log-23" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-136-128-8.emome-ip.hinet.net (223.136.128.8), 20 hops max, 60 byte packets
- 1  * *
- 2  * *
- 3  168-95-153-126.tchn-3332.hinet.net (168.95.153.126)  1.589 ms  2.237 ms
+ 1  _gateway (168.95.98.254)  3.721 ms  3.829 ms
+ 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  4.227 ms  4.329 ms
+ 3  * *
  4  * *
- 5  * *
- 6  220-128-2-9.tpdb-3311.hinet.net (220.128.2.9)  4.095 ms  4.188 ms
- 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  4.175 ms  4.256 ms
+ 5  220-128-3-85.tpdb-3311.hinet.net (220.128.3.85)  6.383 ms  6.983 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  7.067 ms  7.157 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -1182,10 +1182,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-24')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1194,13 +1194,13 @@
     <tr id="log-24" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-136-192-8.emome-ip.hinet.net (223.136.192.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.327 ms  0.341 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  3.743 ms *
- 3  * *
+ 1  _gateway (192.168.1.1)  0.129 ms  0.152 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.352 ms  2.176 ms
+ 3  168-95-170-106.snuh-3331.hinet.net (168.95.170.106)  2.558 ms  2.752 ms
  4  * *
- 5  * *
- 6  * *
- 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  6.013 ms *
+ 5  220-128-3-97.tpdb-3312.hinet.net (220.128.3.97)  2.924 ms  3.099 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  3.294 ms  3.471 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -1226,10 +1226,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-25')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1238,13 +1238,13 @@
     <tr id="log-25" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-136-32-8.emome-ip.hinet.net (223.136.32.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.1)  0.109 ms  0.132 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  2.091 ms  2.189 ms
- 3  168-95-171-118.snuh-3332.hinet.net (168.95.171.118)  2.284 ms  2.387 ms
+ 1  _gateway (10.10.10.254)  0.435 ms  0.272 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  3.472 ms  3.409 ms
+ 3  * *
  4  * *
- 5  220-128-4-97.tpdb-3312.hinet.net (220.128.4.97)  2.777 ms  2.885 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  2.522 ms  2.632 ms
- 7  * *
+ 5  * *
+ 6  * *
+ 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  5.000 ms *
  8  * *
  9  * *
 10  * *
@@ -1282,12 +1282,12 @@
     <tr id="log-26" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-136-64-8.emome-ip.hinet.net (223.136.64.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.254)  0.140 ms  0.163 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  5.927 ms  6.045 ms
- 3  168-95-170-162.snuh-3331.hinet.net (168.95.170.162)  6.226 ms  6.332 ms
+ 1  _gateway (192.168.50.1)  0.291 ms  0.254 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  6.013 ms  6.005 ms
+ 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  5.993 ms  5.985 ms
  4  * *
- 5  220-128-1-249.tpdb-3311.hinet.net (220.128.1.249)  6.447 ms  6.573 ms
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  7.324 ms  7.442 ms
+ 5  220-128-3-85.tpdb-3311.hinet.net (220.128.3.85)  5.951 ms  5.943 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  5.912 ms  5.896 ms
  7  * *
  8  * *
  9  * *
@@ -1326,12 +1326,12 @@
     <tr id="log-27" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-136-96-8.emome-ip.hinet.net (223.136.96.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.433 ms  0.259 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  2.696 ms *
- 3  * 168-95-84-22.tpe4-3331.hinet.net (168.95.84.22)  2.626 ms
+ 1  _gateway (192.168.1.1)  0.144 ms  0.172 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.827 ms  1.918 ms
+ 3  168-95-171-122.snuh-3332.hinet.net (168.95.171.122)  2.032 ms  2.139 ms
  4  * *
- 5  * 220-128-1-113.tpdb-3312.hinet.net (220.128.1.113)  3.255 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  7.590 ms *
+ 5  220-128-4-97.tpdb-3312.hinet.net (220.128.4.97)  2.311 ms  2.434 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  2.859 ms  2.943 ms
  7  * *
  8  * *
  9  * *
@@ -1370,12 +1370,12 @@
     <tr id="log-28" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-137-0-8.emome-ip.hinet.net (223.137.0.8), 20 hops max, 60 byte packets
- 1  _gateway (198.18.4.1)  0.463 ms  0.414 ms
- 2  * *
+ 1  _gateway (168.95.98.254)  6.546 ms  6.655 ms
+ 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  7.033 ms  7.162 ms
  3  * *
  4  * *
- 5  220-128-3-17.tpdb-3311.hinet.net (220.128.3.17)  2.375 ms  2.371 ms
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  2.551 ms  2.547 ms
+ 5  220-128-4-81.tpdb-3311.hinet.net (220.128.4.81)  8.953 ms  9.055 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  9.160 ms  9.249 ms
  7  * *
  8  * *
  9  * *
@@ -1402,10 +1402,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-29')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1414,13 +1414,13 @@
     <tr id="log-29" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-137-128-8.emome-ip.hinet.net (223.137.128.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.447 ms  0.245 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.935 ms  3.004 ms
- 3  * *
+ 1  _gateway (10.10.10.254)  0.289 ms  0.257 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.872 ms *
+ 3  168-95-164-34.ntnk-3311.hinet.net (168.95.164.34)  0.906 ms  4.229 ms
  4  * *
- 5  220-128-3-17.tpdb-3311.hinet.net (220.128.3.17)  3.066 ms *
- 6  * 210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  3.113 ms
- 7  * *
+ 5  * *
+ 6  * 220-128-3-189.tpdb-3311.hinet.net (220.128.3.189)  4.008 ms
+ 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  4.240 ms *
  8  * *
  9  * *
 10  * *
@@ -1458,12 +1458,12 @@
     <tr id="log-30" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-137-192-8.emome-ip.hinet.net (223.137.192.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  7.405 ms  7.500 ms
- 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  8.312 ms  8.408 ms
+ 1  _gateway (168.95.98.254)  6.466 ms  6.549 ms
+ 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  6.953 ms  7.057 ms
  3  * *
  4  * *
- 5  220-128-4-85.tpdb-3312.hinet.net (220.128.4.85)  9.576 ms  9.660 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  10.525 ms  10.638 ms
+ 5  220-128-4-85.tpdb-3312.hinet.net (220.128.4.85)  8.990 ms  9.070 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  8.899 ms  9.387 ms
  7  * *
  8  * *
  9  * *
@@ -1490,10 +1490,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-31')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1502,13 +1502,13 @@
     <tr id="log-31" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-137-64-8.emome-ip.hinet.net (223.137.64.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.2.1)  0.554 ms  0.656 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  9.845 ms  9.842 ms
- 3  168-95-153-82.tchn-3332.hinet.net (168.95.153.82)  10.127 ms  10.161 ms
+ 1  _gateway (192.168.1.1)  0.126 ms  0.149 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  6.184 ms  6.249 ms
+ 3  168-95-170-118.snuh-3331.hinet.net (168.95.170.118)  6.352 ms  6.447 ms
  4  * *
- 5  * *
- 6  220-128-3-97.tpdb-3312.hinet.net (220.128.3.97)  37.472 ms  37.466 ms
- 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  13.860 ms  13.891 ms
+ 5  220-128-3-97.tpdb-3312.hinet.net (220.128.3.97)  6.775 ms  6.883 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  6.536 ms  6.638 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -1534,10 +1534,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.193</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR1 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR1</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-32')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1546,13 +1546,13 @@
     <tr id="log-32" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-138-0-8.emome-ip.hinet.net (223.138.0.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  8.692 ms  8.791 ms
- 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  8.896 ms  8.988 ms
- 3  * *
- 4  * *
- 5  220-128-25-125.skc1-3335.hinet.net (220.128.25.125)  11.939 ms  12.051 ms
- 6  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  11.716 ms  11.831 ms
- 7  * *
+ 1  _gateway (192.168.1.254)  0.141 ms  0.167 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  4.526 ms  4.621 ms
+ 3  168-95-170-162.snuh-3331.hinet.net (168.95.170.162)  4.846 ms  4.961 ms
+ 4  220-128-9-2.tyfo-3031.hinet.net (220.128.9.2)  9.809 ms  9.923 ms
+ 5  * *
+ 6  220-128-23-137.skc1-3335.hinet.net (220.128.23.137)  11.109 ms  11.225 ms
+ 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  10.889 ms  10.995 ms
  8  * *
  9  * *
 10  * *
@@ -1590,13 +1590,13 @@
     <tr id="log-33" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-138-128-8.emome-ip.hinet.net (223.138.128.8), 20 hops max, 60 byte packets
- 1  _gateway (198.18.4.1)  0.439 ms  0.382 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  5.296 ms  5.321 ms
- 3  168-95-75-226.pcpc-3332.hinet.net (168.95.75.226)  5.736 ms  5.790 ms
- 4  220-128-13-246.pcpd-3062.hinet.net (220.128.13.246)  8.783 ms  8.864 ms
+ 1  _gateway (10.10.10.254)  0.508 ms  0.409 ms
+ 2  192.168.1.254 (192.168.1.254)  0.588 ms  0.739 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  4.764 ms  4.579 ms
+ 4  168-95-165-22.ntnk-3312.hinet.net (168.95.165.22)  4.997 ms  4.876 ms
  5  * *
- 6  220-128-17-37.tchn-3335.hinet.net (220.128.17.37)  7.900 ms  7.975 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  8.305 ms  8.302 ms
+ 6  220-128-17-213.tchn-3335.hinet.net (220.128.17.213)  4.855 ms  4.711 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  4.376 ms  4.246 ms
  8  * *
  9  * *
 10  * *
@@ -1622,10 +1622,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-34')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1634,13 +1634,13 @@
     <tr id="log-34" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-138-192-8.emome-ip.hinet.net (223.138.192.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.254)  0.149 ms  0.174 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  4.106 ms  4.212 ms
- 3  168-95-170-162.snuh-3331.hinet.net (168.95.170.162)  4.327 ms  4.444 ms
- 4  220-128-9-2.tyfo-3031.hinet.net (220.128.9.2)  7.763 ms  7.843 ms
- 5  * *
- 6  220-128-16-37.tchn-3336.hinet.net (220.128.16.37)  7.959 ms  8.292 ms
- 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  8.069 ms  8.163 ms
+ 1  _gateway (192.168.2.1)  0.521 ms  0.499 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.605 ms  9.602 ms
+ 3  168-95-153-82.tchn-3332.hinet.net (168.95.153.82)  17.408 ms  17.405 ms
+ 4  * *
+ 5  220-128-17-17.tchn-3336.hinet.net (220.128.17.17)  17.401 ms  17.433 ms
+ 6  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  13.000 ms  13.181 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -1666,10 +1666,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.197</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-35')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1678,14 +1678,14 @@
     <tr id="log-35" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-138-32-8.emome-ip.hinet.net (223.138.32.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.254)  0.139 ms  0.162 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  6.204 ms  6.324 ms
- 3  168-95-171-162.snuh-3332.hinet.net (168.95.171.162)  6.458 ms  6.542 ms
- 4  220-128-9-198.tylc-3032.hinet.net (220.128.9.198)  11.278 ms  11.370 ms
- 5  * *
- 6  220-128-25-53.skc1-3336.hinet.net (220.128.25.53)  12.193 ms  12.324 ms
- 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  12.876 ms  12.984 ms
- 8  * *
+ 1  _gateway (172.17.0.1)  0.074 ms  0.014 ms
+ 2  192.168.10.1 (192.168.10.1)  0.561 ms  0.561 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  2.156 ms  2.148 ms
+ 4  168-95-162-94.tpn2-3331.hinet.net (168.95.162.94)  2.225 ms  2.396 ms
+ 5  220-128-13-134.pcpd-3061.hinet.net (220.128.13.134)  8.387 ms  8.379 ms
+ 6  * *
+ 7  220-128-23-145.skc1-3336.hinet.net (220.128.23.145)  7.960 ms  7.951 ms
+ 8  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  7.930 ms  7.929 ms
  9  * *
 10  * *
 11  * *
@@ -1722,13 +1722,13 @@
     <tr id="log-36" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-138-64-8.emome-ip.hinet.net (223.138.64.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.254)  0.123 ms  0.141 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  4.261 ms  5.066 ms
- 3  168-95-170-162.snuh-3331.hinet.net (168.95.170.162)  5.489 ms  5.610 ms
- 4  220-128-9-194.tyfo-3031.hinet.net (220.128.9.194)  11.032 ms  11.260 ms
+ 1  * *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.685 ms  1.729 ms
+ 3  168-95-153-126.tchn-3332.hinet.net (168.95.153.126)  1.743 ms  1.783 ms
+ 4  * *
  5  * *
- 6  220-128-23-137.skc1-3335.hinet.net (220.128.23.137)  11.116 ms  11.343 ms
- 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  11.748 ms  11.867 ms
+ 6  220-128-24-53.skc1-3335.hinet.net (220.128.24.53)  4.774 ms  4.790 ms
+ 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  4.699 ms  5.479 ms
  8  * *
  9  * *
 10  * *
@@ -1766,12 +1766,12 @@
     <tr id="log-37" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-138-96-8.emome-ip.hinet.net (223.138.96.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  3.646 ms  3.748 ms
- 2  * 168-95-152-90.tchn-3331.hinet.net (168.95.152.90)  4.046 ms
+ 1  _gateway (168.95.98.254)  6.060 ms  6.141 ms
+ 2  168-95-152-90.tchn-3331.hinet.net (168.95.152.90)  6.254 ms  6.411 ms
  3  * *
  4  * *
- 5  220-128-25-61.skc1-3336.hinet.net (220.128.25.61)  7.628 ms  7.722 ms
- 6  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  7.814 ms  7.931 ms
+ 5  220-128-25-61.skc1-3336.hinet.net (220.128.25.61)  9.327 ms  9.457 ms
+ 6  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  9.132 ms  9.222 ms
  7  * *
  8  * *
  9  * *
@@ -1810,14 +1810,14 @@
     <tr id="log-38" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-139-0-8.emome-ip.hinet.net (223.139.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.348 ms  0.364 ms
- 2  192.168.1.254 (192.168.1.254)  0.590 ms  0.534 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  2.528 ms  2.468 ms
- 4  168-95-165-34.ntnk-3312.hinet.net (168.95.165.34)  14.245 ms  14.197 ms
- 5  220-128-19-14.chch-3032.hinet.net (220.128.19.14)  5.540 ms  5.493 ms
+ 1  _gateway (172.17.0.1)  0.076 ms  0.014 ms
+ 2  192.168.10.1 (192.168.10.1)  0.179 ms  0.250 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  1.889 ms  1.977 ms
+ 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  2.856 ms  3.202 ms
+ 5  220-128-14-134.pcpd-3062.hinet.net (220.128.14.134)  9.264 ms  9.256 ms
  6  * *
- 7  220-128-25-93.skc1-3335.hinet.net (220.128.25.93)  5.991 ms  5.850 ms
- 8  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  6.181 ms  6.120 ms
+ 7  220-128-25-137.skc1-3335.hinet.net (220.128.25.137)  7.675 ms  7.753 ms
+ 8  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  7.527 ms  7.613 ms
  9  * *
 10  * *
 11  * *
@@ -1854,13 +1854,13 @@
     <tr id="log-39" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-139-128-8.emome-ip.hinet.net (223.139.128.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.520 ms  0.429 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.060 ms  1.078 ms
- 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.497 ms  1.489 ms
- 4  220-128-12-246.pcpd-3061.hinet.net (220.128.12.246)  8.170 ms  8.163 ms
+ 1  _gateway (192.168.2.1)  0.589 ms *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.323 ms  9.432 ms
+ 3  168-95-153-106.tchn-3332.hinet.net (168.95.153.106)  10.000 ms  10.039 ms
+ 4  * *
  5  * *
- 6  220-128-24-61.skc1-3335.hinet.net (220.128.24.61)  6.304 ms  6.296 ms
- 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  6.284 ms  6.276 ms
+ 6  220-128-23-137.skc1-3335.hinet.net (220.128.23.137)  13.524 ms  13.575 ms
+ 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  13.024 ms  13.043 ms
  8  * *
  9  * *
 10  * *
@@ -1886,10 +1886,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.197</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-40')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -1898,14 +1898,14 @@
     <tr id="log-40" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-139-192-8.emome-ip.hinet.net (223.139.192.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.073 ms  0.013 ms
- 2  192.168.10.1 (192.168.10.1)  0.260 ms  0.233 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  2.251 ms  2.249 ms
- 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  2.250 ms  2.247 ms
+ 1  _gateway (10.20.10.254)  0.367 ms  0.374 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.666 ms *
+ 3  * *
+ 4  220-128-9-242.tylc-3032.hinet.net (220.128.9.242)  7.853 ms *
  5  * *
- 6  * *
- 7  220-128-25-145.skc1-3336.hinet.net (220.128.25.145)  7.191 ms  7.354 ms
- 8  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  7.349 ms  7.364 ms
+ 6  220-128-25-145.skc1-3336.hinet.net (220.128.25.145)  8.077 ms *
+ 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  8.748 ms *
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -1942,13 +1942,13 @@
     <tr id="log-41" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-139-64-8.emome-ip.hinet.net (223.139.64.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.254)  0.152 ms  0.173 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  5.065 ms  5.184 ms
- 3  168-95-170-162.snuh-3331.hinet.net (168.95.170.162)  5.698 ms  5.798 ms
- 4  220-128-9-194.tyfo-3031.hinet.net (220.128.9.194)  10.305 ms  11.832 ms
+ 1  _gateway (10.20.10.254)  0.402 ms  0.226 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.115 ms  2.934 ms
+ 3  168-95-84-26.tpe4-3331.hinet.net (168.95.84.26)  3.251 ms *
+ 4  220-128-8-242.tyfo-3031.hinet.net (220.128.8.242)  8.019 ms *
  5  * *
- 6  220-128-24-93.skc1-3336.hinet.net (220.128.24.93)  11.929 ms  12.017 ms
- 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  12.126 ms  12.232 ms
+ 6  * *
+ 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  8.481 ms *
  8  * *
  9  * *
 10  * *
@@ -1986,12 +1986,12 @@
     <tr id="log-42" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-140-0-8.emome-ip.hinet.net (223.140.0.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  4.036 ms  4.150 ms
- 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  4.261 ms  4.374 ms
+ 1  _gateway (198.18.4.1)  0.696 ms  0.617 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.382 ms *
  3  * *
  4  * *
- 5  220-128-2-9.tpdb-3311.hinet.net (220.128.2.9)  6.301 ms  6.384 ms
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  7.330 ms  7.431 ms
+ 5  220-128-4-81.tpdb-3311.hinet.net (220.128.4.81)  1.570 ms  1.561 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  1.802 ms  1.857 ms
  7  * *
  8  * *
  9  * *
@@ -2018,10 +2018,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-43')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2030,13 +2030,13 @@
     <tr id="log-43" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-140-128-8.emome-ip.hinet.net (223.140.128.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.1)  0.097 ms  0.112 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  2.193 ms  2.265 ms
- 3  168-95-170-106.snuh-3331.hinet.net (168.95.170.106)  2.675 ms  2.912 ms
- 4  * *
- 5  220-128-3-189.tpdb-3311.hinet.net (220.128.3.189)  2.516 ms  2.785 ms
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  37.525 ms  37.605 ms
- 7  * *
+ 1  _gateway (172.17.0.1)  0.076 ms  0.013 ms
+ 2  192.168.10.1 (192.168.10.1)  0.148 ms  0.197 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  3.652 ms  3.760 ms
+ 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  3.840 ms  4.298 ms
+ 5  * *
+ 6  220-128-3-17.tpdb-3311.hinet.net (220.128.3.17)  4.847 ms  4.838 ms
+ 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  12.981 ms  13.065 ms
  8  * *
  9  * *
 10  * *
@@ -2074,12 +2074,12 @@
     <tr id="log-44" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-140-192-8.emome-ip.hinet.net (223.140.192.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.288 ms  0.336 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.056 ms  1.083 ms
- 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.353 ms  1.366 ms
+ 1  _gateway (10.20.10.254)  0.488 ms  0.360 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.212 ms *
+ 3  168-95-85-118.tpe4-3332.hinet.net (168.95.85.118)  2.836 ms *
  4  * *
- 5  220-128-1-113.tpdb-3312.hinet.net (220.128.1.113)  1.415 ms  1.452 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  1.765 ms  1.797 ms
+ 5  220-128-4-97.tpdb-3312.hinet.net (220.128.4.97)  3.173 ms *
+ 6  * 210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  3.404 ms
  7  * *
  8  * *
  9  * *
@@ -2118,12 +2118,12 @@
     <tr id="log-45" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-140-64-8.emome-ip.hinet.net (223.140.64.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.345 ms  0.243 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  3.007 ms *
- 3  * 168-95-84-26.tpe4-3331.hinet.net (168.95.84.26)  3.348 ms
+ 1  _gateway (192.168.50.1)  0.329 ms  0.258 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.880 ms  1.036 ms
+ 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.230 ms  1.253 ms
  4  * *
- 5  220-128-1-113.tpdb-3312.hinet.net (220.128.1.113)  2.607 ms *
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  3.585 ms *
+ 5  220-128-3-97.tpdb-3312.hinet.net (220.128.3.97)  1.465 ms  1.436 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  5.617 ms  5.602 ms
  7  * *
  8  * *
  9  * *
@@ -2162,13 +2162,13 @@
     <tr id="log-46" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-141-0-8.emome-ip.hinet.net (223.141.0.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.286 ms  0.242 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  0.914 ms  0.938 ms
- 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.411 ms  1.447 ms
- 4  220-128-12-186.pcpd-3061.hinet.net (220.128.12.186)  4.522 ms  4.491 ms
+ 1  _gateway (10.10.10.254)  0.465 ms  0.288 ms
+ 2  192.168.1.254 (192.168.1.254)  0.912 ms  0.409 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  1.638 ms  1.753 ms
+ 4  168-95-165-18.ntnk-3312.hinet.net (168.95.165.18)  2.218 ms  2.339 ms
  5  * *
- 6  220-128-16-93.tchn-3335.hinet.net (220.128.16.93)  3.461 ms  3.539 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  9.609 ms  9.591 ms
+ 6  220-128-17-209.tchn-3335.hinet.net (220.128.17.209)  2.822 ms  3.129 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  3.250 ms  3.214 ms
  8  * *
  9  * *
 10  * *
@@ -2194,10 +2194,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.101</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-47')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2206,13 +2206,13 @@
     <tr id="log-47" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-141-128-8.emome-ip.hinet.net (223.141.128.8), 20 hops max, 60 byte packets
- 1  _gateway (10.20.10.254)  0.426 ms  0.262 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  2.832 ms *
- 3  * 168-95-84-118.tpe4-3331.hinet.net (168.95.84.118)  2.763 ms
- 4  220-128-8-34.tyfo-3031.hinet.net (220.128.8.34)  5.108 ms  5.842 ms
- 5  * *
- 6  * 220-128-16-17.tchn-3335.hinet.net (220.128.16.17)  6.848 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  31.038 ms *
+ 1  * *
+ 2  * *
+ 3  168-95-153-126.tchn-3332.hinet.net (168.95.153.126)  1.435 ms  1.584 ms
+ 4  * *
+ 5  220-128-17-209.tchn-3335.hinet.net (220.128.17.209)  2.802 ms  3.009 ms
+ 6  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  2.555 ms  2.679 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -2238,10 +2238,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-48')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2250,14 +2250,14 @@
     <tr id="log-48" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-141-160-8.emome-ip.hinet.net (223.141.160.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.495 ms  0.406 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.181 ms  1.172 ms
- 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.509 ms  3.195 ms
- 4  220-128-13-22.pcpd-3062.hinet.net (220.128.13.22)  4.821 ms  6.883 ms
+ 1  _gateway (172.17.0.1)  0.059 ms  0.014 ms
+ 2  192.168.10.1 (192.168.10.1)  0.166 ms  0.147 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  1.753 ms  1.839 ms
+ 4  168-95-162-94.tpn2-3331.hinet.net (168.95.162.94)  2.008 ms  2.443 ms
  5  * *
- 6  220-128-17-17.tchn-3336.hinet.net (220.128.17.17)  3.710 ms  3.843 ms
- 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  3.641 ms  3.659 ms
- 8  * *
+ 6  * *
+ 7  220-128-17-81.tchn-3336.hinet.net (220.128.17.81)  4.432 ms  4.528 ms
+ 8  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  4.510 ms  4.501 ms
  9  * *
 10  * *
 11  * *
@@ -2282,10 +2282,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.101</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-49')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2294,13 +2294,13 @@
     <tr id="log-49" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-141-192-8.emome-ip.hinet.net (223.141.192.8), 20 hops max, 60 byte packets
- 1  * *
+ 1  _gateway (198.18.4.1)  0.368 ms  0.378 ms
  2  * *
- 3  168-95-153-126.tchn-3332.hinet.net (168.95.153.126)  2.134 ms  2.298 ms
- 4  * *
- 5  220-128-17-189.tchn-3335.hinet.net (220.128.17.189)  2.068 ms  12.519 ms
- 6  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  1.870 ms  2.020 ms
- 7  * *
+ 3  168-95-75-226.pcpc-3332.hinet.net (168.95.75.226)  1.261 ms  1.340 ms
+ 4  220-128-13-210.pcpd-3062.hinet.net (220.128.13.210)  5.785 ms  5.782 ms
+ 5  * *
+ 6  220-128-17-213.tchn-3335.hinet.net (220.128.17.213)  3.393 ms  3.647 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  3.889 ms  3.887 ms
  8  * *
  9  * *
 10  * *
@@ -2326,10 +2326,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>5</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-2)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-2)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-50')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2338,13 +2338,13 @@
     <tr id="log-50" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-141-224-8.emome-ip.hinet.net (223.141.224.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.524 ms  0.342 ms
- 2  192.168.1.254 (192.168.1.254)  0.935 ms  0.902 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  1.856 ms  1.838 ms
- 4  168-95-164-38.ntnk-3311.hinet.net (168.95.164.38)  1.841 ms  3.260 ms
- 5  * *
- 6  220-128-16-73.tchn-3336.hinet.net (220.128.16.73)  4.611 ms  4.640 ms
- 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  4.264 ms  4.353 ms
+ 1  _gateway (168.95.98.254)  7.845 ms  7.951 ms
+ 2  168-95-152-90.tchn-3331.hinet.net (168.95.152.90)  8.091 ms  8.226 ms
+ 3  * *
+ 4  220-128-17-93.tchn-3336.hinet.net (220.128.17.93)  8.576 ms  8.684 ms
+ 5  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  8.326 ms  8.439 ms
+ 6  * *
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -2382,10 +2382,10 @@
     <tr id="log-51" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-141-64-8.emome-ip.hinet.net (223.141.64.8), 20 hops max, 60 byte packets
- 1  _gateway (10.0.0.1)  0.130 ms  0.154 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.037 ms  1.526 ms
- 3  168-95-153-146.tchn-3336.hinet.net (168.95.153.146)  1.905 ms  2.159 ms
- 4  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  1.926 ms  1.975 ms
+ 1  _gateway (10.0.0.1)  0.157 ms  0.197 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.101 ms  1.128 ms
+ 3  168-95-153-146.tchn-3336.hinet.net (168.95.153.146)  1.189 ms  2.254 ms
+ 4  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  2.055 ms  2.087 ms
  5  * *
  6  * *
  7  * *
@@ -2414,10 +2414,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG4</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:5 / 差:+2)</span></td>
-        <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
-        <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+2)</td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:5 / 差:+1)</span></td>
+        <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
+        <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-52')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2426,13 +2426,13 @@
     <tr id="log-52" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-143-240-8.emome-ip.hinet.net (223.143.240.8), 20 hops max, 60 byte packets
- 1  * *
- 2  h254.s98.ts.hinet.net (168.95.98.254)  9.795 ms  9.834 ms
- 3  * 168-95-153-102.tchn-3332.hinet.net (168.95.153.102)  9.921 ms
+ 1  _gateway (192.168.50.1)  0.341 ms  0.269 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.975 ms  0.966 ms
+ 3  168-95-74-222.pcpc-3331.hinet.net (168.95.74.222)  1.659 ms  1.651 ms
  4  * *
- 5  * *
- 6  220-128-4-97.tpdb-3312.hinet.net (220.128.4.97)  11.948 ms  11.971 ms
- 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  12.037 ms  12.352 ms
+ 5  220-128-3-81.tpdb-3311.hinet.net (220.128.3.81)  1.421 ms  1.414 ms
+ 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  1.616 ms  1.724 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -2458,10 +2458,10 @@
             <div style="font-weight:bold;font-size:15px;">2L3EPG4</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
-        <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
-        <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
+        <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-53')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2470,13 +2470,13 @@
     <tr id="log-53" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-143-242-8.emome-ip.hinet.net (223.143.242.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.1)  0.092 ms  0.119 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.962 ms  2.031 ms
- 3  168-95-170-118.snuh-3331.hinet.net (168.95.170.118)  2.286 ms  2.420 ms
+ 1  _gateway (192.168.2.1)  0.393 ms *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.314 ms  9.310 ms
+ 3  168-95-153-82.tchn-3332.hinet.net (168.95.153.82)  9.796 ms  9.844 ms
  4  * *
- 5  220-128-3-97.tpdb-3312.hinet.net (220.128.3.97)  2.747 ms  2.858 ms
- 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  2.515 ms  2.615 ms
- 7  * *
+ 5  * *
+ 6  220-128-1-249.tpdb-3311.hinet.net (220.128.1.249)  12.104 ms  12.101 ms
+ 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  12.096 ms  12.092 ms
  8  * *
  9  * *
 10  * *
@@ -2514,13 +2514,13 @@
     <tr id="log-54" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-143-244-8.emome-ip.hinet.net (223.143.244.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.2.1)  0.518 ms *
- 2  h254.s98.ts.hinet.net (168.95.98.254)  9.796 ms  9.792 ms
- 3  168-95-153-102.tchn-3332.hinet.net (168.95.153.102)  10.102 ms  10.257 ms
+ 1  * *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.362 ms  9.358 ms
+ 3  168-95-153-102.tchn-3332.hinet.net (168.95.153.102)  9.959 ms *
  4  * *
  5  * *
- 6  220-128-2-249.tpdb-3312.hinet.net (220.128.2.249)  12.178 ms  12.228 ms
- 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  15.766 ms  16.229 ms
+ 6  220-128-2-249.tpdb-3312.hinet.net (220.128.2.249)  11.826 ms  11.864 ms
+ 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  12.392 ms  12.431 ms
  8  * *
  9  * *
 10  * *
@@ -2547,9 +2547,9 @@
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
         <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
-        <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.93</span></td>
-        <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR3</td>
+        <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
+        <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-55')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2558,12 +2558,12 @@
     <tr id="log-55" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 223-143-246-8.emome-ip.hinet.net (223.143.246.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  7.912 ms  8.029 ms
- 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  8.130 ms  8.239 ms
- 3  * *
+ 1  _gateway (192.168.1.1)  0.107 ms  0.128 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.510 ms  1.584 ms
+ 3  168-95-170-118.snuh-3331.hinet.net (168.95.170.118)  2.153 ms  2.238 ms
  4  * *
- 5  220-128-3-189.tpdb-3311.hinet.net (220.128.3.189)  10.443 ms  10.567 ms
- 6  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  10.308 ms  10.636 ms
+ 5  220-128-1-253.tpdb-3312.hinet.net (220.128.1.253)  2.636 ms  2.706 ms
+ 6  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  2.818 ms  2.936 ms
  7  * *
  8  * *
  9  * *
@@ -2590,10 +2590,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.209</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-56')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2602,13 +2602,13 @@
     <tr id="log-56" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-72-0-8.emome-ip.hinet.net (42.72.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.0.0.1)  0.131 ms *
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.710 ms  1.762 ms
- 3  168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  1.868 ms  1.959 ms
- 4  * *
- 5  220-128-18-94.tylc-3032.hinet.net (220.128.18.94)  4.430 ms  4.468 ms
- 6  * 220-128-9-13.tyfo-3335.hinet.net (220.128.9.13)  4.878 ms
- 7  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  4.253 ms  4.307 ms
+ 1  _gateway (192.168.50.1)  0.264 ms  0.220 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.990 ms  1.060 ms
+ 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.858 ms  1.850 ms
+ 4  220-128-6-62.tylc-3032.hinet.net (220.128.6.62)  1.839 ms  1.830 ms
+ 5  * *
+ 6  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  1.760 ms  1.769 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -2634,10 +2634,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+2)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.209</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (+2)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-57')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2646,14 +2646,14 @@
     <tr id="log-57" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-72-128-8.emome-ip.hinet.net (42.72.128.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.307 ms  0.303 ms
- 2  192.168.1.254 (192.168.1.254)  0.607 ms  0.679 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  2.110 ms  2.185 ms
- 4  168-95-164-34.ntnk-3311.hinet.net (168.95.164.34)  6.368 ms  6.491 ms
- 5  * *
- 6  220-128-16-30.tyfo-3031.hinet.net (220.128.16.30)  10.083 ms  12.821 ms
- 7  220-128-8-77.tyfo-3335.hinet.net (220.128.8.77)  10.117 ms  10.276 ms
- 8  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  9.713 ms  10.013 ms
+ 1  _gateway (192.168.2.1)  0.506 ms  0.540 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  10.108 ms  10.145 ms
+ 3  168-95-152-102.tchn-3331.hinet.net (168.95.152.102)  10.590 ms *
+ 4  * *
+ 5  220-128-18-94.tylc-3032.hinet.net (220.128.18.94)  13.900 ms  13.917 ms
+ 6  220-128-9-185.tyfo-3335.hinet.net (220.128.9.185)  12.900 ms  12.894 ms
+ 7  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  12.889 ms  12.886 ms
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -2678,10 +2678,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.213</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-58')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2690,13 +2690,13 @@
     <tr id="log-58" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-72-192-8.emome-ip.hinet.net (42.72.192.8), 20 hops max, 60 byte packets
- 1  * *
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.980 ms  2.052 ms
- 3  168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  2.302 ms  2.365 ms
- 4  * *
- 5  220-128-17-30.tylc-3032.hinet.net (220.128.17.30)  3.974 ms  3.996 ms
- 6  220-128-5-101.tylc-3326.hinet.net (220.128.5.101)  3.816 ms  3.874 ms
- 7  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  4.802 ms  4.868 ms
+ 1  _gateway (192.168.50.1)  0.340 ms  0.271 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.405 ms  1.419 ms
+ 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.386 ms  1.482 ms
+ 4  220-128-6-62.tylc-3032.hinet.net (220.128.6.62)  1.928 ms  1.921 ms
+ 5  220-128-5-101.tylc-3326.hinet.net (220.128.5.101)  1.537 ms  1.568 ms
+ 6  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  1.660 ms  1.753 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -2722,10 +2722,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.213</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-59')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2734,13 +2734,13 @@
     <tr id="log-59" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-72-64-8.emome-ip.hinet.net (42.72.64.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  8.636 ms  8.774 ms
- 2  168-95-152-90.tchn-3331.hinet.net (168.95.152.90)  9.228 ms  9.375 ms
- 3  * *
- 4  220-128-17-30.tylc-3032.hinet.net (220.128.17.30)  11.203 ms  11.244 ms
- 5  220-128-5-93.tylc-3326.hinet.net (220.128.5.93)  10.763 ms  10.850 ms
- 6  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  10.930 ms  11.058 ms
- 7  * *
+ 1  _gateway (192.168.2.1)  0.571 ms  0.511 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  8.940 ms  8.974 ms
+ 3  168-95-152-102.tchn-3331.hinet.net (168.95.152.102)  9.406 ms  9.437 ms
+ 4  * *
+ 5  220-128-16-218.tyfo-3031.hinet.net (220.128.16.218)  11.369 ms  11.537 ms
+ 6  220-128-10-237.tylc-3326.hinet.net (220.128.10.237)  11.373 ms  11.981 ms
+ 7  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  13.669 ms  13.666 ms
  8  * *
  9  * *
 10  * *
@@ -2766,10 +2766,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG3</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.209</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR1 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-60')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2778,13 +2778,13 @@
     <tr id="log-60" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-73-0-8.emome-ip.hinet.net (42.73.0.8), 20 hops max, 60 byte packets
- 1  _gateway (198.18.4.1)  0.634 ms  0.587 ms
- 2  * *
- 3  168-95-74-226.pcpc-3331.hinet.net (168.95.74.226)  2.763 ms  2.902 ms
- 4  220-128-5-62.tyfo-3031.hinet.net (220.128.5.62)  3.043 ms  3.318 ms
- 5  220-128-8-17.tyfo-3335.hinet.net (220.128.8.17)  3.080 ms  3.070 ms
- 6  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  2.852 ms  2.846 ms
- 7  * *
+ 1  _gateway (10.0.0.1)  0.131 ms  0.155 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.048 ms  1.071 ms
+ 3  168-95-152-146.tchn-3335.hinet.net (168.95.152.146)  1.119 ms  1.810 ms
+ 4  * *
+ 5  220-128-16-58.tyfo-3031.hinet.net (220.128.16.58)  3.629 ms  3.806 ms
+ 6  * 220-128-8-97.tyfo-3335.hinet.net (220.128.8.97)  3.830 ms
+ 7  210-65-126-209.hinet-ip.hinet.net (210.65.126.209)  3.531 ms  3.528 ms
  8  * *
  9  * *
 10  * *
@@ -2810,10 +2810,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG3</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.213</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 3L1BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 3L1BR2 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-61')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2822,13 +2822,13 @@
     <tr id="log-61" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-73-128-8.emome-ip.hinet.net (42.73.128.8), 20 hops max, 60 byte packets
- 1  _gateway (168.95.98.254)  6.817 ms  6.919 ms
- 2  168-95-152-90.tchn-3331.hinet.net (168.95.152.90)  7.014 ms  7.237 ms
- 3  * *
- 4  220-128-18-94.tylc-3032.hinet.net (220.128.18.94)  9.631 ms  9.716 ms
- 5  220-128-5-93.tylc-3326.hinet.net (220.128.5.93)  9.059 ms  9.162 ms
- 6  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  9.337 ms  9.456 ms
- 7  * *
+ 1  _gateway (10.0.0.1)  0.118 ms  0.161 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.698 ms  0.727 ms
+ 3  168-95-152-146.tchn-3335.hinet.net (168.95.152.146)  1.132 ms  1.262 ms
+ 4  * *
+ 5  220-128-16-30.tyfo-3031.hinet.net (220.128.16.30)  3.656 ms  3.691 ms
+ 6  220-128-5-13.tylc-3326.hinet.net (220.128.5.13)  3.282 ms  3.329 ms
+ 7  210-65-126-213.hinet-ip.hinet.net (210.65.126.213)  3.379 ms  3.408 ms
  8  * *
  9  * *
 10  * *
@@ -2866,14 +2866,14 @@
     <tr id="log-62" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-74-0-8.emome-ip.hinet.net (42.74.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.442 ms  0.324 ms
- 2  192.168.1.254 (192.168.1.254)  0.836 ms  0.579 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  2.026 ms  2.433 ms
- 4  168-95-164-18.ntnk-3311.hinet.net (168.95.164.18)  2.555 ms  2.601 ms
+ 1  _gateway (10.10.10.254)  0.468 ms  0.431 ms
+ 2  192.168.1.254 (192.168.1.254)  0.689 ms  0.427 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  1.996 ms  1.796 ms
+ 4  168-95-164-18.ntnk-3311.hinet.net (168.95.164.18)  1.775 ms  1.399 ms
  5  * *
  6  * *
- 7  220-128-24-53.skc1-3335.hinet.net (220.128.24.53)  5.174 ms  5.248 ms
- 8  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  6.502 ms  6.491 ms
+ 7  220-128-24-53.skc1-3335.hinet.net (220.128.24.53)  5.551 ms  5.427 ms
+ 8  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  5.625 ms  6.535 ms
  9  * *
 10  * *
 11  * *
@@ -2898,10 +2898,10 @@
             <div style="font-weight:bold;font-size:15px;">3L1EPG4</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT5/6</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.197</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-63')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2910,14 +2910,14 @@
     <tr id="log-63" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-75-0-8.emome-ip.hinet.net (42.75.0.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.074 ms  0.014 ms
- 2  192.168.10.1 (192.168.10.1)  0.549 ms  0.521 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  2.101 ms  2.186 ms
- 4  168-95-162-94.tpn2-3331.hinet.net (168.95.162.94)  2.175 ms  2.343 ms
+ 1  _gateway (192.168.50.1)  0.339 ms  0.270 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  0.999 ms  1.012 ms
+ 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.995 ms  2.129 ms
+ 4  220-128-13-246.pcpd-3062.hinet.net (220.128.13.246)  7.561 ms  7.558 ms
  5  * *
- 6  * *
- 7  220-128-24-125.skc1-3336.hinet.net (220.128.24.125)  7.546 ms  7.630 ms
- 8  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  7.619 ms  7.695 ms
+ 6  220-128-25-53.skc1-3336.hinet.net (220.128.25.53)  6.746 ms  6.736 ms
+ 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  6.724 ms  6.716 ms
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -2954,13 +2954,13 @@
     <tr id="log-64" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-76-0-8.emome-ip.hinet.net (42.76.0.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.1.1)  0.115 ms  0.139 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.806 ms  1.886 ms
- 3  168-95-171-102.snuh-3332.hinet.net (168.95.171.102)  2.061 ms  2.169 ms
- 4  220-128-9-198.tylc-3032.hinet.net (220.128.9.198)  4.019 ms  4.097 ms
+ 1  _gateway (192.168.50.1)  0.281 ms  0.214 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.002 ms  1.017 ms
+ 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.167 ms  1.327 ms
+ 4  220-128-13-210.pcpd-3062.hinet.net (220.128.13.210)  5.245 ms  5.248 ms
  5  * *
- 6  220-128-17-209.tchn-3335.hinet.net (220.128.17.209)  4.377 ms  5.529 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  79.373 ms  79.471 ms
+ 6  220-128-17-209.tchn-3335.hinet.net (220.128.17.209)  3.622 ms  3.659 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  5.116 ms  5.242 ms
  8  * *
  9  * *
 10  * *
@@ -2986,10 +2986,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:8 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.101</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-65')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -2998,14 +2998,14 @@
     <tr id="log-65" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-76-128-8.emome-ip.hinet.net (42.76.128.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.408 ms  0.338 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.961 ms  1.952 ms
- 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.941 ms  1.978 ms
- 4  220-128-13-22.pcpd-3062.hinet.net (220.128.13.22)  5.345 ms  5.336 ms
+ 1  _gateway (172.17.0.1)  0.088 ms  0.012 ms
+ 2  192.168.10.1 (192.168.10.1)  0.522 ms  0.515 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  2.071 ms  2.156 ms
+ 4  168-95-162-94.tpn2-3331.hinet.net (168.95.162.94)  2.245 ms  2.237 ms
  5  * *
- 6  220-128-17-213.tchn-3335.hinet.net (220.128.17.213)  3.844 ms  4.024 ms
- 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  8.974 ms  8.945 ms
- 8  * *
+ 6  * *
+ 7  220-128-16-17.tchn-3335.hinet.net (220.128.16.17)  5.194 ms  5.271 ms
+ 8  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  5.074 ms  5.153 ms
  9  * *
 10  * *
 11  * *
@@ -3030,10 +3030,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-66')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3042,13 +3042,13 @@
     <tr id="log-66" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-76-192-8.emome-ip.hinet.net (42.76.192.8), 20 hops max, 60 byte packets
- 1  * *
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.379 ms  1.458 ms
- 3  168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  1.594 ms  1.716 ms
- 4  * *
- 5  220-128-16-73.tchn-3336.hinet.net (220.128.16.73)  2.563 ms  2.580 ms
- 6  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  2.397 ms  2.465 ms
- 7  * *
+ 1  _gateway (10.10.10.254)  0.367 ms  0.293 ms
+ 2  192.168.1.254 (192.168.1.254)  1.190 ms  1.077 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  1.871 ms  1.929 ms
+ 4  168-95-164-34.ntnk-3311.hinet.net (168.95.164.34)  1.362 ms  1.423 ms
+ 5  * *
+ 6  220-128-17-85.tchn-3336.hinet.net (220.128.17.85)  3.354 ms  3.508 ms
+ 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  3.381 ms  3.207 ms
  8  * *
  9  * *
 10  * *
@@ -3074,10 +3074,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-67')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3086,13 +3086,13 @@
     <tr id="log-67" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-76-64-8.emome-ip.hinet.net (42.76.64.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.436 ms  0.320 ms
- 2  192.168.1.254 (192.168.1.254)  0.911 ms  1.057 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  5.089 ms  5.233 ms
- 4  168-95-164-38.ntnk-3311.hinet.net (168.95.164.38)  5.073 ms  5.054 ms
- 5  * *
- 6  220-128-17-85.tchn-3336.hinet.net (220.128.17.85)  5.589 ms  5.937 ms
- 7  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  6.039 ms  5.781 ms
+ 1  _gateway (192.168.2.1)  0.390 ms  0.884 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  9.960 ms  9.934 ms
+ 3  168-95-152-106.tchn-3331.hinet.net (168.95.152.106)  9.613 ms  9.614 ms
+ 4  * *
+ 5  220-128-16-73.tchn-3336.hinet.net (220.128.16.73)  9.589 ms  10.260 ms
+ 6  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  9.735 ms  9.760 ms
+ 7  * *
  8  * *
  9  * *
 10  * *
@@ -3118,10 +3118,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG1</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.193</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR1 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR1</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-68')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3130,14 +3130,14 @@
     <tr id="log-68" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-77-0-8.emome-ip.hinet.net (42.77.0.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.335 ms  0.259 ms
- 2  192.168.1.254 (192.168.1.254)  0.626 ms  0.650 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  1.507 ms  1.356 ms
- 4  168-95-164-18.ntnk-3311.hinet.net (168.95.164.18)  1.608 ms  1.487 ms
+ 1  _gateway (10.0.0.1)  0.142 ms *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.624 ms  1.709 ms
+ 3  168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  1.955 ms  2.063 ms
+ 4  * *
  5  * *
- 6  * *
- 7  220-128-24-53.skc1-3335.hinet.net (220.128.24.53)  5.559 ms  5.518 ms
- 8  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  5.853 ms  5.709 ms
+ 6  220-128-23-137.skc1-3335.hinet.net (220.128.23.137)  5.632 ms  5.662 ms
+ 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  6.292 ms  6.318 ms
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -3162,10 +3162,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.193</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR1</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR1</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR1 (+1)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-69')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3174,14 +3174,14 @@
     <tr id="log-69" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-77-128-8.emome-ip.hinet.net (42.77.128.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.278 ms  0.231 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  0.972 ms  0.980 ms
- 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.532 ms  1.689 ms
- 4  220-128-13-10.pcpd-3062.hinet.net (220.128.13.10)  8.355 ms  8.347 ms
+ 1  _gateway (172.17.0.1)  0.058 ms  0.013 ms
+ 2  192.168.10.1 (192.168.10.1)  0.172 ms  0.155 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  3.330 ms  3.326 ms
+ 4  168-95-162-94.tpn2-3331.hinet.net (168.95.162.94)  3.510 ms  3.603 ms
  5  * *
- 6  220-128-25-93.skc1-3335.hinet.net (220.128.25.93)  6.698 ms  6.676 ms
- 7  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  6.152 ms  6.088 ms
- 8  * *
+ 6  * *
+ 7  220-128-23-137.skc1-3335.hinet.net (220.128.23.137)  8.486 ms  8.537 ms
+ 8  210-65-126-193.hinet-ip.hinet.net (210.65.126.193)  8.452 ms  8.450 ms
  9  * *
 10  * *
 11  * *
@@ -3206,10 +3206,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.197</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 7L2BR2</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 7L2BR2</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-70')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3218,14 +3218,14 @@
     <tr id="log-70" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-77-192-8.emome-ip.hinet.net (42.77.192.8), 20 hops max, 60 byte packets
- 1  _gateway (10.10.10.254)  0.317 ms  0.271 ms
- 2  192.168.1.254 (192.168.1.254)  0.603 ms  0.733 ms
- 3  h254.s98.ts.hinet.net (168.95.98.254)  4.700 ms  4.449 ms
- 4  168-95-164-18.ntnk-3311.hinet.net (168.95.164.18)  4.543 ms  4.277 ms
- 5  220-128-18-14.chch-3031.hinet.net (220.128.18.14)  7.616 ms  7.475 ms
- 6  * *
- 7  220-128-23-145.skc1-3336.hinet.net (220.128.23.145)  7.503 ms  7.382 ms
- 8  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  7.043 ms  6.920 ms
+ 1  _gateway (10.10.10.254)  0.329 ms  0.323 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  4.113 ms *
+ 3  * *
+ 4  220-128-19-14.chch-3032.hinet.net (220.128.19.14)  7.033 ms *
+ 5  * *
+ 6  220-128-25-61.skc1-3336.hinet.net (220.128.25.61)  6.951 ms *
+ 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  12.703 ms *
+ 8  * *
  9  * *
 10  * *
 11  * *
@@ -3262,13 +3262,13 @@
     <tr id="log-71" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-77-64-8.emome-ip.hinet.net (42.77.64.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.50.1)  0.980 ms  0.901 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.715 ms  1.706 ms
- 3  168-95-75-222.pcpc-3332.hinet.net (168.95.75.222)  1.828 ms  2.269 ms
- 4  220-128-13-246.pcpd-3062.hinet.net (220.128.13.246)  10.127 ms  10.119 ms
+ 1  _gateway (10.0.0.1)  0.120 ms  0.115 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.658 ms  3.221 ms
+ 3  168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  3.263 ms  3.292 ms
+ 4  * *
  5  * *
- 6  220-128-25-53.skc1-3336.hinet.net (220.128.25.53)  8.041 ms  8.032 ms
- 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  7.600 ms  7.591 ms
+ 6  220-128-23-145.skc1-3336.hinet.net (220.128.23.145)  6.395 ms  6.429 ms
+ 7  210-65-126-197.hinet-ip.hinet.net (210.65.126.197)  6.249 ms  6.278 ms
  8  * *
  9  * *
 10  * *
@@ -3306,13 +3306,13 @@
     <tr id="log-72" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-79-128-8.emome-ip.hinet.net (42.79.128.8), 20 hops max, 60 byte packets
- 1  _gateway (192.168.2.1)  0.602 ms  0.565 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  10.224 ms  10.268 ms
- 3  * 168-95-152-102.tchn-3331.hinet.net (168.95.152.102)  10.850 ms
+ 1  * *
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  1.835 ms  1.989 ms
+ 3  * 168-95-152-126.tchn-3331.hinet.net (168.95.152.126)  2.703 ms
  4  * *
  5  * *
- 6  220-128-3-85.tpdb-3311.hinet.net (220.128.3.85)  12.587 ms  12.611 ms
- 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  12.808 ms  12.844 ms
+ 6  220-128-2-9.tpdb-3311.hinet.net (220.128.2.9)  4.096 ms  4.085 ms
+ 7  210-65-126-93.hinet-ip.hinet.net (210.65.126.93)  4.071 ms  4.059 ms
  8  * *
  9  * *
 10  * *
@@ -3338,10 +3338,10 @@
             <div style="font-weight:bold;font-size:15px;">7L2EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT7/8</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:6 / 差:+2)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.97</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 2L3BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 2L3BR4 (+2)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-73')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3350,14 +3350,14 @@
     <tr id="log-73" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-79-160-8.emome-ip.hinet.net (42.79.160.8), 20 hops max, 60 byte packets
- 1  _gateway (10.0.0.1)  0.120 ms  0.156 ms
- 2  h254.s98.ts.hinet.net (168.95.98.254)  1.059 ms  1.093 ms
- 3  168-95-153-146.tchn-3336.hinet.net (168.95.153.146)  1.118 ms  1.171 ms
- 4  * *
- 5  * *
- 6  220-128-4-85.tpdb-3312.hinet.net (220.128.4.85)  3.856 ms  3.876 ms
- 7  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  3.916 ms  3.945 ms
- 8  * *
+ 1  _gateway (10.10.10.254)  0.378 ms  0.356 ms
+ 2  192.168.1.254 (192.168.1.254)  0.660 ms  0.588 ms
+ 3  h254.s98.ts.hinet.net (168.95.98.254)  4.387 ms  4.351 ms
+ 4  168-95-165-22.ntnk-3312.hinet.net (168.95.165.22)  4.572 ms  4.435 ms
+ 5  220-128-19-14.chch-3032.hinet.net (220.128.19.14)  7.644 ms  7.033 ms
+ 6  * *
+ 7  220-128-4-189.tpdb-3312.hinet.net (220.128.4.189)  6.651 ms  6.611 ms
+ 8  210-65-126-97.hinet-ip.hinet.net (210.65.126.97)  36.783 ms  36.744 ms
  9  * *
 10  * *
 11  * *
@@ -3382,10 +3382,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>6</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>7</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:0)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.101</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR3</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3 (-1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR3</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-74')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3394,13 +3394,13 @@
     <tr id="log-74" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-79-192-8.emome-ip.hinet.net (42.79.192.8), 20 hops max, 60 byte packets
- 1  * *
- 2  * *
- 3  * *
- 4  * *
- 5  220-128-17-9.tchn-3335.hinet.net (220.128.17.9)  1.852 ms  2.064 ms
- 6  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  2.036 ms  2.006 ms
- 7  * *
+ 1  _gateway (192.168.1.1)  0.093 ms  0.118 ms
+ 2  h254.s98.ts.hinet.net (168.95.98.254)  2.292 ms  2.550 ms
+ 3  168-95-171-106.snuh-3332.hinet.net (168.95.171.106)  2.019 ms  2.096 ms
+ 4  220-128-9-42.tylc-3032.hinet.net (220.128.9.42)  4.259 ms  5.015 ms
+ 5  * *
+ 6  220-128-17-73.tchn-3335.hinet.net (220.128.17.73)  5.239 ms  5.345 ms
+ 7  210-65-126-101.hinet-ip.hinet.net (210.65.126.101)  5.663 ms  5.741 ms
  8  * *
  9  * *
 10  * *
@@ -3426,10 +3426,10 @@
             <div style="font-weight:bold;font-size:15px;">4L1EPG2</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">NAT9/10</div>
         </td>
-        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>8</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:+1)</span></td>
+        <td style="padding:14px 12px;"><span style='font-size:16px;font-weight:bold;'>5</span> <span style='font-size:13px;color:#94a3b8;'>(基:7 / 差:-2)</span></td>
         <td style="padding:14px 12px;font-family:monospace;"><span style='color:#38bdf8;font-size:15px;'>210.65.126.105</span></td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 4L1BR4</span></td>
-        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (+1)</td>
+        <td style="padding:14px 12px;font-size:15px;">正常抵達 4L1BR4 (-2)</td>
         <td style="padding:14px 12px;"><span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span></td>
         <td style="padding:14px 12px;text-align:center;">
             <button onclick="toggleLog('log-75')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
@@ -3438,14 +3438,14 @@
     <tr id="log-75" class="log-detail-row" style="display:none;background:#090d16;">
         <td colspan="8" style="padding:16px;">
             <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">traceroute to 42-79-224-8.emome-ip.hinet.net (42.79.224.8), 20 hops max, 60 byte packets
- 1  _gateway (172.17.0.1)  0.072 ms  0.013 ms
- 2  * *
- 3  h254.s98.ts.hinet.net (168.95.98.254)  3.920 ms  3.911 ms
- 4  168-95-163-94.tpn2-3332.hinet.net (168.95.163.94)  3.694 ms  3.767 ms
- 5  220-128-14-202.pcpd-3062.hinet.net (220.128.14.202)  6.968 ms  6.959 ms
+ 1  _gateway (168.95.98.254)  9.401 ms  9.645 ms
+ 2  168-95-153-90.tchn-3332.hinet.net (168.95.153.90)  9.872 ms  9.965 ms
+ 3  * *
+ 4  220-128-17-85.tchn-3336.hinet.net (220.128.17.85)  9.738 ms  10.132 ms
+ 5  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  10.845 ms  10.952 ms
  6  * *
- 7  220-128-17-221.tchn-3336.hinet.net (220.128.17.221)  5.741 ms  5.824 ms
- 8  210-65-126-105.hinet-ip.hinet.net (210.65.126.105)  6.443 ms  6.433 ms
+ 7  * *
+ 8  * *
  9  * *
 10  * *
 11  * *

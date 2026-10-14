@@ -1,0 +1,34 @@
+name: Periodic IP Traceroute
+
+on:
+  schedule:
+    # 每 30 分鐘自動執行一次 (Cron 格式: 分 時 日 月 週)
+    - cron: '*/30 * * * *'
+  # 支援在網頁上手動按按鈕立即執行
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  trace-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下載專案程式碼
+        uses: actions/checkout@v4
+
+      - name: 安裝 Python 與 mtr 網路工具
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mtr-tiny python3
+
+      - name: 執行探測腳本並產出網頁
+        run: python3 probe.py
+
+      - name: 自動發布至 GitHub Pages (gh-pages 分支)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          destination_dir: ./
+          keep_files: false

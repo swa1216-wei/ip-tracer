@@ -17,10 +17,10 @@ jobs:
       - name: 下載專案程式碼
         uses: actions/checkout@v4
 
-      - name: 安裝 Python 與 mtr 網路工具
+      - name: 安裝 Python 與 traceroute 網路工具
         run: |
           sudo apt-get update
-          sudo apt-get install -y mtr-tiny python3
+          sudo apt-get install -y traceroute python3
 
       - name: 執行探測腳本並產出網頁
         run: python3 probe.py

@@ -1,4 +1,6 @@
-import subprocess
+import json
+import time
+import urllib.request
 from datetime import datetime, timezone, timedelta
 
 # ================= 設定區 =================
@@ -8,16 +10,58 @@ TARGET_IP = "42.77.128.1"
 tz = timezone(timedelta(hours=8))
 now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
-# 透過 npx 直接呼叫 Globalping 全球探針跑 traceroute
-# --from world: 從全球探針隨機選取節點探測 (也可以指定 --from Taiwan)
-cmd = ["npx", "@globalping/cli", "traceroute", TARGET_IP, "--from", "world"]
+def run_traceroute_via_api(target):
+    api_url = "https://api.globalping.io/v1/measurements"
+    
+    # 建立探測請求 (由全球公共探針執行 traceroute)
+    payload = json.dumps({
+        "type": "traceroute",
+        "target": target,
+        "limit": 1
+    }).encode("utf-8")
+    
+    req = urllib.request.Request(
+        api_url,
+        data=payload,
+        headers={"Content-Type": "application/json", "User-Agent": "GitHubAction-Traceroute"}
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            measurement_id = data.get("id")
+    except Exception as e:
+        return f"建立探測請求失敗: {e}"
 
-try:
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
-    raw_output = result.stdout if result.stdout else result.stderr
-except Exception as e:
-    raw_output = f"執行失敗: {e}"
+    # 輪詢等待探測完成 (通常 5~10 秒完成)
+    poll_url = f"{api_url}/{measurement_id}"
+    for _ in range(15):
+        time.sleep(2)
+        try:
+            req_poll = urllib.request.Request(
+                poll_url,
+                headers={"User-Agent": "GitHubAction-Traceroute"}
+            )
+            with urllib.request.urlopen(req_poll, timeout=15) as resp:
+                result_data = json.loads(resp.read().decode("utf-8"))
+                
+                if result_data.get("status") == "finished":
+                    results = result_data.get("results", [])
+                    if results:
+                        probe_info = results[0].get("probe", {})
+                        location_desc = f"探針來源: {probe_info.get('city', 'Unknown')}, {probe_info.get('country', 'Unknown')} (AS{probe_info.get('asn', '')} {probe_info.get('network', '')})"
+                        raw_output = results[0].get("result", {}).get("rawOutput", "無輸出內容")
+                        return f"{location_desc}\n\n{raw_output}"
+                    return "已完成但未取得結果數據"
+        except Exception as e:
+            return f"查詢結果時發生錯誤: {e}"
+            
+    return "探測逾時，未能在時限內取得結果"
 
+# 執行探測
+raw_output = run_traceroute_via_api(TARGET_IP)
+
+# 產出網頁
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>

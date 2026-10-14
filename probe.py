@@ -433,8 +433,9 @@ html_content = f"""<!DOCTYPE html>
                     🔄 <strong>畫面狀態：</strong>配合排程每 30 分鐘自動重整（展開查看 LOG 時暫停重整）
                 </div>
             </div>
-            <div>
-                <button onclick="window.location.reload()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:10px 18px;cursor:pointer;font-size:15px;font-weight:bold;">手動刷新畫面</button>
+            <div style="display:flex; gap:10px;">
+                <button onclick="window.location.reload()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:10px 18px;cursor:pointer;font-size:15px;font-weight:bold;">🔄 手動刷新畫面</button>
+                <a href="https://github.com/swa1216-wei/ip-tracer/actions/workflows/schedule.yml" target="_blank" style="text-decoration:none;background:#16a34a;color:#fff;border-radius:6px;padding:10px 18px;font-size:15px;font-weight:bold;display:inline-block;line-height:normal;">⚡ 立即發起探測</a>
             </div>
         </div>
 

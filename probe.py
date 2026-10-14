@@ -4,21 +4,30 @@ import os
 import re
 import ipaddress
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ================= 設定區 =================
-# 先挑選 10 個具代表性的 NAT 目標 IP 進行第一階段驗證
+# 38 個純核心 Internet NAT 網段切半取 .8 (共 76 個目標 IP)
 TARGET_IPS = [
-    "42.77.128.8",
-    "42.77.192.8",
-    "223.137.128.8",
-    "223.137.192.8",
-    "111.82.128.8",
-    "42.70.0.8",
-    "42.70.32.8",
-    "223.136.64.8",
-    "223.136.96.8",
-    "114.136.128.8"
+    "42.72.0.8", "42.72.64.8", "42.72.128.8", "42.72.192.8",
+    "42.73.0.8", "42.73.128.8",
+    "42.74.0.8", "42.75.0.8",
+    "42.76.0.8", "42.76.64.8", "42.76.128.8", "42.76.192.8",
+    "42.77.0.8", "42.77.64.8", "42.77.128.8", "42.77.192.8",
+    "42.79.128.8", "42.79.160.8", "42.79.192.8", "42.79.224.8",
+    "111.71.0.8", "111.71.64.8", "111.71.212.8", "111.71.213.8", "111.71.214.8", "111.71.215.8",
+    "111.82.0.8", "111.82.128.8",
+    "111.83.0.8", "111.83.64.8", "111.83.128.8", "111.83.192.8",
+    "114.136.0.8", "114.136.64.8", "114.136.128.8", "114.136.192.8",
+    "114.137.0.8", "114.137.32.8", "114.137.64.8", "114.137.96.8", "114.137.128.8", "114.137.192.8",
+    "223.136.0.8", "223.136.32.8", "223.136.64.8", "223.136.96.8", "223.136.128.8", "223.136.192.8",
+    "223.137.0.8", "223.137.64.8", "223.137.128.8", "223.137.192.8",
+    "223.138.0.8", "223.138.32.8", "223.138.64.8", "223.138.96.8", "223.138.128.8", "223.138.192.8",
+    "223.139.0.8", "223.139.64.8", "223.139.128.8", "223.139.192.8",
+    "223.140.0.8", "223.140.64.8", "223.140.128.8", "223.140.192.8",
+    "223.141.0.8", "223.141.64.8", "223.141.128.8", "223.141.160.8", "223.141.192.8", "223.141.224.8",
+    "223.143.240.8", "223.143.242.8", "223.143.244.8", "223.143.246.8"
 ]
 
 # 8 台核心邊界路由器 (BR) 白名單
@@ -39,7 +48,7 @@ HISTORY_FILE = "monitor_state.json"
 tz = timezone(timedelta(hours=8))
 now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
-# 載入過去的狀態紀錄 (紀錄 Baseline、前次狀態、事件流水帳)
+# 載入歷史狀態
 state = {"baselines": {}, "last_status": {}, "event_logs": []}
 if os.path.exists(HISTORY_FILE):
     try:
@@ -50,7 +59,6 @@ if os.path.exists(HISTORY_FILE):
 
 def run_single_trace(target):
     api_url = "https://api.globalping.io/v1/measurements"
-    # 固定指定從台灣 (Taiwan) 探針發起
     payload = json.dumps({
         "type": "traceroute",
         "target": target,
@@ -68,10 +76,10 @@ def run_single_trace(target):
         with urllib.request.urlopen(req, timeout=15) as resp:
             measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
     except Exception as e:
-        return None, f"發起請求失敗: {e}"
+        return target, None, f"發起請求失敗: {e}"
 
     poll_url = f"{api_url}/{measurement_id}"
-    for _ in range(12):
+    for _ in range(15):
         time.sleep(2)
         try:
             req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "GitHub-Network-Probe"})
@@ -80,69 +88,75 @@ def run_single_trace(target):
                 if res_data.get("status") == "finished":
                     results = res_data.get("results", [])
                     if results:
-                        return results[0], results[0].get("result", {}).get("rawOutput", "")
+                        return target, results[0], results[0].get("result", {}).get("rawOutput", "")
         except Exception:
             pass
-    return None, "探測逾時"
+    return target, None, "探測逾時"
 
-# 逐一巡檢目標 IP
+# 使用 5 個並行線程加速探測
+probe_outputs = {}
+print(f"[{now_str}] 開始並行巡檢 {len(TARGET_IPS)} 組目標 IP ...")
+with ThreadPoolExecutor(max_workers=5) as executor:
+    future_to_ip = {executor.submit(run_single_trace, ip): ip for ip in TARGET_IPS}
+    for future in as_completed(future_to_ip):
+        target, probe_obj, raw_output = future.result()
+        probe_outputs[target] = raw_output
+        print(f"  -> 完成探測: {target}")
+
+# 依序解析探測結果
 current_results = []
 for target in TARGET_IPS:
-    print(f"[{now_str}] 正在探測: {target} ...")
-    probe_obj, raw_output = run_single_trace(target)
+    raw_output = probe_outputs.get(target, "無輸出內容")
     
-    # 解析各跳數據
     last_responded_hop = 0
     last_responded_ip = "無回應"
     has_private_ip = False
     private_ips_found = []
     
-    # 逐行分析輸出 (比對跳數與 IP)
     for line in raw_output.splitlines():
         match_hop = re.match(r'^\s*(\d+)\s+', line)
         if match_hop:
             hop_num = int(match_hop.group(1))
             ips_in_line = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', line)
             if ips_in_line:
-                # 排除目標本身
                 effective_ips = [ip for ip in ips_in_line if ip != target]
                 if effective_ips:
                     last_responded_hop = hop_num
                     last_responded_ip = effective_ips[-1]
-                    for ip in effective_ips:
-                        try:
-                            if ipaddress.ip_address(ip) in ipaddress.ip_network("10.0.0.0/8"):
-                                has_private_ip = True
-                                if ip not in private_ips_found:
-                                    private_ips_found.append(ip)
-                        except ValueError:
-                            pass
+                    
+                    # 關鍵修正：只檢查第 2 跳之後 (Hop >= 2)，排除第 1 跳探針 Gateway
+                    if hop_num >= 2:
+                        for ip in effective_ips:
+                            try:
+                                if ipaddress.ip_address(ip) in ipaddress.ip_network("10.0.0.0/8"):
+                                    has_private_ip = True
+                                    if ip not in private_ips_found:
+                                        private_ips_found.append(ip)
+                            except ValueError:
+                                pass
 
-    # 判定是否抵達 8 台 BR
     br_name = BR_LIST.get(last_responded_ip, None)
     is_br = (br_name is not None)
     
-    # 首次執行自動建立跳數基準線 (Baseline)
+    # Baseline 基準線設定
     if target not in state["baselines"] and last_responded_hop > 0:
         state["baselines"][target] = last_responded_hop
     baseline_hop = state["baselines"].get(target, last_responded_hop)
     
-    # 判定整體狀態：有內網 IP 或未達 BR 或跳數異動即判定 ALERT
+    # 狀態判定：含內網 IP、未達 BR、或跳數偏離基準
     if has_private_ip or not is_br or (last_responded_hop != baseline_hop):
         current_status = "ALERT"
-        status_desc = f"異常 (中途含 {', '.join(private_ips_found)})" if has_private_ip else ("未達 BR" if not is_br else f"跳數偏離基準 (現有 {last_responded_hop} / 基準 {baseline_hop})")
+        status_desc = f"異常 (中途含 {', '.join(private_ips_found)})" if has_private_ip else ("未達 BR" if not is_br else f"跳數偏離 (現有 {last_responded_hop} / 基準 {baseline_hop})")
     else:
         current_status = "OK"
         status_desc = f"正常抵達 {br_name}"
 
-    # 事件狀態轉移比對 (偵測「導入」與「導出」瞬間)
+    # 狀態變更偵測 (導入 vs 導出)
     prev_status = state["last_status"].get(target, "OK")
     if prev_status == "OK" and current_status == "ALERT":
-        # 觸發【導入告警】
         event = f"🔴 {now_str} 【導入告警】目標 {target} 狀態變更為異常！現有跳數: {last_responded_hop} (基準: {baseline_hop})，原因: {status_desc}"
         state["event_logs"].insert(0, event)
     elif prev_status == "ALERT" and current_status == "OK":
-        # 觸發【導出恢復】
         event = f"🟢 {now_str} 【導出恢復】目標 {target} 路由已恢復正常！現有跳數: {last_responded_hop}，到達: {br_name}"
         state["event_logs"].insert(0, event)
 
@@ -162,10 +176,8 @@ for target in TARGET_IPS:
         "raw": raw_output
     })
 
-# 保留最近 50 筆異動日誌
 state["event_logs"] = state["event_logs"][:50]
 
-# 將狀態持久化存入 JSON，下一次排程繼續比對
 with open(HISTORY_FILE, "w", encoding="utf-8") as f:
     json.dump(state, f, ensure_ascii=False, indent=2)
 
@@ -212,10 +224,10 @@ html_content = f"""<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="60">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4G/5G 行網路由巡檢與異常導入監控儀表板</title>
+    <title>4G/5G 行網 Internet 路由巡檢與導入監控</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background:#0b1120; color:#e2e8f0; margin:0; padding:24px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
+        .container {{ max-width: 1250px; margin: 0 auto; }}
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }}
         .cards {{ display:flex; gap:16px; margin-bottom:20px; }}
         .card {{ flex:1; background:#1e293b; padding:16px; border-radius:8px; border:1px solid #334155; }}
@@ -234,8 +246,12 @@ html_content = f"""<!DOCTYPE html>
     <div class="container">
         <div class="header">
             <div>
-                <h1 style="margin:0;font-size:22px;color:#38bdf8;">🌐 行網 NAT 網段路由巡檢與導入監控</h1>
-                <div style="font-size:13px;color:#94a3b8;margin-top:6px;">發起節點: Taiwan 探針 | 最後巡檢時間: {now_str} (UTC+8) | 網頁每 60 秒自動重整</div>
+                <h1 style="margin:0;font-size:22px;color:#38bdf8;">🌐 4G/5G 行網 Internet 路由巡檢與導入監控儀表板</h1>
+                <div style="font-size:13px;color:#94a3b8;margin-top:8px;line-height:1.6;">
+                    📍 <strong>探測來源：</strong>固定 Taiwan 探針節點發起<br>
+                    ⏱ <strong>巡檢週期：</strong>GitHub 每 30 分鐘自動 Traceroute 巡檢一次 | <strong>最後巡檢時間：</strong>{now_str} (UTC+8)<br>
+                    🔄 <strong>畫面狀態：</strong>瀏覽器每 60 秒自動刷新讀取最新數據
+                </div>
             </div>
         </div>
 
@@ -245,7 +261,7 @@ html_content = f"""<!DOCTYPE html>
                 <div style="font-size:24px;font-weight:bold;margin-top:4px;">{len(current_results)} 組 IP</div>
             </div>
             <div class="card">
-                <div style="color:#94a3b8;font-size:12px;">正常連通 (抵達 BR)</div>
+                <div style="color:#94a3b8;font-size:12px;">正常連通 (抵達 8 台 BR)</div>
                 <div style="font-size:24px;font-weight:bold;color:#4ade80;margin-top:4px;">{ok_count} 組</div>
             </div>
             <div class="card" style="border-color: {'#ef4444' if alert_count > 0 else '#334155'};">
@@ -285,4 +301,4 @@ html_content = f"""<!DOCTYPE html>
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 巡檢完成，已成功產生儀表板網頁。")
+print(f"[{now_str}] 巡檢完成，已產出 76 筆目標 IP 儀表板。")

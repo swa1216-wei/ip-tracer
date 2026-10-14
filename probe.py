@@ -8,26 +8,22 @@ TARGET_IP = "42.77.128.1"
 tz = timezone(timedelta(hours=8))
 now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
-# 1. 優先嘗試 TCP SYN 探測 (Port 80)，若受限則回退至標準 UDP / ICMP traceroute
-# -n: 不做 DNS 反查 (加速)
-# -q 1: 每個 hop 只測 1 次 (避免 GitHub Actions 超時)
-# -w 2: 逾時時間 2 秒
-# -m 25: 最大跳數 25 跳
-cmd = ["sudo", "traceroute", "-T", "-p", "80", "-n", "-q", "1", "-w", "2", "-m", "25", TARGET_IP]
+# 透過 npx 直接呼叫 Globalping 全球探針跑 traceroute
+# --from world: 從全球探針隨機選取節點探測 (也可以指定 --from Taiwan)
+cmd = ["npx", "@globalping/cli", "traceroute", TARGET_IP, "--from", "world"]
 
 try:
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
     raw_output = result.stdout if result.stdout else result.stderr
 except Exception as e:
     raw_output = f"執行失敗: {e}"
 
-# 產出網頁
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traceroute 監控報告</title>
+    <title>Traceroute 路由監控報告</title>
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
@@ -37,7 +33,7 @@ html_content = f"""<!DOCTYPE html>
             padding: 24px;
         }}
         .container {{
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
             background: #1e293b;
             border-radius: 8px;
@@ -62,6 +58,7 @@ html_content = f"""<!DOCTYPE html>
             overflow-x: auto;
             font-size: 13px;
             line-height: 1.6;
+            white-space: pre-wrap;
         }}
     </style>
 </head>

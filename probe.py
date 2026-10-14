@@ -13,7 +13,7 @@ now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 # -q 1: 每個 hop 只測 1 次 (避免 GitHub Actions 超時)
 # -w 2: 逾時時間 2 秒
 # -m 25: 最大跳數 25 跳
-cmd = ["traceroute", "-T", "-p", "80", "-n", "-q", "1", "-w", "2", "-m", "25", TARGET_IP]
+cmd = ["sudo", "traceroute", "-T", "-p", "80", "-n", "-q", "1", "-w", "2", "-m", "25", TARGET_IP]
 
 try:
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)

@@ -7,7 +7,10 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
-# ================= 設定區 =================
+# ==============================================================================
+# 第一部分：系統設定區 (核心 BR 白名單、機房對照表、監控 IP 元數據)
+# ==============================================================================
+
 # 8 台核心邊界路由器 (BR) 白名單
 BR_LIST = {
     "210.65.126.209": "3L1BR1",
@@ -20,7 +23,7 @@ BR_LIST = {
     "210.65.126.97":  "2L3BR4",
 }
 
-# 機房常見代號對照
+# 機房常見代號對照 (自動解析反解域名)
 ROUTER_LOCATIONS = {
     "tpdb": "台北東二",
     "tpe4": "台北信義",
@@ -114,7 +117,6 @@ TARGET_METADATA = {
 
 TARGET_IPS = list(TARGET_METADATA.keys())
 HISTORY_FILE = "monitor_state.json"
-# ==========================================
 
 tz = timezone(timedelta(hours=8))
 now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
@@ -126,6 +128,11 @@ if os.path.exists(HISTORY_FILE):
             state = json.load(f)
     except Exception:
         pass
+
+
+# ==============================================================================
+# 第二部分：網路探測與路由邏輯運算區 (API 呼叫、重測機制、日誌比對)
+# ==============================================================================
 
 def run_single_trace(target):
     api_url = "https://api.globalping.io/v1/measurements"
@@ -330,6 +337,11 @@ current_results.sort(key=lambda x: (0 if x["status"] == "ALERT" else 1, x["targe
 alert_count = sum(1 for r in current_results if r["status"] == "ALERT")
 ok_count = len(current_results) - alert_count
 
+
+# ==============================================================================
+# 第三部分：HTML 前端表格行組裝
+# ==============================================================================
+
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
@@ -363,7 +375,7 @@ for idx, r in enumerate(current_results):
         <td style="padding:14px 12px;font-size:15px;">{r['desc']}</td>
         <td style="padding:14px 12px;">{status_badge}</td>
         <td style="padding:14px 12px;text-align:center;">
-            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:bold;">查看</button>
+            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
         </td>
     </tr>
     <tr id="log-{idx}" class="log-detail-row" style="display:none;background:#090d16;">
@@ -377,21 +389,28 @@ logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in sta
 if not logs_html:
     logs_html = "<li style='color:#94a3b8;'>目前尚無狀態變更紀錄（系統正常運行中）</li>"
 
+
+# ==============================================================================
+# 第四部分：完整長官戰情室視覺頁面組裝與輸出 (HTML + CSS + JavaScript)
+# ==============================================================================
+
+alert_glow = "text-shadow:0 0 14px rgba(251,113,133,0.6);" if alert_count > 0 else ""
+alert_color = "#fb7185" if alert_count > 0 else "#94a3b8"
+
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4G/5G 行網 Internet 路由巡檢與導入監控</title>
+    <title>4G/5G 行網 Internet 路由巡檢與導入監控儀表板</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
-        .container {{ max-width: 1400px; margin: 0 auto; }}
-        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }}
-        .cards {{ display:flex; gap:20px; margin-bottom:28px; }}
-        .card {{ flex:1; background:#1e293b; padding:20px; border-radius:10px; border:1px solid #334155; }}
-        .audit-box {{ background:#1e293b; border-left:5px solid #38bdf8; padding:20px; border-radius:8px; margin-top:32px; }}
-        table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:10px; overflow:hidden; font-size:14px; }}
-        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:600; font-size:15px; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
+        .container {{ max-width: 1440px; margin: 0 auto; }}
+        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
+        .cards {{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-bottom:28px; }}
+        .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
+        table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
+        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; letter-spacing:0.5px; border-bottom:1px solid #334155; }}
     </style>
     <script>
         var anyLogOpened = false;
@@ -414,47 +433,74 @@ html_content = f"""<!DOCTYPE html>
                 }}
             }}
         }}
-        // 每 30 分鐘 (1800秒) 自動檢查重整，若正在查看 LOG 則自動延後
+        // 每 15 分鐘 (900秒) 自動檢查重整，若正在查看 LOG 則自動延後
         setInterval(function() {{
             if (!anyLogOpened) {{
                 window.location.reload();
             }}
-        }}, 1800000);
+        }}, 900000);
     </script>
 </head>
 <body>
     <div class="container">
+        <!-- 頂部戰情室 Header 區塊 -->
         <div class="header">
             <div>
-                <h1 style="margin:0;font-size:26px;color:#38bdf8;">🌐 4G/5G 行網 Internet 路由巡檢與導入監控儀表板</h1>
-                <div style="font-size:15px;color:#94a3b8;margin-top:10px;line-height:1.7;">
+                <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; letter-spacing:0.5px; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:28px;">🌐</span> 4G/5G 行網 Internet 路由巡檢與導入監控儀表板
+                </h1>
+                <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
                     📍 <strong>探測來源：</strong>固定 Taiwan 探針節點發起（未達 BR 自動重測 2 次機制生效中）<br>
-                    ⏱ <strong>巡檢週期：</strong>GitHub 每 30 分鐘自動 Traceroute 巡檢一次 | <strong>最後巡檢時間：</strong>{now_str} (UTC+8)<br>
-                    🔄 <strong>畫面狀態：</strong>配合排程每 30 分鐘自動重整（展開查看 LOG 時暫停重整）
+                    ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span><br>
+                    🔄 <strong>畫面狀態：</strong>每隔15-30分鐘自動重整
                 </div>
             </div>
-            <div style="display:flex; gap:10px;">
-                <button onclick="window.location.reload()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:10px 18px;cursor:pointer;font-size:15px;font-weight:bold;">🔄 手動刷新畫面</button>
-                <a href="https://github.com/swa1216-wei/ip-tracer/actions/workflows/schedule.yml" target="_blank" style="text-decoration:none;background:#16a34a;color:#fff;border-radius:6px;padding:10px 18px;font-size:15px;font-weight:bold;display:inline-block;line-height:normal;">⚡ 立即發起探測</a>
+            
+            <!-- 右上角戰情按鈕組 -->
+            <div style="display:flex; gap:12px; align-items:center;">
+                <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 4px 12px rgba(2,132,199,0.3); transition:all 0.2s;" onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">
+                    🔄 畫面刷新
+                </button>
+                <a href="https://github.com/swa1216-wei/ip-tracer/actions/workflows/schedule.yml" target="_blank" style="text-decoration:none; background:#10b981; color:#fff; border-radius:8px; padding:11px 20px; font-size:15px; font-weight:bold; display:inline-block; box-shadow:0 4px 12px rgba(16,185,129,0.3); transition:all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    ⚡ 立即發起探測
+                </a>
             </div>
         </div>
 
+        <!-- 長官焦點：核心狀態三格指標 (戰情室立體發光凸顯版) -->
         <div class="cards">
-            <div class="card">
-                <div style="color:#94a3b8;font-size:14px;">監控目標總數</div>
-                <div style="font-size:28px;font-weight:bold;margin-top:6px;">{len(current_results)} 組 IP</div>
+            <!-- 卡片 1：總監控目標 (湛藍光邊) -->
+            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #334155; border-top:4px solid #38bdf8; box-shadow:0 8px 20px rgba(0,0,0,0.3);">
+                <div style="font-size:14px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
+                    監控目標總數
+                </div>
+                <div style="font-size:36px; font-weight:900; color:#ffffff;">
+                    {len(current_results)} <span style="font-size:18px; color:#94a3b8; font-weight:normal;">組 IP</span>
+                </div>
             </div>
-            <div class="card">
-                <div style="color:#94a3b8;font-size:14px;">正常連通 (抵達 8 台 BR)</div>
-                <div style="font-size:28px;font-weight:bold;color:#4ade80;margin-top:6px;">{ok_count} 組</div>
+
+            <!-- 卡片 2：正常連通 (安全翠綠光暈) -->
+            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #1e3a2b; border-top:4px solid #10b981; box-shadow:0 8px 20px rgba(16,185,129,0.15);">
+                <div style="font-size:14px; font-weight:bold; color:#a7f3d0; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
+                    正常連通 (抵達 8 台 BR)
+                </div>
+                <div style="font-size:36px; font-weight:900; color:#34d399; text-shadow:0 0 12px rgba(52,211,153,0.4);">
+                    {ok_count} <span style="font-size:18px; color:#a7f3d0; font-weight:normal;">組</span>
+                </div>
             </div>
-            <div class="card" style="border-color: {'#ef4444' if alert_count > 0 else '#334155'};">
-                <div style="color:#94a3b8;font-size:14px;">異常 / 導入中</div>
-                <div style="font-size:28px;font-weight:bold;color: {'#f87171' if alert_count > 0 else '#94a3b8'}; margin-top:6px;">{alert_count} 組</div>
+
+            <!-- 卡片 3：異常導入 (警示緋紅凸顯) -->
+            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #3f1d24; border-top:4px solid #f43f5e; box-shadow:0 8px 20px rgba(244,63,94,0.12);">
+                <div style="font-size:14px; font-weight:bold; color:#fecdd3; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
+                    異常 / 清洗導入中
+                </div>
+                <div style="font-size:36px; font-weight:900; color:{alert_color}; {alert_glow}">
+                    {alert_count} <span style="font-size:18px; font-weight:normal; color:#94a3b8;">組</span>
+                </div>
             </div>
         </div>
 
-        <!-- 表格移至最上方 -->
+        <!-- 路由現況表格 (異常置頂) -->
         <table>
             <thead>
                 <tr>
@@ -473,7 +519,7 @@ html_content = f"""<!DOCTYPE html>
             </tbody>
         </table>
 
-        <!-- LOG 移至表格下方 -->
+        <!-- 變更流水帳 LOG (置底歷史記錄) -->
         <div class="audit-box">
             <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 路由變更流水帳 (導入 / 導出歷史紀錄)</h3>
             <ul style="margin:0;padding-left:24px;font-size:14px;line-height:1.7;">
@@ -485,6 +531,7 @@ html_content = f"""<!DOCTYPE html>
 </html>
 """
 
+# 寫入產出成果
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 

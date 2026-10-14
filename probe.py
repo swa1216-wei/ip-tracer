@@ -2,29 +2,32 @@ import subprocess
 from datetime import datetime, timezone, timedelta
 
 # ================= 設定區 =================
-# 請將 8.8.8.8 改成你要測試的 IP 或域名
 TARGET_IP = "42.77.128.1"
 # ==========================================
 
-# 取得台灣時間 (UTC+8)
 tz = timezone(timedelta(hours=8))
 now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
-# 執行 mtr 報告模式 (產生單次 10 封封包的統計數據)
+# 1. 優先嘗試 TCP SYN 探測 (Port 80)，若受限則回退至標準 UDP / ICMP traceroute
+# -n: 不做 DNS 反查 (加速)
+# -q 1: 每個 hop 只測 1 次 (避免 GitHub Actions 超時)
+# -w 2: 逾時時間 2 秒
+# -m 25: 最大跳數 25 跳
+cmd = ["traceroute", "-T", "-p", "80", "-n", "-q", "1", "-w", "2", "-m", "25", TARGET_IP]
+
 try:
-    cmd = ["sudo", "mtr", "--report", "--report-cycles", "10", "--no-dns", TARGET_IP]
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
     raw_output = result.stdout if result.stdout else result.stderr
 except Exception as e:
     raw_output = f"執行失敗: {e}"
 
-# 產生 index.html 網頁
+# 產出網頁
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTR Traceroute 監控報告</title>
+    <title>Traceroute 監控報告</title>
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
@@ -58,13 +61,13 @@ html_content = f"""<!DOCTYPE html>
             border-radius: 6px;
             overflow-x: auto;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 1.6;
         }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🌐 定期路由追蹤 (MTR) 監控報告</h1>
+        <h1>🌐 定期路由追蹤 (Traceroute) 監控報告</h1>
         <div class="meta">
             <strong>目標 IP:</strong> {TARGET_IP} | 
             <strong>最後更新時間:</strong> {now_str} (UTC+8)

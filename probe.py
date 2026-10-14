@@ -414,12 +414,12 @@ html_content = f"""<!DOCTYPE html>
                 }}
             }}
         }}
-        // 每 15 分鐘 (900秒) 自動檢查重整，若正在查看 LOG 則自動延後
+        // 每 30 分鐘 (1800秒) 自動檢查重整，若正在查看 LOG 則自動延後
         setInterval(function() {{
             if (!anyLogOpened) {{
                 window.location.reload();
             }}
-        }}, 900000);
+        }}, 1800000);
     </script>
 </head>
 <body>
@@ -429,8 +429,8 @@ html_content = f"""<!DOCTYPE html>
                 <h1 style="margin:0;font-size:26px;color:#38bdf8;">🌐 4G/5G 行網 Internet 路由巡檢與導入監控儀表板</h1>
                 <div style="font-size:15px;color:#94a3b8;margin-top:10px;line-height:1.7;">
                     📍 <strong>探測來源：</strong>固定 Taiwan 探針節點發起（未達 BR 自動重測 2 次機制生效中）<br>
-                    ⏱ <strong>巡檢週期：</strong>GitHub 每 15 分鐘自動 Traceroute 巡檢一次 | <strong>最後巡檢時間：</strong>{now_str} (UTC+8)<br>
-                    🔄 <strong>畫面狀態：</strong>配合排程每 15 分鐘自動重整（展開查看 LOG 時暫停重整）
+                    ⏱ <strong>巡檢週期：</strong>GitHub 每 30 分鐘自動 Traceroute 巡檢一次 | <strong>最後巡檢時間：</strong>{now_str} (UTC+8)<br>
+                    🔄 <strong>畫面狀態：</strong>配合排程每 30 分鐘自動重整（展開查看 LOG 時暫停重整）
                 </div>
             </div>
             <div>

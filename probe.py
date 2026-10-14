@@ -20,7 +20,7 @@ BR_LIST = {
     "210.65.126.97":  "2L3BR4",
 }
 
-# 機房常見代號對照 (輔助快速辨識最後停在哪)
+# 機房常見代號對照
 ROUTER_LOCATIONS = {
     "tpdb": "台北東二",
     "tpe4": "台北信義",
@@ -32,7 +32,7 @@ ROUTER_LOCATIONS = {
     "kh":   "高雄"
 }
 
-# 76 個目標 IP 與其所屬網段/元件元數據對照表
+# 76 個目標 IP 與網段元數據對照表
 TARGET_METADATA = {
   "42.72.0.8": {"cidr": "42.72.0.0/17", "part": "前半", "elem": "3L1EPG1", "nat": "NAT5/6"},
   "42.72.64.8": {"cidr": "42.72.0.0/17", "part": "後半", "elem": "3L1EPG1", "nat": "NAT5/6"},
@@ -119,7 +119,6 @@ HISTORY_FILE = "monitor_state.json"
 tz = timezone(timedelta(hours=8))
 now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
-# 載入過去的狀態紀錄
 state = {"baselines": {}, "last_status": {}, "event_logs": []}
 if os.path.exists(HISTORY_FILE):
     try:
@@ -147,7 +146,7 @@ def run_single_trace(target):
         with urllib.request.urlopen(req, timeout=15) as resp:
             measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
     except Exception as e:
-        return target, None, f"發起請求失敗: {e}"
+        return target, f"發起請求失敗: {e}"
 
     poll_url = f"{api_url}/{measurement_id}"
     for _ in range(15):
@@ -159,33 +158,18 @@ def run_single_trace(target):
                 if res_data.get("status") == "finished":
                     results = res_data.get("results", [])
                     if results:
-                        return target, results[0], results[0].get("result", {}).get("rawOutput", "")
+                        return target, results[0].get("result", {}).get("rawOutput", "")
         except Exception:
             pass
-    return target, None, "探測逾時"
+    return target, "探測逾時"
 
-# 使用 8 個並行線程加速探測
-probe_outputs = {}
-print(f"[{now_str}] 開始並行巡檢 {len(TARGET_IPS)} 組目標 IP ...")
-with ThreadPoolExecutor(max_workers=8) as executor:
-    future_to_ip = {executor.submit(run_single_trace, ip): ip for ip in TARGET_IPS}
-    for future in as_completed(future_to_ip):
-        target, probe_obj, raw_output = future.result()
-        probe_outputs[target] = raw_output
-        print(f"  -> 完成探測: {target}")
-
-# 依序解析探測結果
-current_results = []
-for target in TARGET_IPS:
-    raw_output = probe_outputs.get(target, "無輸出內容")
-    meta = TARGET_METADATA.get(target, {})
-    
+def parse_trace_output(target, raw_output):
     last_responded_hop = 0
     last_responded_ip = "無回應"
     last_responded_domain = ""
     has_private_ip = False
     private_ips_found = []
-    
+
     for line in raw_output.splitlines():
         match_hop = re.match(r'^\s*(\d+)\s+', line)
         if match_hop:
@@ -197,14 +181,12 @@ for target in TARGET_IPS:
                     last_responded_hop = hop_num
                     last_responded_ip = effective_ips[-1]
                     
-                    # 擷取該行包含的域名 (如 220-128-24-53.skc1-3335.hinet.net)
                     domain_match = re.search(r'([a-zA-Z0-9\-\.]+\.hinet\.net)', line)
                     if domain_match:
                         last_responded_domain = domain_match.group(1)
                     else:
                         last_responded_domain = ""
 
-                    # 只檢查第 2 跳之後 (Hop >= 2)，排除第 1 跳探針 Gateway
                     if hop_num >= 2:
                         for ip in effective_ips:
                             try:
@@ -215,7 +197,74 @@ for target in TARGET_IPS:
                             except ValueError:
                                 pass
 
-    # 解析節點位置說明
+    br_name = BR_LIST.get(last_responded_ip, None)
+    is_br = (br_name is not None)
+    return {
+        "last_hop": last_responded_hop,
+        "last_ip": last_responded_ip,
+        "domain": last_responded_domain,
+        "is_br": is_br,
+        "br_name": br_name,
+        "has_private": has_private_ip,
+        "private_ips": private_ips_found,
+        "raw": raw_output
+    }
+
+# 第一輪：8 條產線並行探測
+probe_outputs = {}
+print(f"[{now_str}] 開始第一輪巡檢 {len(TARGET_IPS)} 組目標 IP ...")
+with ThreadPoolExecutor(max_workers=8) as executor:
+    future_to_ip = {executor.submit(run_single_trace, ip): ip for ip in TARGET_IPS}
+    for future in as_completed(future_to_ip):
+        target, raw_output = future.result()
+        probe_outputs[target] = raw_output
+
+# 解析第一輪結果
+parsed_results = {}
+targets_need_retry = []
+for target in TARGET_IPS:
+    parsed = parse_trace_output(target, probe_outputs.get(target, ""))
+    parsed_results[target] = parsed
+    # 若未達 BR 且中途沒有 10.x（排除確定導入的異常），列入自動重測名單
+    if not parsed["is_br"] and not parsed["has_private"]:
+        targets_need_retry.append(target)
+
+# 第二輪：針對未達 BR 者自動複測（最多 2 次重試）
+if targets_need_retry:
+    print(f"[{now_str}] 偵測到 {len(targets_need_retry)} 組目標未達 BR，啟動複測重試機制 (最多 2 次)...")
+    for retry_round in range(1, 3):
+        if not targets_need_retry:
+            break
+        print(f"  -> 進行第 {retry_round} 次複測，剩餘待測: {len(targets_need_retry)} 組")
+        time.sleep(3)
+        still_failing = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_ip = {executor.submit(run_single_trace, ip): ip for ip in targets_need_retry}
+            for future in as_completed(future_to_ip):
+                target, raw_output = future.result()
+                retry_parsed = parse_trace_output(target, raw_output)
+                if retry_parsed["is_br"]:
+                    print(f"     ✔ 目標 {target} 在第 {retry_round} 次複測成功抵達 {retry_parsed['br_name']}！")
+                    parsed_results[target] = retry_parsed
+                else:
+                    still_failing.append(target)
+        targets_need_retry = still_failing
+
+# 彙整最終判定結果
+current_results = []
+for target in TARGET_IPS:
+    parsed = parsed_results[target]
+    meta = TARGET_METADATA.get(target, {})
+    
+    last_responded_hop = parsed["last_hop"]
+    last_responded_ip = parsed["last_ip"]
+    last_responded_domain = parsed["domain"]
+    is_br = parsed["is_br"]
+    br_name = parsed["br_name"]
+    has_private_ip = parsed["has_private"]
+    private_ips_found = parsed["private_ips"]
+    raw_output = parsed["raw"]
+
     location_desc = ""
     if last_responded_domain:
         for code, loc_name in ROUTER_LOCATIONS.items():
@@ -223,30 +272,22 @@ for target in TARGET_IPS:
                 location_desc = f" ({loc_name})"
                 break
 
-    br_name = BR_LIST.get(last_responded_ip, None)
-    is_br = (br_name is not None)
-    
-    # Baseline 基準線維護
     if target not in state["baselines"] and last_responded_hop > 0:
         state["baselines"][target] = last_responded_hop
     baseline_hop = state["baselines"].get(target, last_responded_hop)
     
-    # 判定標準：
-    # 只要到達 BR 白名單 且 沒有 10.x 內網跳數，就判定為 OK！
-    # 跳數差值僅作為數值參考，不因單純差 1 跳判定異常。
     if has_private_ip:
         current_status = "ALERT"
         status_desc = f"🚨 異常 (中途含 {', '.join(private_ips_found)})"
     elif not is_br:
         current_status = "ALERT"
-        status_desc = f"🚨 未達 BR (停在非預期節點)"
+        status_desc = f"🚨 未達 BR (重測 2 次仍未抵達)"
     else:
         current_status = "OK"
         diff = last_responded_hop - baseline_hop
         diff_str = f" (+{diff})" if diff > 0 else (f" ({diff})" if diff < 0 else "")
         status_desc = f"正常抵達 {br_name}{diff_str}"
 
-    # 狀態變更歷史日誌 (導入 / 導出)
     prev_status = state["last_status"].get(target, "OK")
     target_label = f"{target} [{meta.get('cidr')} {meta.get('part')}]"
     if prev_status == "OK" and current_status == "ALERT":
@@ -283,8 +324,7 @@ state["event_logs"] = state["event_logs"][:50]
 with open(HISTORY_FILE, "w", encoding="utf-8") as f:
     json.dump(state, f, ensure_ascii=False, indent=2)
 
-# ================= 產生展示網頁 (異常置頂排序) =================
-# 排序規則：ALERT (異常) 排在前面，OK (正常) 排在後面
+# 排序：ALERT (異常) 排在最上方
 current_results.sort(key=lambda x: (0 if x["status"] == "ALERT" else 1, x["target"]))
 
 alert_count = sum(1 for r in current_results if r["status"] == "ALERT")
@@ -293,47 +333,47 @@ ok_count = len(current_results) - alert_count
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
-    status_badge = '<span style="color:#f87171;font-weight:bold;">🚨 異常</span>' if r["status"] == "ALERT" else '<span style="color:#4ade80;font-weight:bold;">✔ 正常</span>'
+    status_badge = '<span style="color:#f87171;font-weight:bold;font-size:16px;">🚨 異常</span>' if r["status"] == "ALERT" else '<span style="color:#4ade80;font-weight:bold;font-size:16px;">✔ 正常</span>'
     
     if r["is_br"]:
-        br_badge = f'<span style="color:#4ade80;font-weight:bold;">✔ {r["br_name"]}</span>'
-        last_node_display = f"<span style='color:#38bdf8;'>{r['last_ip']}</span>"
+        br_badge = f'<span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ {r["br_name"]}</span>'
+        last_node_display = f"<span style='color:#38bdf8;font-size:15px;'>{r['last_ip']}</span>"
     else:
-        br_badge = '<span style="color:#f87171;font-weight:bold;">❌ 非BR</span>'
-        domain_tip = f"<br><span style='color:#94a3b8;font-size:11px;'>{r['domain']}{r['location']}</span>" if r['domain'] else ""
-        last_node_display = f"<span style='color:#f87171;font-weight:bold;'>{r['last_ip']}</span>{domain_tip}"
+        br_badge = '<span style="color:#f87171;font-weight:bold;font-size:15px;">❌ 非BR</span>'
+        domain_tip = f"<br><span style='color:#94a3b8;font-size:13px;'>{r['domain']}{r['location']}</span>" if r['domain'] else ""
+        last_node_display = f"<span style='color:#f87171;font-weight:bold;font-size:15px;'>{r['last_ip']}</span>{domain_tip}"
     
     diff = r["last_hop"] - r["baseline_hop"]
     diff_str = f"+{diff}" if diff > 0 else (str(diff) if diff < 0 else "0")
-    hop_display = f"{r['last_hop']} <span style='font-size:11px;color:#94a3b8;'>(基:{r['baseline_hop']} / 差:{diff_str})</span>"
+    hop_display = f"<span style='font-size:16px;font-weight:bold;'>{r['last_hop']}</span> <span style='font-size:13px;color:#94a3b8;'>(基:{r['baseline_hop']} / 差:{diff_str})</span>"
 
     rows_html += f"""
     <tr style="background-color:{bg_color};border-bottom:1px solid #334155;">
-        <td style="padding:10px;">
-            <div style="font-weight:bold;font-size:14px;color:#f8fafc;">{r['target']}</div>
-            <div style="font-size:11px;color:#38bdf8;">{r['cidr']} ({r['part']})</div>
+        <td style="padding:14px 12px;">
+            <div style="font-weight:bold;font-size:16px;color:#f8fafc;">{r['target']}</div>
+            <div style="font-size:13px;color:#38bdf8;margin-top:2px;">{r['cidr']} ({r['part']})</div>
         </td>
-        <td style="padding:10px;">
-            <div style="font-weight:bold;">{r['elem']}</div>
-            <div style="font-size:11px;color:#94a3b8;">{r['nat']}</div>
+        <td style="padding:14px 12px;">
+            <div style="font-weight:bold;font-size:15px;">{r['elem']}</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:2px;">{r['nat']}</div>
         </td>
-        <td style="padding:10px;">{hop_display}</td>
-        <td style="padding:10px;font-family:monospace;">{last_node_display}</td>
-        <td style="padding:10px;">{br_badge}</td>
-        <td style="padding:10px;">{r['desc']}</td>
-        <td style="padding:10px;">{status_badge}</td>
-        <td style="padding:10px;text-align:center;">
-            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px;">查看</button>
+        <td style="padding:14px 12px;">{hop_display}</td>
+        <td style="padding:14px 12px;font-family:monospace;">{last_node_display}</td>
+        <td style="padding:14px 12px;">{br_badge}</td>
+        <td style="padding:14px 12px;font-size:15px;">{r['desc']}</td>
+        <td style="padding:14px 12px;">{status_badge}</td>
+        <td style="padding:14px 12px;text-align:center;">
+            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:bold;">查看</button>
         </td>
     </tr>
-    <tr id="log-{idx}" style="display:none;background:#090d16;">
-        <td colspan="8" style="padding:12px;">
-            <pre style="margin:0;color:#38bdf8;font-size:12px;white-space:pre-wrap;">{r['raw']}</pre>
+    <tr id="log-{idx}" class="log-detail-row" style="display:none;background:#090d16;">
+        <td colspan="8" style="padding:16px;">
+            <pre style="margin:0;color:#38bdf8;font-size:14px;line-height:1.6;white-space:pre-wrap;">{r['raw']}</pre>
         </td>
     </tr>
     """
 
-logs_html = "".join([f"<li style='margin-bottom:6px;'>{log}</li>" for log in state["event_logs"]])
+logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in state["event_logs"]])
 if not logs_html:
     logs_html = "<li style='color:#94a3b8;'>目前尚無狀態變更紀錄（系統正常運行中）</li>"
 
@@ -341,61 +381,79 @@ html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="60">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4G/5G 行網 Internet 路由巡檢與導入監控</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background:#0b1120; color:#e2e8f0; margin:0; padding:24px; }}
-        .container {{ max-width: 1300px; margin: 0 auto; }}
-        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }}
-        .cards {{ display:flex; gap:16px; margin-bottom:20px; }}
-        .card {{ flex:1; background:#1e293b; padding:16px; border-radius:8px; border:1px solid #334155; }}
-        .audit-box {{ background:#1e293b; border-left:4px solid #38bdf8; padding:16px; border-radius:6px; margin-bottom:24px; }}
-        table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:8px; overflow:hidden; font-size:13px; }}
-        th {{ background:#0f172a; padding:12px; text-align:left; color:#94a3b8; font-weight:600; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
+        .container {{ max-width: 1400px; margin: 0 auto; }}
+        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }}
+        .cards {{ display:flex; gap:20px; margin-bottom:28px; }}
+        .card {{ flex:1; background:#1e293b; padding:20px; border-radius:10px; border:1px solid #334155; }}
+        .audit-box {{ background:#1e293b; border-left:5px solid #38bdf8; padding:20px; border-radius:8px; margin-top:32px; }}
+        table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:10px; overflow:hidden; font-size:14px; }}
+        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:600; font-size:15px; }}
     </style>
     <script>
+        var anyLogOpened = false;
         function toggleLog(id) {{
             var el = document.getElementById(id);
-            el.style.display = (el.style.display === 'none') ? 'table-row' : 'none';
+            if (el.style.display === 'none' || el.style.display === '') {{
+                el.style.display = 'table-row';
+            }} else {{
+                el.style.display = 'none';
+            }}
+            checkOpenedLogs();
         }}
+        function checkOpenedLogs() {{
+            var rows = document.getElementsByClassName('log-detail-row');
+            anyLogOpened = false;
+            for (var i = 0; i < rows.length; i++) {{
+                if (rows[i].style.display === 'table-row') {{
+                    anyLogOpened = true;
+                    break;
+                }}
+            }}
+        }}
+        // 每 15 分鐘 (900秒) 自動檢查重整，若正在查看 LOG 則自動延後
+        setInterval(function() {{
+            if (!anyLogOpened) {{
+                window.location.reload();
+            }}
+        }}, 900000);
     </script>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div>
-                <h1 style="margin:0;font-size:22px;color:#38bdf8;">🌐 4G/5G 行網 Internet 路由巡檢與導入監控儀表板</h1>
-                <div style="font-size:13px;color:#94a3b8;margin-top:8px;line-height:1.6;">
-                    📍 <strong>探測來源：</strong>固定 Taiwan 探針節點發起<br>
-                    ⏱ <strong>巡檢週期：</strong>GitHub 每 30 分鐘自動 Traceroute 巡檢一次 | <strong>最後巡檢時間：</strong>{now_str} (UTC+8)<br>
-                    🔄 <strong>畫面狀態：</strong>瀏覽器每 60 秒自動刷新讀取最新數據
+                <h1 style="margin:0;font-size:26px;color:#38bdf8;">🌐 4G/5G 行網 Internet 路由巡檢與導入監控儀表板</h1>
+                <div style="font-size:15px;color:#94a3b8;margin-top:10px;line-height:1.7;">
+                    📍 <strong>探測來源：</strong>固定 Taiwan 探針節點發起（未達 BR 自動重測 2 次機制生效中）<br>
+                    ⏱ <strong>巡檢週期：</strong>GitHub 每 15 分鐘自動 Traceroute 巡檢一次 | <strong>最後巡檢時間：</strong>{now_str} (UTC+8)<br>
+                    🔄 <strong>畫面狀態：</strong>配合排程每 15 分鐘自動重整（展開查看 LOG 時暫停重整）
                 </div>
+            </div>
+            <div>
+                <button onclick="window.location.reload()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:10px 18px;cursor:pointer;font-size:15px;font-weight:bold;">手動刷新畫面</button>
             </div>
         </div>
 
         <div class="cards">
             <div class="card">
-                <div style="color:#94a3b8;font-size:12px;">監控目標總數</div>
-                <div style="font-size:24px;font-weight:bold;margin-top:4px;">{len(current_results)} 組 IP</div>
+                <div style="color:#94a3b8;font-size:14px;">監控目標總數</div>
+                <div style="font-size:28px;font-weight:bold;margin-top:6px;">{len(current_results)} 組 IP</div>
             </div>
             <div class="card">
-                <div style="color:#94a3b8;font-size:12px;">正常連通 (抵達 8 台 BR)</div>
-                <div style="font-size:24px;font-weight:bold;color:#4ade80;margin-top:4px;">{ok_count} 組</div>
+                <div style="color:#94a3b8;font-size:14px;">正常連通 (抵達 8 台 BR)</div>
+                <div style="font-size:28px;font-weight:bold;color:#4ade80;margin-top:6px;">{ok_count} 組</div>
             </div>
             <div class="card" style="border-color: {'#ef4444' if alert_count > 0 else '#334155'};">
-                <div style="color:#94a3b8;font-size:12px;">異常 / 導入中</div>
-                <div style="font-size:24px;font-weight:bold;color: {'#f87171' if alert_count > 0 else '#94a3b8'}; margin-top:4px;">{alert_count} 組</div>
+                <div style="color:#94a3b8;font-size:14px;">異常 / 導入中</div>
+                <div style="font-size:28px;font-weight:bold;color: {'#f87171' if alert_count > 0 else '#94a3b8'}; margin-top:6px;">{alert_count} 組</div>
             </div>
         </div>
 
-        <div class="audit-box">
-            <h3 style="margin-top:0;margin-bottom:10px;font-size:15px;color:#38bdf8;">📋 路由變更流水帳 (導入 / 導出歷史紀錄)</h3>
-            <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.6;">
-                {logs_html}
-            </ul>
-        </div>
-
+        <!-- 表格移至最上方 -->
         <table>
             <thead>
                 <tr>
@@ -413,6 +471,14 @@ html_content = f"""<!DOCTYPE html>
                 {rows_html}
             </tbody>
         </table>
+
+        <!-- LOG 移至表格下方 -->
+        <div class="audit-box">
+            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 路由變更流水帳 (導入 / 導出歷史紀錄)</h3>
+            <ul style="margin:0;padding-left:24px;font-size:14px;line-height:1.7;">
+                {logs_html}
+            </ul>
+        </div>
     </div>
 </body>
 </html>

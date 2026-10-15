@@ -4,12 +4,16 @@ import os
 import re
 import ipaddress
 import urllib.request
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
 # 第一部分：系統設定區 (16 台 BR 白名單、海外輪播節點、102 組目標 IP 元數據)
 # ==============================================================================
+
+# 備用 Webhook 網址（雙重保險：即使 Actions 漏接環境變數也能順利發送）
+FALLBACK_WEBHOOK_URL = "https://default54eb9440cf0345fe835e61bd4ce515.c8.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/29/workflows/1d01e593bf3649bea39eba02ca408ecb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Gv35_ySE7WCYKGPhw-41NZfHFw7ODncvpvxHvCj4VUc"
 
 BR_LIST = {
     # 既有核心 8 台 BR
@@ -213,8 +217,7 @@ state["overseas_idx"] = (state.get("overseas_idx", 0) + 1) % len(OVERSEAS_NODES)
 def send_teams_notification(title, is_alert, event_items, timestamp_str):
     webhook_url = os.environ.get("TEAMS_WEBHOOK_URL", "").strip()
     if not webhook_url:
-        print("[Teams 推播] 未偵測到 TEAMS_WEBHOOK_URL 環境變數，略過發送。")
-        return
+        webhook_url = FALLBACK_WEBHOOK_URL
 
     header_color = "Attention" if is_alert else "Good"
     icon = "🚨" if is_alert else "🟢"
@@ -284,10 +287,11 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：網路探測與雙向邏輯運算區 (台灣固定 + 境外輪播，20 線並行)
+# 第三部分：網路探測與雙向邏輯運算區 (台灣固定 + 境外輪播，限流保護機制)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
+    time.sleep(0.25)  # 每次請求微幅間隔，平滑化發送
     api_url = "https://api.globalping.io/v1/measurements"
     payload = json.dumps({
         "type": "traceroute",
@@ -302,11 +306,22 @@ def run_single_trace(target, country_code):
         headers={"Content-Type": "application/json", "User-Agent": "GitHub-Network-Probe"}
     )
     
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
-    except Exception as e:
-        return target, country_code, f"發起請求失敗: {e}"
+    measurement_id = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
+                break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt == 0:
+                time.sleep(3)
+                continue
+            return target, country_code, f"發起請求失敗: {e}"
+        except Exception as e:
+            return target, country_code, f"發起請求失敗: {e}"
+
+    if not measurement_id:
+        return target, country_code, "無法取得測量ID"
 
     poll_url = f"{api_url}/{measurement_id}"
     for _ in range(15):
@@ -387,16 +402,16 @@ def parse_trace_output(target, raw_output, country_code, overseas_city_name):
         "raw": raw_output
     }
 
-# 準備所有探測任務 (共 102 x 2 = 204 個並行任務)
+# 準備所有探測任務 (共 102 x 2 = 204 個任務)
 all_tasks = []
 for target in TARGET_IPS:
     all_tasks.append((target, "TW"))
     all_tasks.append((target, current_overseas["country"]))
 
-print(f"[{now_str}] 開始雙向巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，啟動 20 產線並行...")
+print(f"[{now_str}] 開始雙向巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 5 產線穩定平滑發送...")
 
 raw_results = {}
-with ThreadPoolExecutor(max_workers=20) as executor:
+with ThreadPoolExecutor(max_workers=5) as executor:
     future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in all_tasks}
     for future in as_completed(future_to_task):
         target, c_code, raw_out = future.result()
@@ -410,12 +425,12 @@ retry_tasks = []
 for target in TARGET_IPS:
     res_tw = parse_trace_output(target, raw_results.get((target, "TW"), ""), "TW", "台灣")
     parsed_tw[target] = res_tw
-    if res_tw["status"] == "ALERT" and not res_tw["has_private"]:
+    if res_tw["status"] == "ALERT" and not res_tw["has_private"] and "429" not in res_tw["raw"]:
         retry_tasks.append((target, "TW"))
 
     res_ov = parse_trace_output(target, raw_results.get((target, current_overseas["country"]), ""), current_overseas["country"], current_overseas["city"])
     parsed_overseas[target] = res_ov
-    if res_ov["status"] == "ALERT" and not res_ov["has_private"]:
+    if res_ov["status"] == "ALERT" and not res_ov["has_private"] and "429" not in res_ov["raw"]:
         retry_tasks.append((target, current_overseas["country"]))
 
 # 第二輪：複測未達 BR 任務 (最多 2 次)
@@ -427,7 +442,7 @@ if retry_tasks:
         print(f"  -> 進行第 {retry_round} 次複測，剩餘待測: {len(retry_tasks)} 個任務")
         time.sleep(3)
         still_failing = []
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
             for future in as_completed(future_to_task):
                 target, c_code, raw_out = future.result()

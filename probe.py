@@ -11,7 +11,6 @@ from datetime import datetime, timezone, timedelta
 # 第一部分：系統設定區 (16 台 BR 白名單、機房對照表、102 組目標 IP 元數據)
 # ==============================================================================
 
-# 16 台核心與區域邊界路由器 (BR) 白名單
 BR_LIST = {
     # 既有核心 8 台 BR
     "210.65.126.209": "3L1BR1",
@@ -33,7 +32,6 @@ BR_LIST = {
     "211.22.229.201": "3L1EPG4U-BR2(D)"
 }
 
-# 機房常見代號對照 (自動解析反解域名)
 ROUTER_LOCATIONS = {
     "tpdb": "台北東二",
     "tpe4": "台北信義",
@@ -183,7 +181,81 @@ if os.path.exists(HISTORY_FILE):
 
 
 # ==============================================================================
-# 第二部分：網路探測與路由邏輯運算區 (API 呼叫、重測機制、日誌比對)
+# 第二部分：Teams Webhook 推播函式 (Adaptive Card 格式)
+# ==============================================================================
+
+def send_teams_notification(title, is_alert, event_items, timestamp_str):
+    webhook_url = os.environ.get("TEAMS_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        print("[Teams 推播] 未偵測到 TEAMS_WEBHOOK_URL 環境變數，略過發送。")
+        return
+
+    header_color = "Attention" if is_alert else "Good"
+    icon = "🚨" if is_alert else "🟢"
+
+    facts = []
+    for item in event_items:
+        facts.append({
+            "title": f"{item['target']}",
+            "value": f"{item['elem']} [{item['cidr']} {item['part']}] ➔ {item['desc']}"
+        })
+
+    adaptive_payload = {
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "contentUrl": None,
+                "content": {
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "size": "Large",
+                            "weight": "Bolder",
+                            "text": f"{icon} {title}",
+                            "color": header_color
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": f"發生時間：{timestamp_str} (UTC+8)",
+                            "isSubtle": True,
+                            "spacing": "None"
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": facts,
+                            "separator": True
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "type": "Action.OpenUrl",
+                            "title": "🌐 開啟即時戰情室儀表板",
+                            "url": "https://swa1216-wei.github.io/ip-tracer/"
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    try:
+        req = urllib.request.Request(
+            webhook_url,
+            data=json.dumps(adaptive_payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"[Teams 推播] 發送成功 (Status: {resp.status}) - {title}")
+    except Exception as e:
+        print(f"[Teams 推播] 發送失敗: {e}")
+
+
+# ==============================================================================
+# 第三部分：網路探測與路由邏輯運算區 (API 呼叫、重測機制、日誌比對)
 # ==============================================================================
 
 def run_single_trace(target):
@@ -308,8 +380,11 @@ if targets_need_retry:
                     still_failing.append(target)
         targets_need_retry = still_failing
 
-# 彙整判定結果
+# 彙整判定結果並追蹤狀態變更
 current_results = []
+newly_alerted = []
+newly_recovered = []
+
 for target in TARGET_IPS:
     parsed = parsed_results[target]
     meta = TARGET_METADATA.get(target, {})
@@ -348,12 +423,23 @@ for target in TARGET_IPS:
 
     prev_status = state["last_status"].get(target, "OK")
     target_label = f"{target} [{meta.get('cidr')} {meta.get('part')}]"
+    
+    item_summary = {
+        "target": target,
+        "cidr": meta.get("cidr", ""),
+        "part": meta.get("part", ""),
+        "elem": meta.get("elem", ""),
+        "desc": status_desc
+    }
+
     if prev_status == "OK" and current_status == "ALERT":
         event = f"🔴 {now_str} 【導入告警】目標 {target_label} 狀態變更為異常！原因: {status_desc}，最後節點: {last_responded_ip}{location_desc}"
         state["event_logs"].insert(0, event)
+        newly_alerted.append(item_summary)
     elif prev_status == "ALERT" and current_status == "OK":
         event = f"🟢 {now_str} 【導出恢復】目標 {target_label} 已恢復正常！抵達: {br_name}"
         state["event_logs"].insert(0, event)
+        newly_recovered.append(item_summary)
 
     state["last_status"][target] = current_status
 
@@ -376,6 +462,13 @@ for target in TARGET_IPS:
         "desc": status_desc,
         "raw": raw_output
     })
+
+# 發送 Teams 通知 (僅在狀態變更時，且彙整單一卡片)
+if newly_alerted:
+    send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
+
+if newly_recovered:
+    send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
 
 # 排序：ALERT (異常) 排在最上方
 current_results.sort(key=lambda x: (0 if x["status"] == "ALERT" else 1, x["target"]))
@@ -401,7 +494,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第三部分：歷史統計指標計算 (近 24 小時健康度 + 7 天歷史時序)
+# 第四部分：歷史統計指標計算 (近 24 小時健康度 + 7 天歷史時序)
 # ==============================================================================
 
 # 24 小時健康摘要
@@ -438,7 +531,7 @@ for item in state["history_snapshots"][:100]:
 
 
 # ==============================================================================
-# 第四部分：HTML 前端組裝與方式 A 常駐消音按鈕邏輯
+# 第五部分：HTML 前端組裝與方式 A 常駐消音按鈕邏輯
 # ==============================================================================
 
 rows_html = ""
@@ -547,7 +640,6 @@ html_content = f"""<!DOCTYPE html>
 
             if (alertCount > 0) {{
                 if (isAcked) {{
-                    // 異常但已被消音
                     if (ackBtn) {{
                         ackBtn.innerText = "✔ 警報已消音 (ACK)";
                         ackBtn.disabled = true;
@@ -562,7 +654,6 @@ html_content = f"""<!DOCTYPE html>
                         beepInterval = null;
                     }}
                 }} else {{
-                    // 異常未消音 (發光呼吸燈 + 嗶嗶聲)
                     if (ackBtn) {{
                         ackBtn.innerText = "🔕 靜音警報 (點擊消音)";
                         ackBtn.disabled = false;
@@ -577,7 +668,6 @@ html_content = f"""<!DOCTYPE html>
                     }}
                 }}
             }} else {{
-                // 正常 (0 組異常)：常駐灰色不可按
                 if (ackBtn) {{
                     ackBtn.innerText = "🔕 靜音警報 (無告警)";
                     ackBtn.disabled = true;
@@ -620,7 +710,6 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        // 使用者點擊畫面任意處解鎖瀏覽器音頻限制
         window.addEventListener('click', function() {{
             if (!audioCtx) {{
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -632,7 +721,6 @@ html_content = f"""<!DOCTYPE html>
             updateAckButtonState();
         }};
 
-        // 每 15 分鐘 (900秒) 自動重整
         setInterval(function() {{
             if (!anyLogOpened) {{
                 window.location.reload();
@@ -655,9 +743,8 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
             
-            <!-- 右上角按鈕組 (方式 A：消音按鈕常駐於此) -->
+            <!-- 右上角按鈕組 -->
             <div style="display:flex; gap:12px; align-items:center;">
-                <!-- 方式 A 常駐消音按鈕 -->
                 <button id="ack-btn" onclick="ackAlarm()" style="background:#334155; color:#94a3b8; border:none; border-radius:8px; padding:11px 18px; cursor:not-allowed; font-size:15px; font-weight:bold; transition:all 0.2s;">
                     🔕 靜音警報 (無告警)
                 </button>
@@ -670,9 +757,8 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 長官焦點：核心狀態三格指標 (抵達 16 台 BR) -->
+        <!-- 核心狀態三格指標 (抵達 16 台 BR) -->
         <div class="cards">
-            <!-- 卡片 1：總監控目標 -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #334155; border-top:4px solid #38bdf8; box-shadow:0 8px 20px rgba(0,0,0,0.3);">
                 <div style="font-size:14px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
                     監控目標總數
@@ -682,7 +768,6 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- 卡片 2：正常連通 (16 台 BR) -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #1e3a2b; border-top:4px solid #10b981; box-shadow:0 8px 20px rgba(16,185,129,0.15);">
                 <div style="font-size:14px; font-weight:bold; color:#a7f3d0; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
                     正常連通 (抵達 16 台 BR)
@@ -692,7 +777,6 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- 卡片 3：異常導入 -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #3f1d24; border-top:4px solid #f43f5e; box-shadow:0 8px 20px rgba(244,63,94,0.12);">
                 <div style="font-size:14px; font-weight:bold; color:#fecdd3; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
                     異常 / 清洗導入中
@@ -703,12 +787,12 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 24小時夜間巡檢健康摘要橫條 -->
+        <!-- 24小時巡檢健康摘要橫條 -->
         <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:28px; font-size:14px; display:flex; align-items:center; gap:8px;">
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 路由現況表格 (異常自動置頂) -->
+        <!-- 路由現況表格 -->
         <table>
             <thead>
                 <tr>
@@ -727,7 +811,7 @@ html_content = f"""<!DOCTYPE html>
             </tbody>
         </table>
 
-        <!-- 變更流水帳 LOG (置底歷史記錄) -->
+        <!-- 變更流水帳 LOG -->
         <div class="audit-box">
             <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 路由變更流水帳 (導入 / 導出歷史紀錄)</h3>
             <ul style="margin:0;padding-left:24px;font-size:14px;line-height:1.7;">
@@ -735,10 +819,10 @@ html_content = f"""<!DOCTYPE html>
             </ul>
         </div>
 
-        <!-- 過去 7 天排程巡檢歷史三格趨勢紀錄 (連假/週末不在場回溯) -->
+        <!-- 過去 7 天排程巡檢歷史快照 -->
         <div class="history-box">
-            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照</h3>
-            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">此處記錄每一次自動巡檢的三格核心指標：</p>
+            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 (連假/週末不在場回溯)</h3>
+            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">記錄每一次自動巡檢的三格核心指標：</p>
             <div style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
                 <table style="box-shadow:none;">
                     <thead>
@@ -760,7 +844,6 @@ html_content = f"""<!DOCTYPE html>
 </html>
 """
 
-# 寫入產出成果
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 

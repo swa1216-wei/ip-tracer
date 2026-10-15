@@ -119,13 +119,16 @@ TARGET_IPS = list(TARGET_METADATA.keys())
 HISTORY_FILE = "monitor_state.json"
 
 tz = timezone(timedelta(hours=8))
-now_str = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+now_dt = datetime.now(tz)
+now_str = now_dt.strftime('%Y-%m-%d %H:%M:%S')
 
-state = {"baselines": {}, "last_status": {}, "event_logs": []}
+state = {"baselines": {}, "last_status": {}, "event_logs": [], "history_snapshots": []}
 if os.path.exists(HISTORY_FILE):
     try:
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             state = json.load(f)
+            if "history_snapshots" not in state:
+                state["history_snapshots"] = []
     except Exception:
         pass
 
@@ -217,7 +220,7 @@ def parse_trace_output(target, raw_output):
         "raw": raw_output
     }
 
-# 第一輪：8 條產線並行探測
+# 第一輪並行探測
 probe_outputs = {}
 print(f"[{now_str}] 開始第一輪巡檢 {len(TARGET_IPS)} 組目標 IP ...")
 with ThreadPoolExecutor(max_workers=8) as executor:
@@ -232,11 +235,10 @@ targets_need_retry = []
 for target in TARGET_IPS:
     parsed = parse_trace_output(target, probe_outputs.get(target, ""))
     parsed_results[target] = parsed
-    # 若未達 BR 且中途沒有 10.x（排除確定導入的異常），列入自動重測名單
     if not parsed["is_br"] and not parsed["has_private"]:
         targets_need_retry.append(target)
 
-# 第二輪：針對未達 BR 者自動複測（最多 2 次重試）
+# 第二輪自動複測（最多 2 次）
 if targets_need_retry:
     print(f"[{now_str}] 偵測到 {len(targets_need_retry)} 組目標未達 BR，啟動複測重試機制 (最多 2 次)...")
     for retry_round in range(1, 3):
@@ -257,7 +259,7 @@ if targets_need_retry:
                     still_failing.append(target)
         targets_need_retry = still_failing
 
-# 彙整最終判定結果
+# 彙整判定結果
 current_results = []
 for target in TARGET_IPS:
     parsed = parsed_results[target]
@@ -326,20 +328,66 @@ for target in TARGET_IPS:
         "raw": raw_output
     })
 
-state["event_logs"] = state["event_logs"][:50]
-
-with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-    json.dump(state, f, ensure_ascii=False, indent=2)
-
 # 排序：ALERT (異常) 排在最上方
 current_results.sort(key=lambda x: (0 if x["status"] == "ALERT" else 1, x["target"]))
 
 alert_count = sum(1 for r in current_results if r["status"] == "ALERT")
 ok_count = len(current_results) - alert_count
+total_count = len(current_results)
 
+# 寫入歷史快照（保留最新 7 天，約 700 筆紀錄）
+snapshot_entry = {
+    "time": now_str,
+    "total": total_count,
+    "ok": ok_count,
+    "alert": alert_count
+}
+state["history_snapshots"].insert(0, snapshot_entry)
+state["history_snapshots"] = state["history_snapshots"][:700]
+
+state["event_logs"] = state["event_logs"][:60]
+
+with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+    json.dump(state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第三部分：HTML 前端表格行組裝
+# 第三部分：歷史統計指標計算 (近 24 小時健康度 + 7 天歷史時序)
+# ==============================================================================
+
+# 計算 24 小時內的狀況 (依時間戳記過濾)
+one_day_ago = now_dt - timedelta(hours=24)
+snapshots_24h = []
+for s in state["history_snapshots"]:
+    try:
+        s_dt = datetime.strptime(s["time"], '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
+        if s_dt >= one_day_ago:
+            snapshots_24h.append(s)
+    except Exception:
+        pass
+
+alert_rounds_24h = [s for s in snapshots_24h if s.get("alert", 0) > 0]
+if not alert_rounds_24h:
+    stat_24h_html = '<span style="color:#34d399;font-weight:bold;">✔ 過去 24 小時無異常事件（全時段平穩正常抵達 BR）</span>'
+else:
+    latest_err = alert_rounds_24h[0]
+    stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]} 測得 {latest_err["alert"]} 組異常）</span>'
+
+# 生成過去 7 天的歷史三格紀錄列表
+history_rows_html = ""
+for item in state["history_snapshots"][:100]:  # 畫面上先列出最近 100 筆，其餘存於 JSON
+    row_bg = "#3f1a1a" if item.get("alert", 0) > 0 else "transparent"
+    alert_badge = f'<span style="color:#fb7185;font-weight:bold;">{item.get("alert", 0)} 組 🚨</span>' if item.get("alert", 0) > 0 else '<span style="color:#94a3b8;">0 組</span>'
+    history_rows_html += f"""
+    <tr style="background-color:{row_bg};border-bottom:1px solid #334155;">
+        <td style="padding:10px 12px;font-family:monospace;color:#f8fafc;">{item.get("time")}</td>
+        <td style="padding:10px 12px;font-weight:bold;color:#38bdf8;">{item.get("total", 76)} 組</td>
+        <td style="padding:10px 12px;font-weight:bold;color:#34d399;">{item.get("ok", 76)} 組</td>
+        <td style="padding:10px 12px;">{alert_badge}</td>
+    </tr>
+    """
+
+# ==============================================================================
+# 第四部分：HTML 前端組裝與聲音/ACK 邏輯
 # ==============================================================================
 
 rows_html = ""
@@ -389,11 +437,6 @@ logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in sta
 if not logs_html:
     logs_html = "<li style='color:#94a3b8;'>目前尚無狀態變更紀錄（系統正常運行中）</li>"
 
-
-# ==============================================================================
-# 第四部分：完整長官戰情室視覺頁面組裝與輸出 (HTML + CSS + JavaScript)
-# ==============================================================================
-
 alert_glow = "text-shadow:0 0 14px rgba(251,113,133,0.6);" if alert_count > 0 else ""
 alert_color = "#fb7185" if alert_count > 0 else "#94a3b8"
 
@@ -407,13 +450,72 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
-        .cards {{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-bottom:28px; }}
+        .cards {{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-bottom:20px; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
+        .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
         table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
         th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; letter-spacing:0.5px; border-bottom:1px solid #334155; }}
     </style>
     <script>
         var anyLogOpened = false;
+        var alertCount = {alert_count};
+        var audioCtx = null;
+        var beepInterval = null;
+
+        // Web Audio API 警報聲音產生器
+        function playWarningBeep() {{
+            try {{
+                if (!audioCtx) {{
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }}
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880Hz (A5 高音)
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            }} catch(e) {{
+                console.log("Audio not allowed yet:", e);
+            }}
+        }}
+
+        // 檢查警報與 ACK 狀態
+        function checkAlertAudio() {{
+            var isAcked = sessionStorage.getItem("alarm_acked_{now_str}") === "true";
+            var ackBtn = document.getElementById("ack-btn");
+            if (alertCount > 0 && !isAcked) {{
+                if (ackBtn) ackBtn.style.display = "inline-block";
+                // 每隔 2 秒嗶一次
+                if (!beepInterval) {{
+                    beepInterval = setInterval(playWarningBeep, 2000);
+                }}
+            }} else {{
+                if (ackBtn) ackBtn.style.display = "none";
+                if (beepInterval) {{
+                    clearInterval(beepInterval);
+                    beepInterval = null;
+                }}
+            }}
+        }}
+
+        function ackAlarm() {{
+            sessionStorage.setItem("alarm_acked_{now_str}", "true");
+            if (beepInterval) {{
+                clearInterval(beepInterval);
+                beepInterval = null;
+            }}
+            var ackBtn = document.getElementById("ack-btn");
+            if (ackBtn) {{
+                ackBtn.innerText = "✔ 警報已消音 (ACK)";
+                ackBtn.style.background = "#475569";
+                ackBtn.style.cursor = "default";
+            }}
+        }}
+
         function toggleLog(id) {{
             var el = document.getElementById(id);
             if (el.style.display === 'none' || el.style.display === '') {{
@@ -423,6 +525,7 @@ html_content = f"""<!DOCTYPE html>
             }}
             checkOpenedLogs();
         }}
+
         function checkOpenedLogs() {{
             var rows = document.getElementsByClassName('log-detail-row');
             anyLogOpened = false;
@@ -433,7 +536,20 @@ html_content = f"""<!DOCTYPE html>
                 }}
             }}
         }}
-        // 每 15 分鐘 (900秒) 自動檢查重整，若正在查看 LOG 則自動延後
+
+        // 使用者隨意點擊畫面即可解鎖瀏覽器音頻權限
+        window.addEventListener('click', function() {{
+            if (!audioCtx) {{
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }}
+            checkAlertAudio();
+        }}, {{ once: true }});
+
+        window.onload = function() {{
+            checkAlertAudio();
+        }};
+
+        // 每 15 分鐘 (900秒) 自動重整
         setInterval(function() {{
             if (!anyLogOpened) {{
                 window.location.reload();
@@ -456,8 +572,12 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
             
-            <!-- 右上角戰情按鈕組 -->
+            <!-- 右上角按鈕組 -->
             <div style="display:flex; gap:12px; align-items:center;">
+                <!-- ACK 消音按鈕 (有異常時才會動態亮出) -->
+                <button id="ack-btn" onclick="ackAlarm()" style="display:none; background:#ef4444; color:#fff; border:none; border-radius:8px; padding:11px 18px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 0 15px rgba(239,68,68,0.7); animation:pulse 1.5s infinite;">
+                    🔕 靜音警報 (ACK)
+                </button>
                 <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 4px 12px rgba(2,132,199,0.3); transition:all 0.2s;" onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">
                     🔄 畫面刷新
                 </button>
@@ -467,19 +587,19 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 長官焦點：核心狀態三格指標 (戰情室立體發光凸顯版) -->
+        <!-- 長官焦點：核心狀態三格指標 -->
         <div class="cards">
-            <!-- 卡片 1：總監控目標 (湛藍光邊) -->
+            <!-- 卡片 1：總監控目標 -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #334155; border-top:4px solid #38bdf8; box-shadow:0 8px 20px rgba(0,0,0,0.3);">
                 <div style="font-size:14px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
                     監控目標總數
                 </div>
                 <div style="font-size:36px; font-weight:900; color:#ffffff;">
-                    {len(current_results)} <span style="font-size:18px; color:#94a3b8; font-weight:normal;">組 IP</span>
+                    {total_count} <span style="font-size:18px; color:#94a3b8; font-weight:normal;">組 IP</span>
                 </div>
             </div>
 
-            <!-- 卡片 2：正常連通 (安全翠綠光暈) -->
+            <!-- 卡片 2：正常連通 -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #1e3a2b; border-top:4px solid #10b981; box-shadow:0 8px 20px rgba(16,185,129,0.15);">
                 <div style="font-size:14px; font-weight:bold; color:#a7f3d0; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
                     正常連通 (抵達 8 台 BR)
@@ -489,7 +609,7 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- 卡片 3：異常導入 (警示緋紅凸顯) -->
+            <!-- 卡片 3：異常導入 -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #3f1d24; border-top:4px solid #f43f5e; box-shadow:0 8px 20px rgba(244,63,94,0.12);">
                 <div style="font-size:14px; font-weight:bold; color:#fecdd3; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
                     異常 / 清洗導入中
@@ -500,7 +620,12 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 路由現況表格 (異常置頂) -->
+        <!-- 24小時夜間巡檢健康摘要橫條 -->
+        <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:28px; font-size:14px; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
+        </div>
+
+        <!-- 路由現況表格 -->
         <table>
             <thead>
                 <tr>
@@ -525,6 +650,27 @@ html_content = f"""<!DOCTYPE html>
             <ul style="margin:0;padding-left:24px;font-size:14px;line-height:1.7;">
                 {logs_html}
             </ul>
+        </div>
+
+        <!-- 過去 7 天排程巡檢歷史三格趨勢紀錄 (跨週末/連假回溯專用) -->
+        <div class="history-box">
+            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 (連假/週末不在場回溯)</h3>
+            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">此處記錄每一次自動巡檢的三格核心指標，連假或放假回崗時可直接比對是否有出現過異常波峰：</p>
+            <div style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
+                <table style="box-shadow:none;">
+                    <thead>
+                        <tr>
+                            <th style="background:#090d16;padding:10px 12px;">巡檢時間點</th>
+                            <th style="background:#090d16;padding:10px 12px;">目標總數</th>
+                            <th style="background:#090d16;padding:10px 12px;">正常連通數</th>
+                            <th style="background:#090d16;padding:10px 12px;">異常/導入數</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {history_rows_html}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </body>

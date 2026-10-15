@@ -8,11 +8,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：系統設定區 (核心 BR 白名單、機房對照表、監控 IP 元數據)
+# 第一部分：系統設定區 (16 台 BR 白名單、機房對照表、102 組目標 IP 元數據)
 # ==============================================================================
 
-# 8 台核心邊界路由器 (BR) 白名單
+# 16 台核心與區域邊界路由器 (BR) 白名單
 BR_LIST = {
+    # 既有核心 8 台 BR
     "210.65.126.209": "3L1BR1",
     "210.65.126.213": "3L1BR2",
     "210.65.126.101": "4L1BR3",
@@ -21,6 +22,15 @@ BR_LIST = {
     "210.65.126.197": "7L2BR2",
     "210.65.126.93":  "2L3BR3",
     "210.65.126.97":  "2L3BR4",
+    # 邊緣雲與 3L1EPG4U 專屬 8 台 BR
+    "211.22.229.189": "2L1-BR1(D)",
+    "211.22.229.193": "2L1-BR2(D)",
+    "203.74.98.85":   "CHCH-BR1(D)",
+    "203.75.166.85":  "CHCH-BR2(D)",
+    "203.75.166.81":  "TNE1-BR1(D)",
+    "203.74.98.81":   "TNE1-BR2(D)",
+    "211.22.229.205": "3L1EPG4U-BR1(D)",
+    "211.22.229.201": "3L1EPG4U-BR2(D)"
 }
 
 # 機房常見代號對照 (自動解析反解域名)
@@ -35,8 +45,9 @@ ROUTER_LOCATIONS = {
     "kh":   "高雄"
 }
 
-# 76 個目標 IP 與網段元數據對照表
+# 102 個目標 IP 與網段元數據對照表 (76 組既有 EPG + 26 組邊緣雲/CUPS)
 TARGET_METADATA = {
+  # --- 既有核心 76 組網段 ---
   "42.72.0.8": {"cidr": "42.72.0.0/17", "part": "前半", "elem": "3L1EPG1", "nat": "NAT5/6"},
   "42.72.64.8": {"cidr": "42.72.0.0/17", "part": "後半", "elem": "3L1EPG1", "nat": "NAT5/6"},
   "42.72.128.8": {"cidr": "42.72.128.0/17", "part": "前半", "elem": "3L1EPG2", "nat": "NAT5/6"},
@@ -112,7 +123,41 @@ TARGET_METADATA = {
   "223.143.240.8": {"cidr": "223.143.240.0/22", "part": "前半", "elem": "2L3EPG4", "nat": "NAT9/10"},
   "223.143.242.8": {"cidr": "223.143.240.0/22", "part": "後半", "elem": "2L3EPG4", "nat": "NAT9/10"},
   "223.143.244.8": {"cidr": "223.143.244.0/22", "part": "前半", "elem": "2L3EPG4", "nat": "NAT9/10"},
-  "223.143.246.8": {"cidr": "223.143.244.0/22", "part": "後半", "elem": "2L3EPG4", "nat": "NAT9/10"}
+  "223.143.246.8": {"cidr": "223.143.244.0/22", "part": "後半", "elem": "2L3EPG4", "nat": "NAT9/10"},
+
+  # --- 新增：3L1EPG4U (CUPS 架構) ---
+  "42.79.0.8":   {"cidr": "42.79.0.0/17", "part": "前半", "elem": "3L1EPG4U", "nat": "NAT7/8"},
+  "42.79.64.8":  {"cidr": "42.79.0.0/17", "part": "後半", "elem": "3L1EPG4U", "nat": "NAT7/8"},
+
+  # --- 新增：三重邊緣雲 ---
+  "42.70.0.8":   {"cidr": "42.70.0.0/18",   "part": "前半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
+  "42.70.32.8":  {"cidr": "42.70.0.0/18",   "part": "後半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
+  "42.70.64.8":  {"cidr": "42.70.64.0/18",  "part": "前半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
+  "42.70.96.8":  {"cidr": "42.70.64.0/18",  "part": "後半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
+  "42.70.128.8": {"cidr": "42.70.128.0/18", "part": "前半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
+  "42.70.160.8": {"cidr": "42.70.128.0/18", "part": "後半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
+  "42.70.192.8": {"cidr": "42.70.192.0/18", "part": "前半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
+  "42.70.224.8": {"cidr": "42.70.192.0/18", "part": "後半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
+
+  # --- 新增：彰化邊緣雲 ---
+  "42.71.0.8":   {"cidr": "42.71.0.0/18",   "part": "前半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
+  "42.71.32.8":  {"cidr": "42.71.0.0/18",   "part": "後半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
+  "42.71.64.8":  {"cidr": "42.71.64.0/18",  "part": "前半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
+  "42.71.96.8":  {"cidr": "42.71.64.0/18",  "part": "後半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
+  "42.71.128.8": {"cidr": "42.71.128.0/18", "part": "前半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
+  "42.71.160.8": {"cidr": "42.71.128.0/18", "part": "後半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
+  "42.71.192.8": {"cidr": "42.71.192.0/18", "part": "前半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
+  "42.71.224.8": {"cidr": "42.71.192.0/18", "part": "後半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
+
+  # --- 新增：台南邊緣雲 ---
+  "42.78.0.8":   {"cidr": "42.78.0.0/18",   "part": "前半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
+  "42.78.32.8":  {"cidr": "42.78.0.0/18",   "part": "後半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
+  "42.78.64.8":  {"cidr": "42.78.64.0/18",  "part": "前半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
+  "42.78.96.8":  {"cidr": "42.78.64.0/18",  "part": "後半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
+  "42.78.128.8": {"cidr": "42.78.128.0/18", "part": "前半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"},
+  "42.78.160.8": {"cidr": "42.78.128.0/18", "part": "後半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"},
+  "42.78.192.8": {"cidr": "42.78.192.0/18", "part": "前半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"},
+  "42.78.224.8": {"cidr": "42.78.192.0/18", "part": "後半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"}
 }
 
 TARGET_IPS = list(TARGET_METADATA.keys())
@@ -220,7 +265,7 @@ def parse_trace_output(target, raw_output):
         "raw": raw_output
     }
 
-# 第一輪並行探測
+# 第一輪：並行探測
 probe_outputs = {}
 print(f"[{now_str}] 開始第一輪巡檢 {len(TARGET_IPS)} 組目標 IP ...")
 with ThreadPoolExecutor(max_workers=8) as executor:
@@ -238,7 +283,7 @@ for target in TARGET_IPS:
     if not parsed["is_br"] and not parsed["has_private"]:
         targets_need_retry.append(target)
 
-# 第二輪自動複測（最多 2 次）
+# 第二輪：自動複測（最多 2 次）
 if targets_need_retry:
     print(f"[{now_str}] 偵測到 {len(targets_need_retry)} 組目標未達 BR，啟動複測重試機制 (最多 2 次)...")
     for retry_round in range(1, 3):
@@ -350,11 +395,12 @@ state["event_logs"] = state["event_logs"][:60]
 with open(HISTORY_FILE, "w", encoding="utf-8") as f:
     json.dump(state, f, ensure_ascii=False, indent=2)
 
+
 # ==============================================================================
 # 第三部分：歷史統計指標計算 (近 24 小時健康度 + 7 天歷史時序)
 # ==============================================================================
 
-# 計算 24 小時內的狀況 (依時間戳記過濾)
+# 24 小時健康摘要
 one_day_ago = now_dt - timedelta(hours=24)
 snapshots_24h = []
 for s in state["history_snapshots"]:
@@ -372,22 +418,23 @@ else:
     latest_err = alert_rounds_24h[0]
     stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]} 測得 {latest_err["alert"]} 組異常）</span>'
 
-# 生成過去 7 天的歷史三格紀錄列表
+# 7 天歷史快照列表 (最新 100 筆)
 history_rows_html = ""
-for item in state["history_snapshots"][:100]:  # 畫面上先列出最近 100 筆，其餘存於 JSON
+for item in state["history_snapshots"][:100]:
     row_bg = "#3f1a1a" if item.get("alert", 0) > 0 else "transparent"
     alert_badge = f'<span style="color:#fb7185;font-weight:bold;">{item.get("alert", 0)} 組 🚨</span>' if item.get("alert", 0) > 0 else '<span style="color:#94a3b8;">0 組</span>'
     history_rows_html += f"""
     <tr style="background-color:{row_bg};border-bottom:1px solid #334155;">
         <td style="padding:10px 12px;font-family:monospace;color:#f8fafc;">{item.get("time")}</td>
-        <td style="padding:10px 12px;font-weight:bold;color:#38bdf8;">{item.get("total", 76)} 組</td>
-        <td style="padding:10px 12px;font-weight:bold;color:#34d399;">{item.get("ok", 76)} 組</td>
+        <td style="padding:10px 12px;font-weight:bold;color:#38bdf8;">{item.get("total", 102)} 組</td>
+        <td style="padding:10px 12px;font-weight:bold;color:#34d399;">{item.get("ok", 102)} 組</td>
         <td style="padding:10px 12px;">{alert_badge}</td>
     </tr>
     """
 
+
 # ==============================================================================
-# 第四部分：HTML 前端組裝與聲音/ACK 邏輯
+# 第四部分：HTML 前端組裝與方式 A 常駐消音按鈕邏輯
 # ==============================================================================
 
 rows_html = ""
@@ -455,14 +502,20 @@ html_content = f"""<!DOCTYPE html>
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
         table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
         th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; letter-spacing:0.5px; border-bottom:1px solid #334155; }}
+        
+        @keyframes pulse-red {{
+            0% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }}
+            70% {{ box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }}
+        }}
     </style>
     <script>
         var anyLogOpened = false;
         var alertCount = {alert_count};
         var audioCtx = null;
         var beepInterval = null;
+        var currentScanTime = "{now_str}";
 
-        // Web Audio API 警報聲音產生器
         function playWarningBeep() {{
             try {{
                 if (!audioCtx) {{
@@ -471,7 +524,7 @@ html_content = f"""<!DOCTYPE html>
                 var osc = audioCtx.createOscillator();
                 var gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880Hz (A5 高音)
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
                 osc.connect(gain);
@@ -479,22 +532,57 @@ html_content = f"""<!DOCTYPE html>
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.35);
             }} catch(e) {{
-                console.log("Audio not allowed yet:", e);
+                console.log("Audio waiting for user gesture:", e);
             }}
         }}
 
-        // 檢查警報與 ACK 狀態
-        function checkAlertAudio() {{
-            var isAcked = sessionStorage.getItem("alarm_acked_{now_str}") === "true";
+        // 方式 A：常駐消音按鈕狀態控制
+        function updateAckButtonState() {{
             var ackBtn = document.getElementById("ack-btn");
-            if (alertCount > 0 && !isAcked) {{
-                if (ackBtn) ackBtn.style.display = "inline-block";
-                // 每隔 2 秒嗶一次
-                if (!beepInterval) {{
-                    beepInterval = setInterval(playWarningBeep, 2000);
+            var isAcked = sessionStorage.getItem("alarm_acked_" + currentScanTime) === "true";
+
+            if (alertCount > 0) {{
+                if (isAcked) {{
+                    // 異常但已被消音
+                    if (ackBtn) {{
+                        ackBtn.innerText = "✔ 警報已消音 (ACK)";
+                        ackBtn.disabled = true;
+                        ackBtn.style.background = "#475569";
+                        ackBtn.style.color = "#94a3b8";
+                        ackBtn.style.cursor = "default";
+                        ackBtn.style.boxShadow = "none";
+                        ackBtn.style.animation = "none";
+                    }}
+                    if (beepInterval) {{
+                        clearInterval(beepInterval);
+                        beepInterval = null;
+                    }}
+                }} else {{
+                    // 異常未消音 (發光呼吸燈 + 嗶嗶聲)
+                    if (ackBtn) {{
+                        ackBtn.innerText = "🔕 靜音警報 (點擊消音)";
+                        ackBtn.disabled = false;
+                        ackBtn.style.background = "#ef4444";
+                        ackBtn.style.color = "#ffffff";
+                        ackBtn.style.cursor = "pointer";
+                        ackBtn.style.boxShadow = "0 0 16px rgba(239,68,68,0.7)";
+                        ackBtn.style.animation = "pulse-red 1.5s infinite";
+                    }}
+                    if (!beepInterval) {{
+                        beepInterval = setInterval(playWarningBeep, 2000);
+                    }}
                 }}
             }} else {{
-                if (ackBtn) ackBtn.style.display = "none";
+                // 正常 (0 組異常)：常駐灰色不可按
+                if (ackBtn) {{
+                    ackBtn.innerText = "🔕 靜音警報 (無告警)";
+                    ackBtn.disabled = true;
+                    ackBtn.style.background = "#334155";
+                    ackBtn.style.color = "#94a3b8";
+                    ackBtn.style.cursor = "not-allowed";
+                    ackBtn.style.boxShadow = "none";
+                    ackBtn.style.animation = "none";
+                }}
                 if (beepInterval) {{
                     clearInterval(beepInterval);
                     beepInterval = null;
@@ -503,17 +591,8 @@ html_content = f"""<!DOCTYPE html>
         }}
 
         function ackAlarm() {{
-            sessionStorage.setItem("alarm_acked_{now_str}", "true");
-            if (beepInterval) {{
-                clearInterval(beepInterval);
-                beepInterval = null;
-            }}
-            var ackBtn = document.getElementById("ack-btn");
-            if (ackBtn) {{
-                ackBtn.innerText = "✔ 警報已消音 (ACK)";
-                ackBtn.style.background = "#475569";
-                ackBtn.style.cursor = "default";
-            }}
+            sessionStorage.setItem("alarm_acked_" + currentScanTime, "true");
+            updateAckButtonState();
         }}
 
         function toggleLog(id) {{
@@ -537,16 +616,16 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        // 使用者隨意點擊畫面即可解鎖瀏覽器音頻權限
+        // 使用者點擊畫面任意處解鎖瀏覽器音頻限制
         window.addEventListener('click', function() {{
             if (!audioCtx) {{
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }}
-            checkAlertAudio();
+            updateAckButtonState();
         }}, {{ once: true }});
 
         window.onload = function() {{
-            checkAlertAudio();
+            updateAckButtonState();
         }};
 
         // 每 15 分鐘 (900秒) 自動重整
@@ -572,11 +651,11 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
             
-            <!-- 右上角按鈕組 -->
+            <!-- 右上角按鈕組 (方式 A：消音按鈕常駐於此) -->
             <div style="display:flex; gap:12px; align-items:center;">
-                <!-- ACK 消音按鈕 (有異常時才會動態亮出) -->
-                <button id="ack-btn" onclick="ackAlarm()" style="display:none; background:#ef4444; color:#fff; border:none; border-radius:8px; padding:11px 18px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 0 15px rgba(239,68,68,0.7); animation:pulse 1.5s infinite;">
-                    🔕 靜音警報 (ACK)
+                <!-- 方式 A 常駐消音按鈕 -->
+                <button id="ack-btn" onclick="ackAlarm()" style="background:#334155; color:#94a3b8; border:none; border-radius:8px; padding:11px 18px; cursor:not-allowed; font-size:15px; font-weight:bold; transition:all 0.2s;">
+                    🔕 靜音警報 (無告警)
                 </button>
                 <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 4px 12px rgba(2,132,199,0.3); transition:all 0.2s;" onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">
                     🔄 畫面刷新
@@ -587,7 +666,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 長官焦點：核心狀態三格指標 -->
+        <!-- 長官焦點：核心狀態三格指標 (抵達 16 台 BR) -->
         <div class="cards">
             <!-- 卡片 1：總監控目標 -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #334155; border-top:4px solid #38bdf8; box-shadow:0 8px 20px rgba(0,0,0,0.3);">
@@ -599,10 +678,10 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- 卡片 2：正常連通 -->
+            <!-- 卡片 2：正常連通 (16 台 BR) -->
             <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:22px 24px; border:1px solid #1e3a2b; border-top:4px solid #10b981; box-shadow:0 8px 20px rgba(16,185,129,0.15);">
                 <div style="font-size:14px; font-weight:bold; color:#a7f3d0; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
-                    正常連通 (抵達 8 台 BR)
+                    正常連通 (抵達 16 台 BR)
                 </div>
                 <div style="font-size:36px; font-weight:900; color:#34d399; text-shadow:0 0 12px rgba(52,211,153,0.4);">
                     {ok_count} <span style="font-size:18px; color:#a7f3d0; font-weight:normal;">組</span>
@@ -625,7 +704,7 @@ html_content = f"""<!DOCTYPE html>
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 路由現況表格 -->
+        <!-- 路由現況表格 (異常自動置頂) -->
         <table>
             <thead>
                 <tr>
@@ -652,10 +731,10 @@ html_content = f"""<!DOCTYPE html>
             </ul>
         </div>
 
-        <!-- 過去 7 天排程巡檢歷史三格趨勢紀錄 (跨週末/連假回溯專用) -->
+        <!-- 過去 7 天排程巡檢歷史三格趨勢紀錄 (連假/週末不在場回溯) -->
         <div class="history-box">
-            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 (連假/週末不在場回溯)</h3>
-            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">此處記錄每一次自動巡檢的三格核心指標，連假或放假回崗時可直接比對是否有出現過異常波峰：</p>
+            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史</h3>
+            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">此處記錄每一次自動巡檢的三格核心指標：</p>
             <div style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
                 <table style="box-shadow:none;">
                     <thead>

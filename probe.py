@@ -926,9 +926,9 @@ html_content = f"""<!DOCTYPE html>
                 <div style="font-size:36px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
             </div>
 
-            <!-- 2. 雙向全正常 -->
+            <!-- 2. 國內外全正常 -->
             <div class="card" style="border-top:4px solid #10b981;">
-                <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">雙向全正常 (抵達 16 台 BR)</div>
+                <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">國內外全正常 (抵達 16 台 BR)</div>
                 <div style="font-size:36px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
             </div>
 
@@ -984,7 +984,7 @@ html_content = f"""<!DOCTYPE html>
                             <th style="background:#090d16;padding:10px 12px;">巡檢時間點</th>
                             <th style="background:#090d16;padding:10px 12px;">探測節點</th>
                             <th style="background:#090d16;padding:10px 12px;">目標總數</th>
-                            <th style="background:#090d16;padding:10px 12px;">雙向全正常</th>
+                            <th style="background:#090d16;padding:10px 12px;">國內外全正常</th>
                             <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣未達BR</th>
                             <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣含私網</th>
                             <th style="background:#090d16;padding:10px 12px;">🌏 境外未達BR</th>

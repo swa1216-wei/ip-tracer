@@ -2,8 +2,18 @@ name: Scheduled IP Traceroute Probe
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # 每 15 分鐘定期巡檢一次
-  workflow_dispatch:        # 支援 GitHub 頁面點擊手動執行
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# 給予 Actions 發布 GitHub Pages 與讀寫倉庫的最高權限
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   probe:
@@ -28,4 +38,17 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html monitor_state.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update routing dashboard [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update routing dashboard" && git push)
+
+      # 直接在同一個流程中把最新的 index.html 發布到 GitHub Pages！
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

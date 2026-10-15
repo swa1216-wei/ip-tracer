@@ -270,15 +270,11 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 def run_single_trace(target, country_code):
     api_url = "https://api.globalping.io/v1/measurements"
-    max_hops = 30 if country_code != "TW" else 20
     
     payload = json.dumps({
         "type": "traceroute",
         "target": target,
         "locations": [{"country": country_code}],
-        "measurementOptions": {
-            "maxHops": max_hops
-        },
         "limit": 1
     }).encode("utf-8")
     

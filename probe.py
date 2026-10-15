@@ -357,7 +357,8 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     is_br = (br_name is not None)
     has_private = (len(hinet_private_ips) > 0)
 
-is_sg_border_reach = (country_code == "SG" and last_responded_hop >= 20 and "hinet.net" in last_responded_domain.lower())
+    # 針對新加坡節點：若已滿 20 跳且最後一跳確認進入 hinet 骨幹，視為正常抵達骨幹邊界
+    is_sg_border_reach = (country_code == "SG" and last_responded_hop >= 20 and "hinet.net" in last_responded_domain.lower())
 
     if is_sg_border_reach:
         cat = "OK"
@@ -521,7 +522,7 @@ for target in TARGET_IPS:
         combined_status = "OK"
         combined_desc = "✔ 國內外正常抵達節點"
 
-    # 台灣端狀態變更 (改為結構化字典儲存，支援表格化)
+    # 台灣端狀態變更 (結構化儲存，支援表格化)
     prev_tw = state["node_status"]["TW"].get(target, "OK")
     if prev_tw == "OK" and p_tw["status"] == "ALERT":
         state["event_logs"].insert(0, {
@@ -545,7 +546,7 @@ for target in TARGET_IPS:
         newly_recovered.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
     state["node_status"]["TW"][target] = p_tw["status"]
 
-    # 境外端狀態變更 (改為結構化字典儲存，支援表格化)
+    # 境外端狀態變更 (結構化儲存，支援表格化)
     ov_c = current_overseas["country"]
     prev_ov = state["node_status"][ov_c].get(target, "OK")
     if prev_ov == "OK" and p_ov["status"] == "ALERT":
@@ -851,7 +852,6 @@ else:
             badge_color = "#f87171" if l_type == "ALERT" else "#34d399"
             bg_col = "rgba(239, 68, 68, 0.08)" if l_type == "ALERT" else "transparent"
         else:
-            # 容錯處理舊格式字串
             l_str = str(log)
             l_time = l_str[2:21] if len(l_str) >= 21 else ""
             l_badge = "變更紀錄"

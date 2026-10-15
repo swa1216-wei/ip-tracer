@@ -26,6 +26,13 @@ jobs:
         run: |
           python probe.py
 
+      # --- 新增：使用 pagecrypt 進行 AES 靜態網頁加密 ---
+      - name: Encrypt HTML dashboard
+        env:
+          PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+        run: |
+          npx -y pagecrypt index.html index.html "$PAGE_PASSWORD" "Internet 路由巡檢驗證"
+
       - name: Commit and Push Results
         run: |
           git config --global user.name "github-actions[bot]"

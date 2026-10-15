@@ -966,7 +966,7 @@ html_content = f"""<!DOCTYPE html>
                     <th style="width:23%;">🇹🇼 台灣端路徑 (本地)</th>
                     <th style="width:23%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
                     <th style="width:12%;">綜合判定</th>
-                    <th style="text-align:center;width:8%;">雙向日誌</th>
+                    <th style="text-align:center;width:8%;">完整日誌</th>
                 </tr>
             </thead>
             <tbody>

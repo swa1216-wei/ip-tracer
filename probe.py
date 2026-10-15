@@ -357,7 +357,14 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     is_br = (br_name is not None)
     has_private = (len(hinet_private_ips) > 0)
 
-    if not is_br:
+is_sg_border_reach = (country_code == "SG" and last_responded_hop >= 20 and "hinet.net" in last_responded_domain.lower())
+
+    if is_sg_border_reach:
+        cat = "OK"
+        status = "OK"
+        short_domain = last_responded_domain.split('.')[0] if last_responded_domain else last_responded_ip
+        desc = f"✔ 抵達骨幹邊界 ({short_domain})"
+    elif not is_br:
         cat = "NO_BR"
         status = "ALERT"
         desc = f"🚨 {city_name}丟包 (未達節點)"

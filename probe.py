@@ -168,6 +168,7 @@ HISTORY_FILE = "monitor_state.json"
 tz = timezone(timedelta(hours=8))
 now_dt = datetime.now(tz)
 now_str = now_dt.strftime('%Y-%m-%d %H:%M:%S')
+today_date_str = now_dt.strftime('%Y-%m-%d')
 
 state = {"baselines": {}, "last_status": {}, "event_logs": [], "history_snapshots": []}
 if os.path.exists(HISTORY_FILE):
@@ -463,19 +464,60 @@ for target in TARGET_IPS:
         "raw": raw_output
     })
 
-# 發送 Teams 通知 (僅在狀態變更時，且彙整單一卡片)
-if newly_alerted:
-    send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
-
-if newly_recovered:
-    send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
-
 # 排序：ALERT (異常) 排在最上方
 current_results.sort(key=lambda x: (0 if x["status"] == "ALERT" else 1, x["target"]))
 
 alert_count = sum(1 for r in current_results if r["status"] == "ALERT")
 ok_count = len(current_results) - alert_count
 total_count = len(current_results)
+
+# ------------------------------------------------------------------------------
+# Teams 推播邏輯：1. 首次測試、2. 每日固定健康心跳報、3. 異常/恢復通知
+# ------------------------------------------------------------------------------
+
+# 1. 首次上線立即驗證通訊 (只發一次)
+if not state.get("teams_tested", False):
+    print("[Teams 推播] 執行首次通訊驗證...")
+    send_teams_notification(
+        "4G/5G 路由巡檢 - Teams Webhook 整合成功",
+        False,
+        [{
+            "target": "連線測試成功",
+            "elem": "系統整合驗證",
+            "cidr": f"共 {total_count} 組目標",
+            "part": "16 台 BR 白名單",
+            "desc": "Webhook 通訊暢通，後續將在發生異常、修復及每日 08:30 自動推播！"
+        }],
+        now_str
+    )
+    state["teams_tested"] = True
+    state["last_heartbeat_date"] = today_date_str
+
+# 2. 每日定時健康心跳報 (每天 08:00 以後的第一個巡檢排程發送)
+elif now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
+    print("[Teams 推播] 發送每日健康心跳報...")
+    health_title = "4G/5G 路由巡檢每日健康回報" if alert_count == 0 else "4G/5G 路由巡檢每日健康回報 (有異常)"
+    health_desc = f"全數平穩正常 (抵達 16 台 BR)" if alert_count == 0 else f"目前有 {alert_count} 組異常待處理"
+    send_teams_notification(
+        health_title,
+        (alert_count > 0),
+        [{
+            "target": f"巡檢規模: {total_count} 組",
+            "elem": "核心/邊緣雲巡檢",
+            "cidr": f"正常: {ok_count} 組",
+            "part": f"異常: {alert_count} 組",
+            "desc": health_desc
+        }],
+        now_str
+    )
+    state["last_heartbeat_date"] = today_date_str
+
+# 3. 狀態變更時發送告警/恢復通知 (彙整單一卡片)
+if newly_alerted:
+    send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
+
+if newly_recovered:
+    send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
 
 # 寫入歷史快照（保留最新 7 天，約 700 筆紀錄）
 snapshot_entry = {
@@ -633,7 +675,6 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        // 方式 A：常駐消音按鈕狀態控制
         function updateAckButtonState() {{
             var ackBtn = document.getElementById("ack-btn");
             var isAcked = sessionStorage.getItem("alarm_acked_" + currentScanTime) === "true";
@@ -822,7 +863,7 @@ html_content = f"""<!DOCTYPE html>
         <!-- 過去 7 天排程巡檢歷史快照 -->
         <div class="history-box">
             <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 (連假/週末不在場回溯)</h3>
-            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">記錄每一次自動巡檢的三格核心指標：</p>
+            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">此處記錄每一次自動巡檢的三格核心指標：</p>
             <div style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
                 <table style="box-shadow:none;">
                     <thead>

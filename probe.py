@@ -12,11 +12,9 @@ from datetime import datetime, timezone, timedelta
 # 第一部分：系統設定區 (16 台 BR 白名單、海外輪播節點、102 組目標 IP 元數據)
 # ==============================================================================
 
-# 備用 Webhook 網址（雙重保險：即使 Actions 漏接環境變數也能順利發送）
 FALLBACK_WEBHOOK_URL = "https://default54eb9440cf0345fe835e61bd4ce515.c8.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/29/workflows/1d01e593bf3649bea39eba02ca408ecb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Gv35_ySE7WCYKGPhw-41NZfHFw7ODncvpvxHvCj4VUc"
 
 BR_LIST = {
-    # 既有核心 8 台 BR
     "210.65.126.209": "3L1BR1",
     "210.65.126.213": "3L1BR2",
     "210.65.126.101": "4L1BR3",
@@ -25,7 +23,6 @@ BR_LIST = {
     "210.65.126.197": "7L2BR2",
     "210.65.126.93":  "2L3BR3",
     "210.65.126.97":  "2L3BR4",
-    # 邊緣雲與 3L1EPG4U 專屬 8 台 BR
     "211.22.229.189": "2L1-BR1(D)",
     "211.22.229.193": "2L1-BR2(D)",
     "203.74.98.85":   "CHCH-BR1(D)",
@@ -36,25 +33,12 @@ BR_LIST = {
     "211.22.229.201": "3L1EPG4U-BR2(D)"
 }
 
-ROUTER_LOCATIONS = {
-    "tpdb": "台北東二",
-    "tpe4": "台北信義",
-    "tpn2": "台北南二",
-    "tyfo": "桃園光纖",
-    "skc1": "板橋客網",
-    "tc":   "台中",
-    "tn":   "台南",
-    "kh":   "高雄"
-}
-
-# 境外三大核心樞紐 (輪播巡迴)
 OVERSEAS_NODES = [
     {"country": "JP", "city": "東京", "flag": "🇯🇵"},
     {"country": "HK", "city": "香港", "flag": "🇭🇰"},
     {"country": "SG", "city": "新加坡", "flag": "🇸🇬"}
 ]
 
-# 102 個目標 IP 與網段元數據對照表 (依據 4G (new) 官方規劃表校正)
 TARGET_METADATA = {
   # --- 3L1 機房 ---
   "42.72.0.8":     {"cidr": "42.72.0.0/17",    "part": "前半", "elem": "3L1EPG1",   "nat": "NAT5/6"},
@@ -184,7 +168,7 @@ today_date_str = now_dt.strftime('%Y-%m-%d')
 state = {
     "baselines_tw": {},
     "baselines_overseas": {},
-    "last_status": {},
+    "node_status": {}, # 獨立節點狀態記錄：例如 "TW", "JP", "HK", "SG"
     "event_logs": [],
     "history_snapshots": [],
     "overseas_idx": 0
@@ -195,18 +179,12 @@ if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             saved_state = json.load(f)
             state.update(saved_state)
-            if "history_snapshots" not in state:
-                state["history_snapshots"] = []
-            if "baselines_tw" not in state:
-                state["baselines_tw"] = state.get("baselines", {})
-            if "baselines_overseas" not in state:
-                state["baselines_overseas"] = {}
+            if "node_status" not in state:
+                state["node_status"] = {}
     except Exception:
         pass
 
-# 決定本次輪播的境外探針城市
 current_overseas = OVERSEAS_NODES[state.get("overseas_idx", 0) % len(OVERSEAS_NODES)]
-# 下次輪播切換至下一個城市
 state["overseas_idx"] = (state.get("overseas_idx", 0) + 1) % len(OVERSEAS_NODES)
 
 
@@ -287,11 +265,10 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：網路探測與雙向邏輯運算區 (台灣固定 + 境外輪播，限流保護機制)
+# 第三部分：探測與邏輯 (10 並行，進入 HiNet 後才檢驗私網)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
-    time.sleep(0.05)  # 每次請求微幅間隔，平滑化發送
     api_url = "https://api.globalping.io/v1/measurements"
     payload = json.dumps({
         "type": "traceroute",
@@ -338,14 +315,15 @@ def run_single_trace(target, country_code):
             pass
     return target, country_code, "探測逾時"
 
-def parse_trace_output(target, raw_output, country_code, overseas_city_name):
+def parse_trace_output(target, raw_output, country_code, city_name):
     last_responded_hop = 0
     last_responded_ip = "無回應"
     last_responded_domain = ""
-    has_private_ip = False
-    private_ips_found = []
+    entered_hinet = (country_code == "TW") # 台灣端預設直接算在國內
+    hinet_private_ips = []
 
-    for line in raw_output.splitlines():
+    lines = raw_output.splitlines()
+    for line in lines:
         match_hop = re.match(r'^\s*(\d+)\s+', line)
         if match_hop:
             hop_num = int(match_hop.group(1))
@@ -355,37 +333,42 @@ def parse_trace_output(target, raw_output, country_code, overseas_city_name):
                 if effective_ips:
                     last_responded_hop = hop_num
                     last_responded_ip = effective_ips[-1]
-                    
-                    domain_match = re.search(r'([a-zA-Z0-9\-\.]+\.hinet\.net)', line)
-                    if domain_match:
-                        last_responded_domain = domain_match.group(1)
-                    else:
-                        last_responded_domain = ""
 
-                    if hop_num >= 2:
+                    if "hinet.net" in line.lower():
+                        entered_hinet = True
+                        domain_match = re.search(r'([a-zA-Z0-9\-\.]+\.hinet\.net)', line)
+                        if domain_match:
+                            last_responded_domain = domain_match.group(1)
+
+                    # 只要碰到 16 台 BR，也絕對代表進入中華電信
+                    if last_responded_ip in BR_LIST:
+                        entered_hinet = True
+
+                    # 只有在正式進入 HiNet 骨幹後的跳數，才檢驗私網 IP
+                    if entered_hinet and hop_num >= 2:
                         for ip in effective_ips:
                             try:
                                 if ipaddress.ip_address(ip) in ipaddress.ip_network("10.0.0.0/8"):
-                                    has_private_ip = True
-                                    if ip not in private_ips_found:
-                                        private_ips_found.append(ip)
+                                    if ip not in hinet_private_ips:
+                                        hinet_private_ips.append(ip)
                             except ValueError:
                                 pass
 
     br_name = BR_LIST.get(last_responded_ip, None)
     is_br = (br_name is not None)
-    
-    # 判定與描述
-    if has_private_ip:
+    has_private = (len(hinet_private_ips) > 0)
+
+    # 狀態細分：OK、NO_BR（未達BR）、PRIVATE（已達但含私網）
+    if not is_br:
+        cat = "NO_BR"
         status = "ALERT"
-        desc = f"🚨 異常 (中途含私網 {', '.join(private_ips_found)})"
-    elif not is_br:
+        desc = f"🚨 {city_name}丟包 (未達 BR)"
+    elif has_private:
+        cat = "PRIVATE"
         status = "ALERT"
-        if country_code == "TW":
-            desc = "🚨 台灣丟包 (未達 BR)"
-        else:
-            desc = f"🚨 {overseas_city_name}丟包 (未達 BR)"
+        desc = f"⚠️ {br_name} (含私網 {len(hinet_private_ips)}處)"
     else:
+        cat = "OK"
         status = "OK"
         desc = f"✔ {br_name}"
 
@@ -395,20 +378,21 @@ def parse_trace_output(target, raw_output, country_code, overseas_city_name):
         "domain": last_responded_domain,
         "is_br": is_br,
         "br_name": br_name,
-        "has_private": has_private_ip,
-        "private_ips": private_ips_found,
+        "has_private": has_private,
+        "private_ips": hinet_private_ips,
+        "cat": cat,
         "status": status,
         "desc": desc,
         "raw": raw_output
     }
 
-# 準備所有探測任務 (共 102 x 2 = 204 個任務)
+# 派發 204 個探測任務（以 10 產線平衡平穩發送）
 all_tasks = []
 for target in TARGET_IPS:
     all_tasks.append((target, "TW"))
     all_tasks.append((target, current_overseas["country"]))
 
-print(f"[{now_str}] 開始雙向巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 5 產線穩定平滑發送...")
+print(f"[{now_str}] 雙向巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 10 產線啟動...")
 
 raw_results = {}
 with ThreadPoolExecutor(max_workers=10) as executor:
@@ -417,7 +401,7 @@ with ThreadPoolExecutor(max_workers=10) as executor:
         target, c_code, raw_out = future.result()
         raw_results[(target, c_code)] = raw_out
 
-# 解析第一輪結果
+# 解析初測結果
 parsed_tw = {}
 parsed_overseas = {}
 retry_tasks = []
@@ -425,22 +409,21 @@ retry_tasks = []
 for target in TARGET_IPS:
     res_tw = parse_trace_output(target, raw_results.get((target, "TW"), ""), "TW", "台灣")
     parsed_tw[target] = res_tw
-    if res_tw["status"] == "ALERT" and not res_tw["has_private"] and "429" not in res_tw["raw"]:
+    if res_tw["cat"] == "NO_BR" and "429" not in res_tw["raw"]:
         retry_tasks.append((target, "TW"))
 
     res_ov = parse_trace_output(target, raw_results.get((target, current_overseas["country"]), ""), current_overseas["country"], current_overseas["city"])
     parsed_overseas[target] = res_ov
-    if res_ov["status"] == "ALERT" and not res_ov["has_private"] and "429" not in res_ov["raw"]:
+    if res_ov["cat"] == "NO_BR" and "429" not in res_ov["raw"]:
         retry_tasks.append((target, current_overseas["country"]))
 
-# 第二輪：複測未達 BR 任務 (最多 2 次)
+# 複測未達 BR 任務 (最多 2 次)
 if retry_tasks:
     print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達 BR，啟動複測重試機制 (最多 2 次)...")
     for retry_round in range(1, 3):
         if not retry_tasks:
             break
-        print(f"  -> 進行第 {retry_round} 次複測，剩餘待測: {len(retry_tasks)} 個任務")
-        time.sleep(3)
+        time.sleep(2)
         still_failing = []
         with ThreadPoolExecutor(max_workers=8) as executor:
             future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
@@ -458,76 +441,88 @@ if retry_tasks:
                     still_failing.append((target, c_code))
         retry_tasks = still_failing
 
-# 彙整判定結果並追蹤狀態變更
+# 統計四大分類計數
+tw_nobr_count = 0
+tw_priv_count = 0
+ov_nobr_count = 0
+ov_priv_count = 0
+
 current_results = []
 newly_alerted = []
 newly_recovered = []
 
-tw_alert_count = 0
-overseas_alert_count = 0
+# 初始化節點專屬狀態庫
+for node_key in ["TW", current_overseas["country"]]:
+    if node_key not in state["node_status"]:
+        state["node_status"][node_key] = {}
 
 for target in TARGET_IPS:
     meta = TARGET_METADATA.get(target, {})
     p_tw = parsed_tw[target]
     p_ov = parsed_overseas[target]
 
-    # 跳數基準處理
+    # 跳數基準
     if target not in state["baselines_tw"] and p_tw["last_hop"] > 0:
         state["baselines_tw"][target] = p_tw["last_hop"]
     base_tw = state["baselines_tw"].get(target, p_tw["last_hop"])
     diff_tw = p_tw["last_hop"] - base_tw
     diff_tw_str = f"+{diff_tw}" if diff_tw > 0 else (str(diff_tw) if diff_tw < 0 else "0")
 
-    ov_key = f"{target}_{current_overseas['country']}"
-    if ov_key not in state["baselines_overseas"] and p_ov["last_hop"] > 0:
-        state["baselines_overseas"][ov_key] = p_ov["last_hop"]
-    base_ov = state["baselines_overseas"].get(ov_key, p_ov["last_hop"])
+    ov_base_key = f"{target}_{current_overseas['country']}"
+    if ov_base_key not in state["baselines_overseas"] and p_ov["last_hop"] > 0:
+        state["baselines_overseas"][ov_base_key] = p_ov["last_hop"]
+    base_ov = state["baselines_overseas"].get(ov_base_key, p_ov["last_hop"])
     diff_ov = p_ov["last_hop"] - base_ov
     diff_ov_str = f"+{diff_ov}" if diff_ov > 0 else (str(diff_ov) if diff_ov < 0 else "0")
 
-    is_tw_alert = (p_tw["status"] == "ALERT")
-    is_ov_alert = (p_ov["status"] == "ALERT")
+    # 分類計數
+    if p_tw["cat"] == "NO_BR": tw_nobr_count += 1
+    elif p_tw["cat"] == "PRIVATE": tw_priv_count += 1
 
-    if is_tw_alert:
-        tw_alert_count += 1
-    if is_ov_alert:
-        overseas_alert_count += 1
+    if p_ov["cat"] == "NO_BR": ov_nobr_count += 1
+    elif p_ov["cat"] == "PRIVATE": ov_priv_count += 1
 
-    # 綜合狀態判定
-    if is_tw_alert and is_ov_alert:
+    # 綜合判定 (精準描述，抵達 BR 就老實寫抵達 BR)
+    is_alert = (p_tw["status"] == "ALERT" or p_ov["status"] == "ALERT")
+    if p_tw["cat"] == "NO_BR" and p_ov["cat"] == "NO_BR":
         combined_status = "ALERT"
-        combined_desc = f"🔴 雙向異常 (台灣未達 / {current_overseas['city']}丟包)"
-    elif is_tw_alert:
+        combined_desc = f"🔴 雙向丟包 (台灣未達 / {current_overseas['city']}未達)"
+    elif p_tw["cat"] == "NO_BR":
         combined_status = "ALERT"
-        combined_desc = "⚠️ 台灣端異常 (島內未達 BR)"
-    elif is_ov_alert:
+        combined_desc = "🚨 台灣端丟包 (未達 BR)"
+    elif p_ov["cat"] == "NO_BR":
         combined_status = "ALERT"
-        combined_desc = f"🚨 境外障礙 ({current_overseas['city']}丟包未達 BR)"
+        combined_desc = f"🚨 {current_overseas['city']}端丟包 (未達 BR)"
+    elif p_tw["cat"] == "PRIVATE" or p_ov["cat"] == "PRIVATE":
+        combined_status = "ALERT"
+        combined_desc = f"⚠️ 雙向抵達 BR (但 HiNet 骨幹含私網)"
     else:
         combined_status = "OK"
         combined_desc = "✔ 雙向正常抵達 BR"
 
-    prev_status = state["last_status"].get(target, "OK")
     target_label = f"{target} [{meta.get('cidr')} {meta.get('part')}]"
 
-    item_summary = {
-        "target": target,
-        "cidr": meta.get("cidr", ""),
-        "part": meta.get("part", ""),
-        "elem": meta.get("elem", ""),
-        "desc": combined_desc
-    }
+    # --- 獨立節點狀態比對 (台灣獨立、境外各城市獨立) ---
+    # 1. 檢驗台灣端
+    prev_tw = state["node_status"]["TW"].get(target, "OK")
+    if prev_tw == "OK" and p_tw["status"] == "ALERT":
+        state["event_logs"].insert(0, f"🔴 {now_str} 【台灣告警】{target_label} ➔ {p_tw['desc']}")
+        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
+    elif prev_tw == "ALERT" and p_tw["status"] == "OK":
+        state["event_logs"].insert(0, f"🟢 {now_str} 【台灣恢復】{target_label} ➔ 抵達 {p_tw['br_name']}")
+        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
+    state["node_status"]["TW"][target] = p_tw["status"]
 
-    if prev_status == "OK" and combined_status == "ALERT":
-        event = f"🔴 {now_str} 【導入告警】目標 {target_label} 狀態變更為異常！現況: {combined_desc}"
-        state["event_logs"].insert(0, event)
-        newly_alerted.append(item_summary)
-    elif prev_status == "ALERT" and combined_status == "OK":
-        event = f"🟢 {now_str} 【導出恢復】目標 {target_label} 已恢復正常！雙向抵達: {p_tw['br_name']} / {p_ov['br_name']}"
-        state["event_logs"].insert(0, event)
-        newly_recovered.append(item_summary)
-
-    state["last_status"][target] = combined_status
+    # 2. 檢驗當前境外城市端 (只比對同一個城市的歷史紀錄)
+    ov_c = current_overseas["country"]
+    prev_ov = state["node_status"][ov_c].get(target, "OK")
+    if prev_ov == "OK" and p_ov["status"] == "ALERT":
+        state["event_logs"].insert(0, f"🔴 {now_str} 【{current_overseas['city']}告警】{target_label} ➔ {p_ov['desc']}")
+        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
+    elif prev_ov == "ALERT" and p_ov["status"] == "OK":
+        state["event_logs"].insert(0, f"🟢 {now_str} 【{current_overseas['city']}恢復】{target_label} ➔ 抵達 {p_ov['br_name']}")
+        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
+    state["node_status"][ov_c][target] = p_ov["status"]
 
     current_results.append({
         "target": target,
@@ -541,6 +536,7 @@ for target in TARGET_IPS:
         "tw_node": p_tw["last_ip"],
         "tw_br": p_tw["br_name"],
         "tw_desc": p_tw["desc"],
+        "tw_cat": p_tw["cat"],
         "tw_status": p_tw["status"],
         "tw_raw": p_tw["raw"],
         "ov_city": current_overseas["city"],
@@ -551,6 +547,7 @@ for target in TARGET_IPS:
         "ov_node": p_ov["last_ip"],
         "ov_br": p_ov["br_name"],
         "ov_desc": p_ov["desc"],
+        "ov_cat": p_ov["cat"],
         "ov_status": p_ov["status"],
         "ov_raw": p_ov["raw"],
         "status": combined_status,
@@ -564,22 +561,21 @@ total_count = len(current_results)
 dual_ok_count = sum(1 for r in current_results if r["status"] == "OK")
 total_alert_count = total_count - dual_ok_count
 
-# 寫入歷史快照（拆分台灣與海外異常，保留最新 7 天，約 700 筆紀錄）
 snapshot_entry = {
     "time": now_str,
     "nodes": f"🇹🇼 台灣 ＋ {current_overseas['flag']} {current_overseas['city']}",
     "total": total_count,
     "ok": dual_ok_count,
-    "tw_alert": tw_alert_count,
-    "ov_alert": overseas_alert_count,
+    "tw_nobr": tw_nobr_count,
+    "tw_priv": tw_priv_count,
+    "ov_nobr": ov_nobr_count,
+    "ov_priv": ov_priv_count,
     "ov_city": current_overseas["city"]
 }
 state["history_snapshots"].insert(0, snapshot_entry)
 state["history_snapshots"] = state["history_snapshots"][:700]
-
 state["event_logs"] = state["event_logs"][:60]
 
-# 統計過去 24 小時巡檢指標
 one_day_ago = now_dt - timedelta(hours=24)
 snapshots_24h = []
 for s in state["history_snapshots"]:
@@ -590,19 +586,16 @@ for s in state["history_snapshots"]:
     except Exception:
         pass
 
-total_rounds_24h = len(snapshots_24h)
-alert_rounds_24h = [s for s in snapshots_24h if (s.get("tw_alert", 0) > 0 or s.get("ov_alert", 0) > 0 or s.get("alert", 0) > 0)]
+alert_rounds_24h = [s for s in snapshots_24h if (s.get("tw_nobr",0) > 0 or s.get("tw_priv",0) > 0 or s.get("ov_nobr",0) > 0 or s.get("ov_priv",0) > 0)]
 alert_rounds_count = len(alert_rounds_24h)
 
 
 # ==============================================================================
-# 第四部分：Teams Webhook 推播觸發 (1. 每日 08:00 健康日報、2. 異常亮紅燈、3. 恢復通知)
+# 第四部分：Teams Webhook 推播觸發
 # ==============================================================================
 
-# 1. 每日 08:00 定時發送「24小時量化健康日報」
+# 1. 每日 08:00 定時發送健康日報
 if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
-    print("[Teams 推播] 發送每日 08:00 24小時健康日報...")
-    
     if alert_rounds_count == 0:
         report_title = "4G/5G 路由巡檢 24小時健康日報"
         is_report_alert = False
@@ -620,7 +613,7 @@ if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
         {"title": "監控規模", "value": "102 組 IP (抵達 16 台 BR 白名單)"},
         {"title": "探測涵蓋", "value": "🇹🇼 台灣本地 ＋ 🌏 境外輪播 (東京/香港/新加坡)"},
         {"title": "統計區間", "value": f"截至今日 08:00 (過去 24 小時)"},
-        {"title": "巡檢總次數", "value": f"共執行 {total_rounds_24h} 次自動巡檢"},
+        {"title": "巡檢總次數", "value": f"共執行 {len(snapshots_24h)} 次自動巡檢"},
         {"title": "異常巡檢", "value": anomaly_summary},
         {"title": "當前狀態", "value": current_summary}
     ]
@@ -628,21 +621,20 @@ if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
     send_teams_notification(report_title, is_report_alert, daily_facts, now_str)
     state["last_heartbeat_date"] = today_date_str
 
-# 2. 狀態變更時發送告警通知 (亮紅燈 🚨)
+# 2. 告警通知 (🚨)
 if newly_alerted:
     send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
 
-# 3. 狀態恢復時發送通知 (綠燈 🟢)
+# 3. 恢復通知 (🟢 清楚註明是哪裡恢復)
 if newly_recovered:
     send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
 
-# 儲存最新狀態檔
 with open(HISTORY_FILE, "w", encoding="utf-8") as f:
     json.dump(state, f, ensure_ascii=False, indent=2)
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (四格指標卡、102 組雙向表格、7天快照、置底變更LOG)
+# 第五部分：HTML 前端組裝 (六格指標卡、雙音高音量警報、乾淨表格)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -651,53 +643,60 @@ else:
     latest_err = alert_rounds_24h[0]
     stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]}）</span>'
 
-# 7 天歷史快照列表 (拆分台灣異常與海外異常)
+# 7 天歷史快照
 history_rows_html = ""
 for item in state["history_snapshots"][:100]:
-    has_err = (item.get("tw_alert", 0) > 0 or item.get("ov_alert", 0) > 0 or item.get("alert", 0) > 0)
+    has_err = (item.get("tw_nobr",0) > 0 or item.get("tw_priv",0) > 0 or item.get("ov_nobr",0) > 0 or item.get("ov_priv",0) > 0)
     row_bg = "#3f1a1a" if has_err else "transparent"
     
-    tw_badge = f'<span style="color:#fb7185;font-weight:bold;">{item.get("tw_alert", 0)} 組 🚨</span>' if item.get("tw_alert", 0) > 0 else '<span style="color:#94a3b8;">0 組</span>'
+    tw_nobr_b = f'<span style="color:#fb7185;font-weight:bold;">{item.get("tw_nobr",0)} 組 🚨</span>' if item.get("tw_nobr",0) > 0 else '<span style="color:#94a3b8;">0</span>'
+    tw_priv_b = f'<span style="color:#facc15;font-weight:bold;">{item.get("tw_priv",0)} 組 ⚠️</span>' if item.get("tw_priv",0) > 0 else '<span style="color:#94a3b8;">0</span>'
     
-    ov_err_num = item.get("ov_alert", 0)
-    ov_city_str = item.get("ov_city", "海外")
-    ov_badge = f'<span style="color:#fb7185;font-weight:bold;">{ov_err_num} 組 ({ov_city_str}丟包) 🚨</span>' if ov_err_num > 0 else '<span style="color:#94a3b8;">0 組</span>'
+    ov_c_name = item.get("ov_city", "海外")
+    ov_nobr_b = f'<span style="color:#fb7185;font-weight:bold;">{item.get("ov_nobr",0)} 組 🚨</span>' if item.get("ov_nobr",0) > 0 else '<span style="color:#94a3b8;">0</span>'
+    ov_priv_b = f'<span style="color:#facc15;font-weight:bold;">{item.get("ov_priv",0)} 組 ⚠️</span>' if item.get("ov_priv",0) > 0 else '<span style="color:#94a3b8;">0</span>'
 
-    nodes_str = item.get("nodes", "🇹🇼 台灣")
     history_rows_html += f"""
     <tr style="background-color:{row_bg};border-bottom:1px solid #334155;">
         <td style="padding:10px 12px;font-family:monospace;color:#f8fafc;">{item.get("time")}</td>
-        <td style="padding:10px 12px;color:#38bdf8;">{nodes_str}</td>
+        <td style="padding:10px 12px;color:#38bdf8;">{item.get("nodes")}</td>
         <td style="padding:10px 12px;font-weight:bold;color:#f8fafc;">{item.get("total", 102)} 組</td>
         <td style="padding:10px 12px;font-weight:bold;color:#34d399;">{item.get("ok", 102)} 組</td>
-        <td style="padding:10px 12px;">{tw_badge}</td>
-        <td style="padding:10px 12px;">{ov_badge}</td>
+        <td style="padding:10px 12px;">{tw_nobr_b}</td>
+        <td style="padding:10px 12px;">{tw_priv_b}</td>
+        <td style="padding:10px 12px;">{ov_nobr_b} ({ov_c_name})</td>
+        <td style="padding:10px 12px;">{ov_priv_b}</td>
     </tr>
     """
 
-# 102 組雙向即時表格組裝
+# 102 組雙向即時巡檢表格
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
     
-    # 綜合狀態標籤
     if r["status"] == "ALERT":
         status_badge = f'<span style="color:#f87171;font-weight:bold;font-size:15px;">{r["desc"]}</span>'
     else:
         status_badge = '<span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 雙向正常</span>'
 
-    # 台灣端顯示
-    if r["tw_status"] == "OK":
+    # 台灣端顯示 (簡化私網文字)
+    if r["tw_cat"] == "OK":
         tw_display = f"""<div style="color:#4ade80;font-weight:bold;font-size:14px;">✔ {r['tw_br']}</div>
                          <div style="font-size:12px;color:#94a3b8;">{r['tw_node']} ({r['tw_hop']}跳 / 差:{r['tw_diff']})</div>"""
+    elif r["tw_cat"] == "PRIVATE":
+        tw_display = f"""<div style="color:#facc15;font-weight:bold;font-size:14px;">{r['tw_desc']}</div>
+                         <div style="font-size:12px;color:#94a3b8;">{r['tw_node']} ({r['tw_hop']}跳)</div>"""
     else:
         tw_display = f"""<div style="color:#f87171;font-weight:bold;font-size:14px;">{r['tw_desc']}</div>
                          <div style="font-size:12px;color:#f87171;">{r['tw_node']} ({r['tw_hop']}跳)</div>"""
 
-    # 境外端顯示
-    if r["ov_status"] == "OK":
+    # 境外端顯示 (簡化私網文字)
+    if r["ov_cat"] == "OK":
         ov_display = f"""<div style="color:#4ade80;font-weight:bold;font-size:14px;">✔ {r['ov_br']}</div>
                          <div style="font-size:12px;color:#94a3b8;">{r['ov_node']} ({r['ov_hop']}跳 / 差:{r['ov_diff']})</div>"""
+    elif r["ov_cat"] == "PRIVATE":
+        ov_display = f"""<div style="color:#facc15;font-weight:bold;font-size:14px;">{r['ov_desc']}</div>
+                         <div style="font-size:12px;color:#94a3b8;">{r['ov_node']} ({r['ov_hop']}跳)</div>"""
     else:
         ov_display = f"""<div style="color:#f87171;font-weight:bold;font-size:14px;">{r['ov_desc']}</div>
                          <div style="font-size:12px;color:#f87171;">{r['ov_node']} ({r['ov_hop']}跳)</div>"""
@@ -716,7 +715,7 @@ for idx, r in enumerate(current_results):
         <td style="padding:14px 12px;">{ov_display}</td>
         <td style="padding:14px 12px;">{status_badge}</td>
         <td style="padding:14px 12px;text-align:center;">
-            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(2,132,199,0.3);">查看</button>
+            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;">查看</button>
         </td>
     </tr>
     <tr id="log-{idx}" class="log-detail-row" style="display:none;background:#090d16;">
@@ -733,27 +732,22 @@ logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in sta
 if not logs_html:
     logs_html = "<li style='color:#94a3b8;'>目前尚無狀態變更紀錄（系統正常運行中）</li>"
 
-tw_glow = "text-shadow:0 0 14px rgba(251,113,133,0.6);" if tw_alert_count > 0 else ""
-tw_color = "#fb7185" if tw_alert_count > 0 else "#94a3b8"
-
-ov_glow = "text-shadow:0 0 14px rgba(251,113,133,0.6);" if overseas_alert_count > 0 else ""
-ov_color = "#fb7185" if overseas_alert_count > 0 else "#94a3b8"
-
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4G/5G 行網 Internet 路由巡檢與導入監控儀表板</title>
+    <title>4G/5G 行網 Internet 路由巡檢儀表板</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
-        .cards {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:18px; margin-bottom:20px; }}
-        .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
-        .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
+        .cards {{ display:grid; grid-template-columns:repeat(6, 1fr); gap:14px; margin-bottom:20px; }}
+        .card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:16px 18px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
+        .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
+        .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
-        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; letter-spacing:0.5px; border-bottom:1px solid #334155; }}
+        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
         
         @keyframes pulse-red {{
             0% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }}
@@ -768,21 +762,37 @@ html_content = f"""<!DOCTYPE html>
         var beepInterval = null;
         var currentScanTime = "{now_str}";
 
+        // 高音量、急促高低雙音警報聲
         function playWarningBeep() {{
             try {{
                 if (!audioCtx) {{
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }}
-                var osc = audioCtx.createOscillator();
-                var gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.35);
+                var now = audioCtx.currentTime;
+                
+                // 第一聲高音 (1200Hz)
+                var osc1 = audioCtx.createOscillator();
+                var gain1 = audioCtx.createGain();
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(1200, now);
+                gain1.gain.setValueAtTime(0.85, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.18);
+
+                // 第二聲次高音 (800Hz)
+                var osc2 = audioCtx.createOscillator();
+                var gain2 = audioCtx.createGain();
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(800, now + 0.22);
+                gain2.gain.setValueAtTime(0.85, now + 0.22);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.42);
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.start(now + 0.22);
+                osc2.stop(now + 0.42);
             }} catch(e) {{
                 console.log("Audio waiting for user gesture:", e);
             }}
@@ -818,7 +828,7 @@ html_content = f"""<!DOCTYPE html>
                         ackBtn.style.animation = "pulse-red 1.5s infinite";
                     }}
                     if (!beepInterval) {{
-                        beepInterval = setInterval(playWarningBeep, 2000);
+                        beepInterval = setInterval(playWarningBeep, 1600);
                     }}
                 }}
             }} else {{
@@ -875,7 +885,6 @@ html_content = f"""<!DOCTYPE html>
             updateAckButtonState();
         }};
 
-        // 每隔 15 分鐘 (900秒) 自動重整
         setInterval(function() {{
             if (!anyLogOpened) {{
                 window.location.reload();
@@ -885,82 +894,74 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 頂部戰情室 Header 區塊 -->
         <div class="header">
             <div>
-                <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; letter-spacing:0.5px; display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:28px;">🌐</span> 4G/5G 行網 Internet 路由巡檢與導入監控儀表板
+                <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:28px;">🌐</span> 4G/5G 行網 Internet 路由巡檢儀表板
                 </h1>
                 <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
                     📍 <strong>探測節點：</strong>🇹🇼 台灣本地 ＋ {current_overseas['flag']} 境外輪播節點 ({current_overseas['city']})<br>
-                    ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span><br>
-                    🔄 <strong>畫面狀態：</strong>每隔15分鐘自動重整
+                    ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span>
                 </div>
             </div>
             
-            <!-- 右上角按鈕組 -->
             <div style="display:flex; gap:12px; align-items:center;">
-                <button id="ack-btn" onclick="ackAlarm()" style="background:#334155; color:#94a3b8; border:none; border-radius:8px; padding:11px 18px; cursor:not-allowed; font-size:15px; font-weight:bold; transition:all 0.2s;">
+                <button id="ack-btn" onclick="ackAlarm()" style="background:#334155; color:#94a3b8; border:none; border-radius:8px; padding:11px 18px; cursor:not-allowed; font-size:15px; font-weight:bold;">
                     🔕 靜音警報 (無告警)
                 </button>
-                <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 4px 12px rgba(2,132,199,0.3); transition:all 0.2s;" onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">
+                <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold;">
                     🔄 畫面刷新
                 </button>
-                <a href="https://github.com/swa1216-wei/ip-tracer/actions/workflows/schedule.yml" target="_blank" style="text-decoration:none; background:#10b981; color:#fff; border-radius:8px; padding:11px 20px; font-size:15px; font-weight:bold; display:inline-block; box-shadow:0 4px 12px rgba(16,185,129,0.3); transition:all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                <a href="https://github.com/swa1216-wei/ip-tracer/actions/workflows/schedule.yml" target="_blank" style="text-decoration:none; background:#10b981; color:#fff; border-radius:8px; padding:11px 20px; font-size:15px; font-weight:bold; display:inline-block;">
                     ⚡ 立即發起探測
                 </a>
             </div>
         </div>
 
-        <!-- 四格戰情核心指標卡片 (拆分台灣與海外) -->
+        <!-- 頂部六格維運指標卡 (拆分未達BR與含私網) -->
         <div class="cards">
-            <!-- 卡片 1：總數 -->
-            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:20px 22px; border:1px solid #334155; border-top:4px solid #38bdf8; box-shadow:0 8px 20px rgba(0,0,0,0.3);">
-                <div style="font-size:13px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
-                    監控目標總數
-                </div>
-                <div style="font-size:32px; font-weight:900; color:#ffffff;">
-                    {total_count} <span style="font-size:16px; color:#94a3b8; font-weight:normal;">組 IP</span>
-                </div>
+            <!-- 1. 總數 -->
+            <div class="card" style="border-top:4px solid #38bdf8;">
+                <div style="font-size:12px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
+                <div style="font-size:28px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組</span></div>
             </div>
 
-            <!-- 卡片 2：雙向正常 -->
-            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:20px 22px; border:1px solid #1e3a2b; border-top:4px solid #10b981; box-shadow:0 8px 20px rgba(16,185,129,0.15);">
-                <div style="font-size:13px; font-weight:bold; color:#a7f3d0; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
-                    雙向全正常 (抵達 16 台 BR)
-                </div>
-                <div style="font-size:32px; font-weight:900; color:#34d399; text-shadow:0 0 12px rgba(52,211,153,0.4);">
-                    {dual_ok_count} <span style="font-size:16px; color:#a7f3d0; font-weight:normal;">組</span>
-                </div>
+            <!-- 2. 全正常 -->
+            <div class="card" style="border-top:4px solid #10b981;">
+                <div style="font-size:12px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">雙向全正常</div>
+                <div style="font-size:28px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
             </div>
 
-            <!-- 卡片 3：台灣異常 -->
-            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:20px 22px; border:1px solid #3f1d24; border-top:4px solid #f43f5e; box-shadow:0 8px 20px rgba(244,63,94,0.12);">
-                <div style="font-size:13px; font-weight:bold; color:#fecdd3; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
-                    🇹🇼 台灣端異常
-                </div>
-                <div style="font-size:32px; font-weight:900; color:{tw_color}; {tw_glow}">
-                    {tw_alert_count} <span style="font-size:16px; font-weight:normal; color:#94a3b8;">組</span>
-                </div>
+            <!-- 3. 台灣未達 BR (紅) -->
+            <div class="card" style="border-top:4px solid #ef4444;">
+                <div style="font-size:12px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣 未達BR</div>
+                <div style="font-size:28px; font-weight:900; color:{'#fb7185' if tw_nobr_count > 0 else '#94a3b8'};">{tw_nobr_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
             </div>
 
-            <!-- 卡片 4：海外異常 (標示當前城市) -->
-            <div style="background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:12px; padding:20px 22px; border:1px solid #3f1d24; border-top:4px solid #e11d48; box-shadow:0 8px 20px rgba(225,29,72,0.12);">
-                <div style="font-size:13px; font-weight:bold; color:#fecdd3; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
-                    {current_overseas['flag']} 境外端異常 ({current_overseas['city']})
-                </div>
-                <div style="font-size:32px; font-weight:900; color:{ov_color}; {ov_glow}">
-                    {overseas_alert_count} <span style="font-size:16px; font-weight:normal; color:#94a3b8;">組</span>
-                </div>
+            <!-- 4. 台灣含私網 (黃) -->
+            <div class="card" style="border-top:4px solid #f59e0b;">
+                <div style="font-size:12px; font-weight:bold; color:#fef08a; margin-bottom:6px;">🇹🇼 台灣 HiNet含私網</div>
+                <div style="font-size:28px; font-weight:900; color:{'#facc15' if tw_priv_count > 0 else '#94a3b8'};">{tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+            </div>
+
+            <!-- 5. 海外未達 BR (紅) -->
+            <div class="card" style="border-top:4px solid #ef4444;">
+                <div style="font-size:12px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} {current_overseas['city']} 未達BR</div>
+                <div style="font-size:28px; font-weight:900; color:{'#fb7185' if ov_nobr_count > 0 else '#94a3b8'};">{ov_nobr_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+            </div>
+
+            <!-- 6. 海外含私網 (黃) -->
+            <div class="card" style="border-top:4px solid #f59e0b;">
+                <div style="font-size:12px; font-weight:bold; color:#fef08a; margin-bottom:6px;">{current_overseas['flag']} {current_overseas['city']} HiNet含私網</div>
+                <div style="font-size:28px; font-weight:900; color:{'#facc15' if ov_priv_count > 0 else '#94a3b8'};">{ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
             </div>
         </div>
 
-        <!-- 24小時巡檢健康摘要橫條 -->
         <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:28px; font-size:14px; display:flex; align-items:center; gap:8px;">
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 102 組雙向即時巡檢表格 (單列並列) -->
+        <!-- 表格區塊 -->
         <table>
             <thead>
                 <tr>
@@ -977,10 +978,9 @@ html_content = f"""<!DOCTYPE html>
             </tbody>
         </table>
 
-        <!-- 過去 7 天排程巡檢歷史快照 (移至日誌上方) -->
+        <!-- 7 天快照 -->
         <div class="history-box">
             <h3 style="margin-top:0;margin-bottom:8px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照</h3>
-            <p style="font-size:13px;color:#94a3b8;margin-top:0;margin-bottom:14px;">此處記錄每一次自動巡檢的核心指標：</p>
             <div style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
                 <table style="box-shadow:none;">
                     <thead>
@@ -988,9 +988,11 @@ html_content = f"""<!DOCTYPE html>
                             <th style="background:#090d16;padding:10px 12px;">巡檢時間點</th>
                             <th style="background:#090d16;padding:10px 12px;">探測節點</th>
                             <th style="background:#090d16;padding:10px 12px;">目標總數</th>
-                            <th style="background:#090d16;padding:10px 12px;">雙向正常數</th>
-                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣異常</th>
-                            <th style="background:#090d16;padding:10px 12px;">🌏 海外異常</th>
+                            <th style="background:#090d16;padding:10px 12px;">雙向全正常</th>
+                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣未達BR</th>
+                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣含私網</th>
+                            <th style="background:#090d16;padding:10px 12px;">🌏 境外未達BR</th>
+                            <th style="background:#090d16;padding:10px 12px;">🌏 境外含私網</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1000,7 +1002,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 顯示路由變更LOG (置底) -->
+        <!-- 顯示路由變更LOG -->
         <div class="audit-box">
             <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG</h3>
             <ul style="margin:0;padding-left:24px;font-size:14px;line-height:1.7;">

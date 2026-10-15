@@ -742,7 +742,7 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
-        .cards {{ display:grid; grid-template-columns:repeat(6, 1fr); gap:14px; margin-bottom:20px; }}
+        .cards {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }}
         .card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:16px 18px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
@@ -918,42 +918,38 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 頂部六格維運指標卡 (拆分未達BR與含私網) -->
+<!-- 頂部四大格維運指標卡 (內嵌細項拆分) -->
         <div class="cards">
-            <!-- 1. 總數 -->
+            <!-- 1. 監控總數 -->
             <div class="card" style="border-top:4px solid #38bdf8;">
-                <div style="font-size:12px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
-                <div style="font-size:28px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組</span></div>
+                <div style="font-size:13px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
+                <div style="font-size:32px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
             </div>
 
-            <!-- 2. 全正常 -->
+            <!-- 2. 雙向全正常 -->
             <div class="card" style="border-top:4px solid #10b981;">
-                <div style="font-size:12px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">雙向全正常</div>
-                <div style="font-size:28px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
+                <div style="font-size:13px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">雙向全正常 (抵達 16 台 BR)</div>
+                <div style="font-size:32px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
             </div>
 
-            <!-- 3. 台灣未達 BR (紅) -->
-            <div class="card" style="border-top:4px solid #ef4444;">
-                <div style="font-size:12px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣 未達BR</div>
-                <div style="font-size:28px; font-weight:900; color:{'#fb7185' if tw_nobr_count > 0 else '#94a3b8'};">{tw_nobr_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+            <!-- 3. 台灣端異常 -->
+            <div class="card" style="border-top:4px solid {'#ef4444' if (tw_nobr_count + tw_priv_count) > 0 else '#334155'};">
+                <div style="font-size:13px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣端異常</div>
+                <div style="font-size:32px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+                <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
+                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達BR: {tw_nobr_count}</span>
+                    <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {tw_priv_count}</span>
+                </div>
             </div>
 
-            <!-- 4. 台灣含私網 (黃) -->
-            <div class="card" style="border-top:4px solid #f59e0b;">
-                <div style="font-size:12px; font-weight:bold; color:#fef08a; margin-bottom:6px;">🇹🇼 台灣 HiNet含私網</div>
-                <div style="font-size:28px; font-weight:900; color:{'#facc15' if tw_priv_count > 0 else '#94a3b8'};">{tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
-            </div>
-
-            <!-- 5. 海外未達 BR (紅) -->
-            <div class="card" style="border-top:4px solid #ef4444;">
-                <div style="font-size:12px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} {current_overseas['city']} 未達BR</div>
-                <div style="font-size:28px; font-weight:900; color:{'#fb7185' if ov_nobr_count > 0 else '#94a3b8'};">{ov_nobr_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
-            </div>
-
-            <!-- 6. 海外含私網 (黃) -->
-            <div class="card" style="border-top:4px solid #f59e0b;">
-                <div style="font-size:12px; font-weight:bold; color:#fef08a; margin-bottom:6px;">{current_overseas['flag']} {current_overseas['city']} HiNet含私網</div>
-                <div style="font-size:28px; font-weight:900; color:{'#facc15' if ov_priv_count > 0 else '#94a3b8'};">{ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+            <!-- 4. 境外端異常 -->
+            <div class="card" style="border-top:4px solid {'#ef4444' if (ov_nobr_count + ov_priv_count) > 0 else '#334155'};">
+                <div style="font-size:13px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} 境外端異常 ({current_overseas['city']})</div>
+                <div style="font-size:32px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+                <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
+                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達BR: {ov_nobr_count}</span>
+                    <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {ov_priv_count}</span>
+                </div>
             </div>
         </div>
 

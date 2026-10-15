@@ -418,7 +418,7 @@ for target in TARGET_IPS:
 # 複測未達節點任務
 if retry_tasks:
     print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動複測重試機制...")
-    for retry_round in range(1, 3):
+    for retry_round in range(1, 5):
         if not retry_tasks:
             break
         time.sleep(2)

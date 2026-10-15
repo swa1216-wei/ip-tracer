@@ -31,7 +31,7 @@ jobs:
         env:
           PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
         run: |
-          npx -y pagecrypt index.html index.html "$PAGE_PASSWORD" "Internet 路由巡檢驗證"
+          npx -y staticrypt index.html -p "$PAGE_PASSWORD" --remember 30 -o encrypted.html && mv encrypted.html index.html
 
       - name: Commit and Push Results
         run: |

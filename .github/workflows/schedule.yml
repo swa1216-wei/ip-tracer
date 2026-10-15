@@ -1,42 +1,31 @@
-name: Periodic IP Traceroute
+name: Scheduled IP Traceroute Probe
 
 on:
   schedule:
-    # 改為每 30 分鐘自動巡檢一次
-    - cron: '*/15 * * * *'
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    - cron: '*/15 * * * *'  # 每 15 分鐘定期巡檢一次
+  workflow_dispatch:        # 支援 GitHub 頁面點擊手動執行
 
 jobs:
-  trace-and-publish:
+  probe:
     runs-on: ubuntu-latest
     steps:
-      - name: 下載專案程式碼
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Run Traceroute Probe
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
           python probe.py
 
-      - name: 執行探測腳本並產出網頁
-        run: python3 probe.py
-
-      - name: 保存歷史狀態檔案至倉庫
+      - name: Commit and Push Results
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add monitor_state.json || true
-          git commit -m "chore: 更新路由監控狀態快照 [skip ci]" || true
-          git push || true
-
-      - name: 發布網頁至 GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
-          destination_dir: ./
-          keep_files: false
+          git add index.html monitor_state.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update routing dashboard [skip ci]" && git push)

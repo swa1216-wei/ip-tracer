@@ -922,20 +922,20 @@ html_content = f"""<!DOCTYPE html>
         <div class="cards">
             <!-- 1. 監控總數 -->
             <div class="card" style="border-top:4px solid #38bdf8;">
-                <div style="font-size:13px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
-                <div style="font-size:32px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
+                <div style="font-size:20px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
+                <div style="font-size:36px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
             </div>
 
             <!-- 2. 雙向全正常 -->
             <div class="card" style="border-top:4px solid #10b981;">
-                <div style="font-size:13px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">雙向全正常 (抵達 16 台 BR)</div>
-                <div style="font-size:32px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
+                <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">雙向全正常 (抵達 16 台 BR)</div>
+                <div style="font-size:36px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
             </div>
 
             <!-- 3. 台灣端異常 -->
             <div class="card" style="border-top:4px solid {'#ef4444' if (tw_nobr_count + tw_priv_count) > 0 else '#334155'};">
-                <div style="font-size:13px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣端異常</div>
-                <div style="font-size:32px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣端異常</div>
+                <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
                 <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
                     <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達BR: {tw_nobr_count}</span>
                     <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {tw_priv_count}</span>
@@ -944,8 +944,8 @@ html_content = f"""<!DOCTYPE html>
 
             <!-- 4. 境外端異常 -->
             <div class="card" style="border-top:4px solid {'#ef4444' if (ov_nobr_count + ov_priv_count) > 0 else '#334155'};">
-                <div style="font-size:13px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} 境外端異常 ({current_overseas['city']})</div>
-                <div style="font-size:32px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} 境外端異常 ({current_overseas['city']})</div>
+                <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
                 <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
                     <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達BR: {ov_nobr_count}</span>
                     <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {ov_priv_count}</span>

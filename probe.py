@@ -265,7 +265,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：探測與邏輯 (放寬境外 30 跳，重試防抖冷卻機制)
+# 第三部分：探測與邏輯 (Globalping 標準合法請求，溫和防抖重試)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
@@ -406,21 +406,21 @@ retry_tasks = []
 for target in TARGET_IPS:
     res_tw = parse_trace_output(target, raw_results.get((target, "TW"), ""), "TW", "台灣")
     parsed_tw[target] = res_tw
-    if res_tw["cat"] == "NO_BR" and "429" not in res_tw["raw"]:
+    if res_tw["cat"] == "NO_BR" and "429" not in res_tw["raw"] and "400" not in res_tw["raw"]:
         retry_tasks.append((target, "TW"))
 
     res_ov = parse_trace_output(target, raw_results.get((target, current_overseas["country"]), ""), current_overseas["country"], current_overseas["city"])
     parsed_overseas[target] = res_ov
-    if res_ov["cat"] == "NO_BR" and "429" not in res_ov["raw"]:
+    if res_ov["cat"] == "NO_BR" and "429" not in res_ov["raw"] and "400" not in res_ov["raw"]:
         retry_tasks.append((target, current_overseas["country"]))
 
-# 溫和複測機制 (重試 2 輪，每次冷卻 3 秒防設備 CoPP/ICMP 限流)
+# 溫和防抖複測 (2 輪，每次冷卻 3 秒防設備 CoPP/ICMP 限流)
 if retry_tasks:
     print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動溫和防抖複測...")
     for retry_round in range(1, 3):
         if not retry_tasks:
             break
-        time.sleep(3)  # 讓中間設備的 ICMP token bucket 恢復
+        time.sleep(3)
         still_failing = []
         with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
@@ -514,26 +514,52 @@ for target in TARGET_IPS:
         combined_status = "OK"
         combined_desc = "✔ 國內外正常抵達節點"
 
-    target_label = f"{target} [{elem_code}]"
-
-    # 台灣端狀態變更
+    # 台灣端狀態變更 (改為結構化字典儲存，支援表格化)
     prev_tw = state["node_status"]["TW"].get(target, "OK")
     if prev_tw == "OK" and p_tw["status"] == "ALERT":
-        state["event_logs"].insert(0, f"🔴 {now_str} 【台灣告警】{target_label} ➔ {p_tw['desc']}")
+        state["event_logs"].insert(0, {
+            "time": now_str,
+            "badge": "🔴 台灣告警",
+            "type": "ALERT",
+            "target": target,
+            "elem": elem_code,
+            "desc": p_tw['desc']
+        })
         newly_alerted.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
     elif prev_tw == "ALERT" and p_tw["status"] == "OK":
-        state["event_logs"].insert(0, f"🟢 {now_str} 【台灣恢復】{target_label} ➔ 抵達 {p_tw['br_name']}")
+        state["event_logs"].insert(0, {
+            "time": now_str,
+            "badge": "🟢 台灣恢復",
+            "type": "OK",
+            "target": target,
+            "elem": elem_code,
+            "desc": f"抵達 {p_tw['br_name']}"
+        })
         newly_recovered.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
     state["node_status"]["TW"][target] = p_tw["status"]
 
-    # 境外端狀態變更
+    # 境外端狀態變更 (改為結構化字典儲存，支援表格化)
     ov_c = current_overseas["country"]
     prev_ov = state["node_status"][ov_c].get(target, "OK")
     if prev_ov == "OK" and p_ov["status"] == "ALERT":
-        state["event_logs"].insert(0, f"🔴 {now_str} 【{current_overseas['city']}告警】{target_label} ➔ {p_ov['desc']}")
+        state["event_logs"].insert(0, {
+            "time": now_str,
+            "badge": f"🔴 {current_overseas['city']}告警",
+            "type": "ALERT",
+            "target": target,
+            "elem": elem_code,
+            "desc": p_ov['desc']
+        })
         newly_alerted.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
     elif prev_ov == "ALERT" and p_ov["status"] == "OK":
-        state["event_logs"].insert(0, f"🟢 {now_str} 【{current_overseas['city']}恢復】{target_label} ➔ 抵達 {p_ov['br_name']}")
+        state["event_logs"].insert(0, {
+            "time": now_str,
+            "badge": f"🟢 {current_overseas['city']}恢復",
+            "type": "OK",
+            "target": target,
+            "elem": elem_code,
+            "desc": f"抵達 {p_ov['br_name']}"
+        })
         newly_recovered.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
     state["node_status"][ov_c][target] = p_ov["status"]
 
@@ -585,8 +611,9 @@ snapshot_entry = {
 }
 state["history_snapshots"].insert(0, snapshot_entry)
 
-# 歷史快照保持 7 天 (168 小時) 滾動清理
+# 7 天 (168 小時) 滾動清理：歷史快照與 LOG 全面精準保留 7 天
 seven_days_ago = now_dt - timedelta(days=7)
+
 valid_snapshots = []
 for s in state["history_snapshots"]:
     try:
@@ -597,8 +624,16 @@ for s in state["history_snapshots"]:
         valid_snapshots.append(s)
 state["history_snapshots"] = valid_snapshots[:700]
 
-# LOG 保持最新 50 筆
-state["event_logs"] = state["event_logs"][:50]
+valid_logs = []
+for l in state["event_logs"]:
+    try:
+        t_str = l.get("time") if isinstance(l, dict) else re.search(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', str(l)).group(0)
+        l_time = datetime.strptime(t_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
+        if l_time >= seven_days_ago:
+            valid_logs.append(l)
+    except Exception:
+        valid_logs.append(l)
+state["event_logs"] = valid_logs
 
 one_day_ago = now_dt - timedelta(hours=24)
 snapshots_24h = []
@@ -655,7 +690,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (支援點擊展開失敗 IP、LOG美化拉條)
+# 第五部分：HTML 前端組裝 (歷史快照抽屜、LOG 科技表格化)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -664,7 +699,7 @@ else:
     latest_err = alert_rounds_24h[0]
     stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]}）</span>'
 
-# 7 天歷史快照組裝 (具備異常展開抽屜)
+# 7 天歷史快照組裝 (具備點擊展開異常 IP 功能)
 history_rows_html = ""
 for s_idx, item in enumerate(state["history_snapshots"][:100]):
     has_err = (item.get("tw_nobr",0) > 0 or item.get("tw_priv",0) > 0 or item.get("ov_nobr",0) > 0 or item.get("ov_priv",0) > 0)
@@ -694,7 +729,7 @@ for s_idx, item in enumerate(state["history_snapshots"][:100]):
                 </tr>
                 """
         else:
-            drawer_rows = '<tr><td colspan="3" style="padding:8px 12px;color:#94a3b8;">此為舊版本巡檢紀錄，未記錄詳細出事 IP 清單</td></tr>'
+            drawer_rows = '<tr><td colspan="3" style="padding:8px 12px;color:#94a3b8;">此筆紀錄無異常 IP 清單</td></tr>'
 
         drawer_html = f"""
         <tr id="snap-drawer-{s_idx}" style="display:none;background:#0d1527;">
@@ -787,9 +822,47 @@ for idx, r in enumerate(current_results):
     </tr>
     """
 
-logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in state["event_logs"][:50]])
-if not logs_html:
-    logs_html = "<li style='color:#94a3b8;'>目前尚無狀態變更紀錄（系統正常運行中）</li>"
+# 路由變更 LOG：組裝為科技風整齊表格
+logs_rows_html = ""
+if not state["event_logs"]:
+    logs_rows_html = """
+    <tr>
+        <td colspan="5" style="padding:16px;text-align:center;color:#94a3b8;">
+            ✔ 過去 7 天內無路由跳變紀錄（網路平穩運行中）
+        </td>
+    </tr>
+    """
+else:
+    for log in state["event_logs"]:
+        if isinstance(log, dict):
+            l_time = log.get("time", "")
+            l_badge = log.get("badge", "")
+            l_type = log.get("type", "OK")
+            l_target = log.get("target", "")
+            l_elem = log.get("elem", "")
+            l_desc = log.get("desc", "")
+            badge_color = "#f87171" if l_type == "ALERT" else "#34d399"
+            bg_col = "rgba(239, 68, 68, 0.08)" if l_type == "ALERT" else "transparent"
+        else:
+            # 容錯處理舊格式字串
+            l_str = str(log)
+            l_time = l_str[2:21] if len(l_str) >= 21 else ""
+            l_badge = "變更紀錄"
+            badge_color = "#38bdf8"
+            bg_col = "transparent"
+            l_target = "-"
+            l_elem = "-"
+            l_desc = l_str
+
+        logs_rows_html += f"""
+        <tr style="background:{bg_col};border-bottom:1px solid #334155;">
+            <td style="padding:10px 12px;font-family:monospace;color:#f8fafc;white-space:nowrap;">{l_time}</td>
+            <td style="padding:10px 12px;font-weight:bold;color:{badge_color};white-space:nowrap;">{l_badge}</td>
+            <td style="padding:10px 12px;font-family:monospace;color:#38bdf8;font-weight:bold;white-space:nowrap;">{l_target}</td>
+            <td style="padding:10px 12px;color:#e2e8f0;font-weight:bold;white-space:nowrap;">{l_elem}</td>
+            <td style="padding:10px 12px;color:#cbd5e1;">{l_desc}</td>
+        </tr>
+        """
 
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
@@ -1066,13 +1139,24 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 顯示路由變更LOG (具備拉條與最大高度限制) -->
+        <!-- 顯示路由變更LOG (7天科技風表格 + 美化拉條) -->
         <div class="audit-box">
-            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(保留最新 50 筆)</span></h3>
-            <div class="custom-scrollbar" style="max-height:260px; overflow-y:auto; background:#090d16; padding:14px 18px; border-radius:8px; border:1px solid #334155;">
-                <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;">
-                    {logs_html}
-                </ul>
+            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(保留過去 7 天內所有狀態變更)</span></h3>
+            <div class="custom-scrollbar" style="max-height:300px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
+                <table style="box-shadow:none;">
+                    <thead>
+                        <tr>
+                            <th style="background:#090d16;padding:10px 12px;width:18%;">發生時間</th>
+                            <th style="background:#090d16;padding:10px 12px;width:15%;">事件類型</th>
+                            <th style="background:#090d16;padding:10px 12px;width:18%;">目標 IP</th>
+                            <th style="background:#090d16;padding:10px 12px;width:14%;">元件代號</th>
+                            <th style="background:#090d16;padding:10px 12px;width:35%;">路由變更明細 / 抵達節點</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {logs_rows_html}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

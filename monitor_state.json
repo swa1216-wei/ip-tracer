@@ -233,6 +233,18 @@
   ],
   "history_snapshots": [
     {
+      "time": "2026-10-15 11:00:53",
+      "total": 102,
+      "ok": 102,
+      "alert": 0
+    },
+    {
+      "time": "2026-10-15 10:58:03",
+      "total": 102,
+      "ok": 102,
+      "alert": 0
+    },
+    {
       "time": "2026-10-15 10:29:52",
       "total": 102,
       "ok": 102,
@@ -262,5 +274,7 @@
       "ok": 76,
       "alert": 0
     }
-  ]
+  ],
+  "teams_tested": true,
+  "last_heartbeat_date": "2026-10-15"
 }

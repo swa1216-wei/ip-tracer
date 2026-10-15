@@ -291,7 +291,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 # ==============================================================================
 
 def run_single_trace(target, country_code):
-    time.sleep(0.25)  # 每次請求微幅間隔，平滑化發送
+    time.sleep(0.05)  # 每次請求微幅間隔，平滑化發送
     api_url = "https://api.globalping.io/v1/measurements"
     payload = json.dumps({
         "type": "traceroute",
@@ -411,7 +411,7 @@ for target in TARGET_IPS:
 print(f"[{now_str}] 開始雙向巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 5 產線穩定平滑發送...")
 
 raw_results = {}
-with ThreadPoolExecutor(max_workers=5) as executor:
+with ThreadPoolExecutor(max_workers=10) as executor:
     future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in all_tasks}
     for future in as_completed(future_to_task):
         target, c_code, raw_out = future.result()
@@ -442,7 +442,7 @@ if retry_tasks:
         print(f"  -> 進行第 {retry_round} 次複測，剩餘待測: {len(retry_tasks)} 個任務")
         time.sleep(3)
         still_failing = []
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=8) as executor:
             future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
             for future in as_completed(future_to_task):
                 target, c_code, raw_out = future.result()

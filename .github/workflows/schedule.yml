@@ -15,6 +15,12 @@ jobs:
     steps:
       - name: 下載專案程式碼
         uses: actions/checkout@v4
+      
+      - name: Run Traceroute Probe
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          python probe.py
 
       - name: 執行探測腳本並產出網頁
         run: python3 probe.py

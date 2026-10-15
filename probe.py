@@ -196,10 +196,13 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
     facts = []
     for item in event_items:
-        facts.append({
-            "title": f"{item['target']}",
-            "value": f"{item['elem']} [{item['cidr']} {item['part']}] ➔ {item['desc']}"
-        })
+        if "value" in item:
+            facts.append({"title": item["title"], "value": item["value"]})
+        else:
+            facts.append({
+                "title": f"{item['target']}",
+                "value": f"{item['elem']} [{item['cidr']} {item['part']}] ➔ {item['desc']}"
+            })
 
     adaptive_payload = {
         "type": "message",
@@ -221,7 +224,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
                         },
                         {
                             "type": "TextBlock",
-                            "text": f"發生時間：{timestamp_str} (UTC+8)",
+                            "text": f"回報時間：{timestamp_str} (UTC+8)",
                             "isSubtle": True,
                             "spacing": "None"
                         },
@@ -471,54 +474,6 @@ alert_count = sum(1 for r in current_results if r["status"] == "ALERT")
 ok_count = len(current_results) - alert_count
 total_count = len(current_results)
 
-# ------------------------------------------------------------------------------
-# Teams 推播邏輯：1. 首次測試、2. 每日固定健康心跳報、3. 異常/恢復通知
-# ------------------------------------------------------------------------------
-
-# 1. 首次上線立即驗證通訊 (只發一次)
-if not state.get("teams_tested", False):
-    print("[Teams 推播] 執行首次通訊驗證...")
-    send_teams_notification(
-        "4G/5G 路由巡檢 - Teams Webhook 整合成功",
-        False,
-        [{
-            "target": "連線測試成功",
-            "elem": "系統整合驗證",
-            "cidr": f"共 {total_count} 組目標",
-            "part": "16 台 BR 白名單",
-            "desc": "Webhook 通訊暢通，後續將在發生異常、修復及每日 08:30 自動推播！"
-        }],
-        now_str
-    )
-    state["teams_tested"] = True
-    state["last_heartbeat_date"] = today_date_str
-
-# 2. 每日定時健康心跳報 (每天 08:00 以後的第一個巡檢排程發送)
-elif now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
-    print("[Teams 推播] 發送每日健康心跳報...")
-    health_title = "4G/5G 路由巡檢每日健康回報" if alert_count == 0 else "4G/5G 路由巡檢每日健康回報 (有異常)"
-    health_desc = f"全數平穩正常 (抵達 16 台 BR)" if alert_count == 0 else f"目前有 {alert_count} 組異常待處理"
-    send_teams_notification(
-        health_title,
-        (alert_count > 0),
-        [{
-            "target": f"巡檢規模: {total_count} 組",
-            "elem": "核心/邊緣雲巡檢",
-            "cidr": f"正常: {ok_count} 組",
-            "part": f"異常: {alert_count} 組",
-            "desc": health_desc
-        }],
-        now_str
-    )
-    state["last_heartbeat_date"] = today_date_str
-
-# 3. 狀態變更時發送告警/恢復通知 (彙整單一卡片)
-if newly_alerted:
-    send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
-
-if newly_recovered:
-    send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
-
 # 寫入歷史快照（保留最新 7 天，約 700 筆紀錄）
 snapshot_entry = {
     "time": now_str,
@@ -531,15 +486,7 @@ state["history_snapshots"] = state["history_snapshots"][:700]
 
 state["event_logs"] = state["event_logs"][:60]
 
-with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-    json.dump(state, f, ensure_ascii=False, indent=2)
-
-
-# ==============================================================================
-# 第四部分：歷史統計指標計算 (近 24 小時健康度 + 7 天歷史時序)
-# ==============================================================================
-
-# 24 小時健康摘要
+# 統計過去 24 小時的歷史快照
 one_day_ago = now_dt - timedelta(hours=24)
 snapshots_24h = []
 for s in state["history_snapshots"]:
@@ -550,7 +497,60 @@ for s in state["history_snapshots"]:
     except Exception:
         pass
 
+total_rounds_24h = len(snapshots_24h)
 alert_rounds_24h = [s for s in snapshots_24h if s.get("alert", 0) > 0]
+alert_rounds_count = len(alert_rounds_24h)
+
+
+# ==============================================================================
+# 第四部分：Teams Webhook 推播觸發 (1. 每日 08:00 健康日報、2. 異常亮紅燈、3. 恢復通知)
+# ==============================================================================
+
+# 1. 每日 08:00 定時發送「24小時量化健康日報」
+if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
+    print("[Teams 推播] 發送每日 08:00 24小時健康日報...")
+    
+    if alert_rounds_count == 0:
+        report_title = "4G/5G 路由巡檢 24小時健康日報"
+        is_report_alert = False
+        anomaly_summary = "0 次 (全時段正常連通抵達 BR)"
+    else:
+        report_title = "4G/5G 路由巡檢 24小時健康日報 (曾有異常)"
+        is_report_alert = True
+        latest_err_time = alert_rounds_24h[0]["time"]
+        anomaly_summary = f"⚠️ 曾出現 {alert_rounds_count} 次異常巡檢 (最近一次: {latest_err_time})"
+
+    current_summary = f"102 組全數正常 (抵達 16 台 BR)" if alert_count == 0 else f"🚨 目前尚有 {alert_count} 組異常待處理"
+
+    daily_facts = [
+        {"title": "系統狀態", "value": "🟢 背景巡檢持續運作中 (間隔 15~30 分鐘)"},
+        {"title": "監控規模", "value": "102 組 IP (抵達 16 台 BR 白名單)"},
+        {"title": "統計區間", "value": f"截至今日 08:00 (過去 24 小時)"},
+        {"title": "巡檢總次數", "value": f"共執行 {total_rounds_24h} 次自動巡檢"},
+        {"title": "異常巡檢", "value": anomaly_summary},
+        {"title": "當前狀態", "value": current_summary}
+    ]
+
+    send_teams_notification(report_title, is_report_alert, daily_facts, now_str)
+    state["last_heartbeat_date"] = today_date_str
+
+# 2. 狀態變更時發送告警通知 (亮紅燈 🚨)
+if newly_alerted:
+    send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
+
+# 3. 狀態恢復時發送通知 (綠燈 🟢)
+if newly_recovered:
+    send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
+
+# 儲存最新狀態檔
+with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+    json.dump(state, f, ensure_ascii=False, indent=2)
+
+
+# ==============================================================================
+# 第五部分：HTML 前端組裝與方式 A 常駐消音按鈕邏輯
+# ==============================================================================
+
 if not alert_rounds_24h:
     stat_24h_html = '<span style="color:#34d399;font-weight:bold;">✔ 過去 24 小時無異常事件（全時段平穩正常抵達 BR）</span>'
 else:
@@ -570,11 +570,6 @@ for item in state["history_snapshots"][:100]:
         <td style="padding:10px 12px;">{alert_badge}</td>
     </tr>
     """
-
-
-# ==============================================================================
-# 第五部分：HTML 前端組裝與方式 A 常駐消音按鈕邏輯
-# ==============================================================================
 
 rows_html = ""
 for idx, r in enumerate(current_results):

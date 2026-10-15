@@ -9,28 +9,29 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：系統設定區 (16 台 BR 白名單、海外輪播節點、102 組目標 IP 元數據)
+# 第一部分：系統設定區 (16 台節點白名單、海外輪播節點、102 組目標 IP 元數據)
 # ==============================================================================
 
 FALLBACK_WEBHOOK_URL = "https://default54eb9440cf0345fe835e61bd4ce515.c8.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/29/workflows/1d01e593bf3649bea39eba02ca408ecb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Gv35_ySE7WCYKGPhw-41NZfHFw7ODncvpvxHvCj4VUc"
 
+# 骨幹節點脫敏為內部行話 (B-機房-機號)
 BR_LIST = {
-    "210.65.126.209": "3L1BR1",
-    "210.65.126.213": "3L1BR2",
-    "210.65.126.101": "4L1BR3",
-    "210.65.126.105": "4L1BR4",
-    "210.65.126.193": "7L2BR1",
-    "210.65.126.197": "7L2BR2",
-    "210.65.126.93":  "2L3BR3",
-    "210.65.126.97":  "2L3BR4",
-    "211.22.229.189": "2L1-BR1(D)",
-    "211.22.229.193": "2L1-BR2(D)",
-    "203.74.98.85":   "CHCH-BR1(D)",
-    "203.75.166.85":  "CHCH-BR2(D)",
-    "203.75.166.81":  "TNE1-BR1(D)",
-    "203.74.98.81":   "TNE1-BR2(D)",
-    "211.22.229.205": "3L1EPG4U-BR1(D)",
-    "211.22.229.201": "3L1EPG4U-BR2(D)"
+    "210.65.126.209": "B-3L1-1",
+    "210.65.126.213": "B-3L1-2",
+    "210.65.126.101": "B-4L1-3",
+    "210.65.126.105": "B-4L1-4",
+    "210.65.126.193": "B-7L2-1",
+    "210.65.126.197": "B-7L2-2",
+    "210.65.126.93":  "B-2L3-3",
+    "210.65.126.97":  "B-2L3-4",
+    "211.22.229.189": "B-2L1-1D",
+    "211.22.229.193": "B-2L1-2D",
+    "203.74.98.85":   "B-CH-1D",
+    "203.75.166.85":  "B-CH-2D",
+    "203.75.166.81":  "B-TN-1D",
+    "203.74.98.81":   "B-TN-2D",
+    "211.22.229.205": "B-3L1-4U-1D",
+    "211.22.229.201": "B-3L1-4U-2D"
 }
 
 OVERSEAS_NODES = [
@@ -39,122 +40,123 @@ OVERSEAS_NODES = [
     {"country": "SG", "city": "新加坡", "flag": "🇸🇬"}
 ]
 
+# 元件全面脫敏為 G-xxx，拿掉 NAT 與前半後半
 TARGET_METADATA = {
   # --- 3L1 機房 ---
-  "42.72.0.8":     {"cidr": "42.72.0.0/17",    "part": "前半", "elem": "3L1EPG1",   "nat": "NAT5/6"},
-  "42.72.64.8":    {"cidr": "42.72.0.0/17",    "part": "後半", "elem": "3L1EPG1",   "nat": "NAT5/6"},
-  "42.72.128.8":   {"cidr": "42.72.128.0/17",  "part": "前半", "elem": "3L1EPG1",   "nat": "NAT5/6"},
-  "42.72.192.8":   {"cidr": "42.72.128.0/17",  "part": "後半", "elem": "3L1EPG1",   "nat": "NAT5/6"},
-  "42.73.0.8":     {"cidr": "42.73.0.0/16",    "part": "前半", "elem": "3L1EPG2",   "nat": "NAT5/6"},
-  "42.73.128.8":   {"cidr": "42.73.0.0/16",    "part": "後半", "elem": "3L1EPG2",   "nat": "NAT5/6"},
-  "114.137.0.8":   {"cidr": "114.137.0.0/18",  "part": "前半", "elem": "3L1EPG3",   "nat": "NAT7/8"},
-  "114.137.32.8":  {"cidr": "114.137.0.0/18",  "part": "後半", "elem": "3L1EPG3",   "nat": "NAT7/8"},
-  "114.137.64.8":  {"cidr": "114.137.64.0/18", "part": "前半", "elem": "3L1EPG3",   "nat": "NAT7/8"},
-  "114.137.96.8":  {"cidr": "114.137.64.0/18", "part": "後半", "elem": "3L1EPG3",   "nat": "NAT7/8"},
-  "114.137.128.8": {"cidr": "114.137.128.0/17","part": "前半", "elem": "3L1EPG3",   "nat": "NAT7/8"},
-  "114.137.192.8": {"cidr": "114.137.128.0/17","part": "後半", "elem": "3L1EPG3",   "nat": "NAT7/8"},
-  "42.79.0.8":     {"cidr": "42.79.0.0/17",    "part": "前半", "elem": "3L1EPG4U",  "nat": "NAT7/8"},
-  "42.79.64.8":    {"cidr": "42.79.0.0/17",    "part": "後半", "elem": "3L1EPG4U",  "nat": "NAT7/8"},
+  "42.72.0.8":     {"elem": "G-3L1-1"},
+  "42.72.64.8":    {"elem": "G-3L1-1"},
+  "42.72.128.8":   {"elem": "G-3L1-1"},
+  "42.72.192.8":   {"elem": "G-3L1-1"},
+  "42.73.0.8":     {"elem": "G-3L1-2"},
+  "42.73.128.8":   {"elem": "G-3L1-2"},
+  "114.137.0.8":   {"elem": "G-3L1-3"},
+  "114.137.32.8":  {"elem": "G-3L1-3"},
+  "114.137.64.8":  {"elem": "G-3L1-3"},
+  "114.137.96.8":  {"elem": "G-3L1-3"},
+  "114.137.128.8": {"elem": "G-3L1-3"},
+  "114.137.192.8": {"elem": "G-3L1-3"},
+  "42.79.0.8":     {"elem": "G-3L1-4U"},
+  "42.79.64.8":    {"elem": "G-3L1-4U"},
 
   # --- 4L1 機房 ---
-  "42.76.0.8":     {"cidr": "42.76.0.0/17",    "part": "前半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "42.76.64.8":    {"cidr": "42.76.0.0/17",    "part": "後半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "42.76.128.8":   {"cidr": "42.76.128.0/17",  "part": "前半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "42.76.192.8":   {"cidr": "42.76.128.0/17",  "part": "後半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "111.71.214.8":  {"cidr": "111.71.214.0/23", "part": "前半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "111.71.215.8":  {"cidr": "111.71.214.0/23", "part": "後半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "223.141.0.8":   {"cidr": "223.141.0.0/17",  "part": "前半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "223.141.64.8":  {"cidr": "223.141.0.0/17",  "part": "後半", "elem": "4L1EPG1",   "nat": "NAT7/8"},
-  "111.82.0.8":    {"cidr": "111.82.0.0/16",   "part": "前半", "elem": "4L1EPG2",   "nat": "NAT7/8"},
-  "111.82.128.8":  {"cidr": "111.82.0.0/16",   "part": "後半", "elem": "4L1EPG2",   "nat": "NAT7/8"},
-  "111.83.0.8":    {"cidr": "111.83.0.0/17",   "part": "前半", "elem": "4L1EPG2",   "nat": "NAT7/8"},
-  "111.83.64.8":   {"cidr": "111.83.0.0/17",   "part": "後半", "elem": "4L1EPG2",   "nat": "NAT7/8"},
-  "42.79.192.8":   {"cidr": "42.79.192.0/18",  "part": "前半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "42.79.224.8":   {"cidr": "42.79.192.0/18",  "part": "後半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "111.83.128.8":  {"cidr": "111.83.128.0/17", "part": "前半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "111.83.192.8":  {"cidr": "111.83.128.0/17", "part": "後半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "223.138.128.8": {"cidr": "223.138.128.0/17","part": "前半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "223.138.192.8": {"cidr": "223.138.128.0/17","part": "後半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "223.141.128.8": {"cidr": "223.141.128.0/18","part": "前半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "223.141.160.8": {"cidr": "223.141.128.0/18","part": "後半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "223.141.192.8": {"cidr": "223.141.192.0/18","part": "前半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
-  "223.141.224.8": {"cidr": "223.141.192.0/18","part": "後半", "elem": "4L1EPG3",   "nat": "NAT9/10"},
+  "42.76.0.8":     {"elem": "G-4L1-1"},
+  "42.76.64.8":    {"elem": "G-4L1-1"},
+  "42.76.128.8":   {"elem": "G-4L1-1"},
+  "42.76.192.8":   {"elem": "G-4L1-1"},
+  "111.71.214.8":  {"elem": "G-4L1-1"},
+  "111.71.215.8":  {"elem": "G-4L1-1"},
+  "223.141.0.8":   {"elem": "G-4L1-1"},
+  "223.141.64.8":  {"elem": "G-4L1-1"},
+  "111.82.0.8":    {"elem": "G-4L1-2"},
+  "111.82.128.8":  {"elem": "G-4L1-2"},
+  "111.83.0.8":    {"elem": "G-4L1-2"},
+  "111.83.64.8":   {"elem": "G-4L1-2"},
+  "42.79.192.8":   {"elem": "G-4L1-3"},
+  "42.79.224.8":   {"elem": "G-4L1-3"},
+  "111.83.128.8":  {"elem": "G-4L1-3"},
+  "111.83.192.8":  {"elem": "G-4L1-3"},
+  "223.138.128.8": {"elem": "G-4L1-3"},
+  "223.138.192.8": {"elem": "G-4L1-3"},
+  "223.141.128.8": {"elem": "G-4L1-3"},
+  "223.141.160.8": {"elem": "G-4L1-3"},
+  "223.141.192.8": {"elem": "G-4L1-3"},
+  "223.141.224.8": {"elem": "G-4L1-3"},
 
   # --- 7L2 機房 ---
-  "42.77.0.8":     {"cidr": "42.77.0.0/17",    "part": "前半", "elem": "7L2EPG1",   "nat": "NAT7/8"},
-  "42.77.64.8":    {"cidr": "42.77.0.0/17",    "part": "後半", "elem": "7L2EPG1",   "nat": "NAT7/8"},
-  "223.138.0.8":   {"cidr": "223.138.0.0/18",  "part": "前半", "elem": "7L2EPG1",   "nat": "NAT7/8"},
-  "223.138.32.8":  {"cidr": "223.138.0.0/18",  "part": "後半", "elem": "7L2EPG1",   "nat": "NAT7/8"},
-  "223.139.0.8":   {"cidr": "223.139.0.0/17",  "part": "前半", "elem": "7L2EPG1",   "nat": "NAT7/8"},
-  "223.139.64.8":  {"cidr": "223.139.0.0/17",  "part": "後半", "elem": "7L2EPG1",   "nat": "NAT7/8"},
-  "42.77.128.8":   {"cidr": "42.77.128.0/17",  "part": "前半", "elem": "7L2EPG2",   "nat": "NAT9/10"},
-  "42.77.192.8":   {"cidr": "42.77.128.0/17",  "part": "後半", "elem": "7L2EPG2",   "nat": "NAT9/10"},
-  "223.138.64.8":  {"cidr": "223.138.64.0/18", "part": "前半", "elem": "7L2EPG2",   "nat": "NAT9/10"},
-  "223.138.96.8":  {"cidr": "223.138.64.0/18", "part": "後半", "elem": "7L2EPG2",   "nat": "NAT9/10"},
-  "223.139.128.8": {"cidr": "223.139.128.0/17","part": "前半", "elem": "7L2EPG2",   "nat": "NAT9/10"},
-  "223.139.192.8": {"cidr": "223.139.128.0/17","part": "後半", "elem": "7L2EPG2",   "nat": "NAT9/10"},
-  "42.74.0.8":     {"cidr": "42.74.0.0/15",    "part": "前半", "elem": "7L2EPG3",   "nat": "NAT7/8"},
-  "42.75.0.8":     {"cidr": "42.74.0.0/15",    "part": "後半", "elem": "7L2EPG3",   "nat": "NAT7/8"},
+  "42.77.0.8":     {"elem": "G-7L2-1"},
+  "42.77.64.8":    {"elem": "G-7L2-1"},
+  "223.138.0.8":   {"elem": "G-7L2-1"},
+  "223.138.32.8":  {"elem": "G-7L2-1"},
+  "223.139.0.8":   {"elem": "G-7L2-1"},
+  "223.139.64.8":  {"elem": "G-7L2-1"},
+  "42.77.128.8":   {"elem": "G-7L2-2"},
+  "42.77.192.8":   {"elem": "G-7L2-2"},
+  "223.138.64.8":  {"elem": "G-7L2-2"},
+  "223.138.96.8":  {"elem": "G-7L2-2"},
+  "223.139.128.8": {"elem": "G-7L2-2"},
+  "223.139.192.8": {"elem": "G-7L2-2"},
+  "42.74.0.8":     {"elem": "G-7L2-3"},
+  "42.75.0.8":     {"elem": "G-7L2-3"},
 
   # --- 2L3 機房 ---
-  "111.71.212.8":  {"cidr": "111.71.212.0/23", "part": "前半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "111.71.213.8":  {"cidr": "111.71.212.0/23", "part": "後半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "114.136.0.8":   {"cidr": "114.136.0.0/17",  "part": "前半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "114.136.64.8":  {"cidr": "114.136.0.0/17",  "part": "後半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "223.136.0.8":   {"cidr": "223.136.0.0/18",  "part": "前半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "223.136.32.8":  {"cidr": "223.136.0.0/18",  "part": "後半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "223.140.0.8":   {"cidr": "223.140.0.0/17",  "part": "前半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "223.140.64.8":  {"cidr": "223.140.0.0/17",  "part": "後半", "elem": "2L3EPG1",   "nat": "NAT7/8"},
-  "114.136.128.8": {"cidr": "114.136.128.0/17","part": "前半", "elem": "2L3EPG2",   "nat": "NAT9/10"},
-  "114.136.192.8": {"cidr": "114.136.128.0/17","part": "後半", "elem": "2L3EPG2",   "nat": "NAT9/10"},
-  "223.136.64.8":  {"cidr": "223.136.64.0/18", "part": "前半", "elem": "2L3EPG2",   "nat": "NAT9/10"},
-  "223.136.96.8":  {"cidr": "223.136.64.0/18", "part": "後半", "elem": "2L3EPG2",   "nat": "NAT9/10"},
-  "223.140.128.8": {"cidr": "223.140.128.0/17","part": "前半", "elem": "2L3EPG2",   "nat": "NAT9/10"},
-  "223.140.192.8": {"cidr": "223.140.128.0/17","part": "後半", "elem": "2L3EPG2",   "nat": "NAT9/10"},
-  "223.137.0.8":   {"cidr": "223.137.0.0/17",  "part": "前半", "elem": "2L3EPG3",   "nat": "NAT7/8"},
-  "223.137.64.8":  {"cidr": "223.137.0.0/17",  "part": "後半", "elem": "2L3EPG3",   "nat": "NAT7/8"},
-  "223.137.128.8": {"cidr": "223.137.128.0/17","part": "前半", "elem": "2L3EPG3",   "nat": "NAT7/8"},
-  "223.137.192.8": {"cidr": "223.137.128.0/17","part": "後半", "elem": "2L3EPG3",   "nat": "NAT7/8"},
-  "42.79.128.8":   {"cidr": "42.79.128.0/18",  "part": "前半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "42.79.160.8":   {"cidr": "42.79.128.0/18",  "part": "後半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "111.71.0.8":    {"cidr": "111.71.0.0/17",   "part": "前半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "111.71.64.8":   {"cidr": "111.71.0.0/17",   "part": "後半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "223.136.128.8": {"cidr": "223.136.128.0/17","part": "前半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "223.136.192.8": {"cidr": "223.136.128.0/17","part": "後半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "223.143.240.8": {"cidr": "223.143.240.0/22","part": "前半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "223.143.242.8": {"cidr": "223.143.240.0/22","part": "後半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "223.143.244.8": {"cidr": "223.143.244.0/22","part": "前半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
-  "223.143.246.8": {"cidr": "223.143.244.0/22","part": "後半", "elem": "2L3EPG4",   "nat": "NAT9/10"},
+  "111.71.212.8":  {"elem": "G-2L3-1"},
+  "111.71.213.8":  {"elem": "G-2L3-1"},
+  "114.136.0.8":   {"elem": "G-2L3-1"},
+  "114.136.64.8":  {"elem": "G-2L3-1"},
+  "223.136.0.8":   {"elem": "G-2L3-1"},
+  "223.136.32.8":  {"elem": "G-2L3-1"},
+  "223.140.0.8":   {"elem": "G-2L3-1"},
+  "223.140.64.8":  {"elem": "G-2L3-1"},
+  "114.136.128.8": {"elem": "G-2L3-2"},
+  "114.136.192.8": {"elem": "G-2L3-2"},
+  "223.136.64.8":  {"elem": "G-2L3-2"},
+  "223.136.96.8":  {"elem": "G-2L3-2"},
+  "223.140.128.8": {"elem": "G-2L3-2"},
+  "223.140.192.8": {"elem": "G-2L3-2"},
+  "223.137.0.8":   {"elem": "G-2L3-3"},
+  "223.137.64.8":  {"elem": "G-2L3-3"},
+  "223.137.128.8": {"elem": "G-2L3-3"},
+  "223.137.192.8": {"elem": "G-2L3-3"},
+  "42.79.128.8":   {"elem": "G-2L3-4"},
+  "42.79.160.8":   {"elem": "G-2L3-4"},
+  "111.71.0.8":    {"elem": "G-2L3-4"},
+  "111.71.64.8":   {"elem": "G-2L3-4"},
+  "223.136.128.8": {"elem": "G-2L3-4"},
+  "223.136.192.8": {"elem": "G-2L3-4"},
+  "223.143.240.8": {"elem": "G-2L3-4"},
+  "223.143.242.8": {"elem": "G-2L3-4"},
+  "223.143.244.8": {"elem": "G-2L3-4"},
+  "223.143.246.8": {"elem": "G-2L3-4"},
 
-  # --- 邊緣雲 - 三重 (2L1) ---
-  "42.70.0.8":     {"cidr": "42.70.0.0/18",   "part": "前半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
-  "42.70.32.8":    {"cidr": "42.70.0.0/18",   "part": "後半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
-  "42.70.64.8":    {"cidr": "42.70.64.0/18",  "part": "前半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
-  "42.70.96.8":    {"cidr": "42.70.64.0/18",  "part": "後半", "elem": "2L1EPG11U", "nat": "2L1NAT1/2"},
-  "42.70.128.8":   {"cidr": "42.70.128.0/18", "part": "前半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
-  "42.70.160.8":   {"cidr": "42.70.128.0/18", "part": "後半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
-  "42.70.192.8":   {"cidr": "42.70.192.0/18", "part": "前半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
-  "42.70.224.8":   {"cidr": "42.70.192.0/18", "part": "後半", "elem": "2L1EPG12U", "nat": "2L1NAT1/2"},
+  # --- 2L1 節點 ---
+  "42.70.0.8":     {"elem": "G-2L1-11U"},
+  "42.70.32.8":    {"elem": "G-2L1-11U"},
+  "42.70.64.8":    {"elem": "G-2L1-11U"},
+  "42.70.96.8":    {"elem": "G-2L1-11U"},
+  "42.70.128.8":   {"elem": "G-2L1-12U"},
+  "42.70.160.8":   {"elem": "G-2L1-12U"},
+  "42.70.192.8":   {"elem": "G-2L1-12U"},
+  "42.70.224.8":   {"elem": "G-2L1-12U"},
 
-  # --- 邊緣雲 - 彰化 (CHCH) ---
-  "42.71.0.8":     {"cidr": "42.71.0.0/18",   "part": "前半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
-  "42.71.32.8":    {"cidr": "42.71.0.0/18",   "part": "後半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
-  "42.71.64.8":    {"cidr": "42.71.64.0/18",  "part": "前半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
-  "42.71.96.8":    {"cidr": "42.71.64.0/18",  "part": "後半", "elem": "CHCHEPG11U", "nat": "CHCHNAT1/2"},
-  "42.71.128.8":   {"cidr": "42.71.128.0/18", "part": "前半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
-  "42.71.160.8":   {"cidr": "42.71.128.0/18", "part": "後半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
-  "42.71.192.8":   {"cidr": "42.71.192.0/18", "part": "前半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
-  "42.71.224.8":   {"cidr": "42.71.192.0/18", "part": "後半", "elem": "CHCHEPG12U", "nat": "CHCHNAT1/2"},
+  # --- CH 節點 ---
+  "42.71.0.8":     {"elem": "G-CH-11U"},
+  "42.71.32.8":    {"elem": "G-CH-11U"},
+  "42.71.64.8":    {"elem": "G-CH-11U"},
+  "42.71.96.8":    {"elem": "G-CH-11U"},
+  "42.71.128.8":   {"elem": "G-CH-12U"},
+  "42.71.160.8":   {"elem": "G-CH-12U"},
+  "42.71.192.8":   {"elem": "G-CH-12U"},
+  "42.71.224.8":   {"elem": "G-CH-12U"},
 
-  # --- 邊緣雲 - 台南 (TNE1) ---
-  "42.78.0.8":     {"cidr": "42.78.0.0/18",   "part": "前半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
-  "42.78.32.8":    {"cidr": "42.78.0.0/18",   "part": "後半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
-  "42.78.64.8":    {"cidr": "42.78.64.0/18",  "part": "前半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
-  "42.78.96.8":    {"cidr": "42.78.64.0/18",  "part": "後半", "elem": "TNE1EPG11U", "nat": "TNE1NAT1/2"},
-  "42.78.128.8":   {"cidr": "42.78.128.0/18", "part": "前半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"},
-  "42.78.160.8":   {"cidr": "42.78.128.0/18", "part": "後半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"},
-  "42.78.192.8":   {"cidr": "42.78.192.0/18", "part": "前半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"},
-  "42.78.224.8":   {"cidr": "42.78.192.0/18", "part": "後半", "elem": "TNE1EPG12U", "nat": "TNE1NAT1/2"}
+  # --- TN 節點 ---
+  "42.78.0.8":     {"elem": "G-TN-11U"},
+  "42.78.32.8":    {"elem": "G-TN-11U"},
+  "42.78.64.8":    {"elem": "G-TN-11U"},
+  "42.78.96.8":    {"elem": "G-TN-11U"},
+  "42.78.128.8":   {"elem": "G-TN-12U"},
+  "42.78.160.8":   {"elem": "G-TN-12U"},
+  "42.78.192.8":   {"elem": "G-TN-12U"},
+  "42.78.224.8":   {"elem": "G-TN-12U"}
 }
 
 TARGET_IPS = list(TARGET_METADATA.keys())
@@ -168,7 +170,7 @@ today_date_str = now_dt.strftime('%Y-%m-%d')
 state = {
     "baselines_tw": {},
     "baselines_overseas": {},
-    "node_status": {}, # 獨立節點狀態記錄：例如 "TW", "JP", "HK", "SG"
+    "node_status": {},
     "event_logs": [],
     "history_snapshots": [],
     "overseas_idx": 0
@@ -189,7 +191,7 @@ state["overseas_idx"] = (state.get("overseas_idx", 0) + 1) % len(OVERSEAS_NODES)
 
 
 # ==============================================================================
-# 第二部分：Teams Webhook 推播函式 (Adaptive Card 格式)
+# 第二部分：Teams Webhook 推播函式 (脫敏化 Adaptive Card)
 # ==============================================================================
 
 def send_teams_notification(title, is_alert, event_items, timestamp_str):
@@ -207,7 +209,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
         else:
             facts.append({
                 "title": f"{item['target']}",
-                "value": f"{item['elem']} [{item['cidr']} {item['part']}] ➔ {item['desc']}"
+                "value": f"[{item['elem']}] ➔ {item['desc']}"
             })
 
     adaptive_payload = {
@@ -243,7 +245,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
                     "actions": [
                         {
                             "type": "Action.OpenUrl",
-                            "title": "🌐 開啟即時戰情室儀表板",
+                            "title": "🌐 開啟即時儀表板",
                             "url": "https://swa1216-wei.github.io/ip-tracer/"
                         }
                     ]
@@ -265,7 +267,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：探測與邏輯 (10 並行，進入 HiNet 後才檢驗私網)
+# 第三部分：探測與邏輯 (進入 HiNet 骨幹後才檢驗私網)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
@@ -319,7 +321,7 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     last_responded_hop = 0
     last_responded_ip = "無回應"
     last_responded_domain = ""
-    entered_hinet = (country_code == "TW") # 台灣端預設直接算在國內
+    entered_hinet = (country_code == "TW")
     hinet_private_ips = []
 
     lines = raw_output.splitlines()
@@ -340,11 +342,9 @@ def parse_trace_output(target, raw_output, country_code, city_name):
                         if domain_match:
                             last_responded_domain = domain_match.group(1)
 
-                    # 只要碰到 16 台 BR，也絕對代表進入中華電信
                     if last_responded_ip in BR_LIST:
                         entered_hinet = True
 
-                    # 只有在正式進入 HiNet 骨幹後的跳數，才檢驗私網 IP
                     if entered_hinet and hop_num >= 2:
                         for ip in effective_ips:
                             try:
@@ -358,11 +358,10 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     is_br = (br_name is not None)
     has_private = (len(hinet_private_ips) > 0)
 
-    # 狀態細分：OK、NO_BR（未達BR）、PRIVATE（已達但含私網）
     if not is_br:
         cat = "NO_BR"
         status = "ALERT"
-        desc = f"🚨 {city_name}丟包 (未達 BR)"
+        desc = f"🚨 {city_name}丟包 (未達節點)"
     elif has_private:
         cat = "PRIVATE"
         status = "ALERT"
@@ -386,13 +385,13 @@ def parse_trace_output(target, raw_output, country_code, city_name):
         "raw": raw_output
     }
 
-# 派發 204 個探測任務（以 10 產線平衡平穩發送）
+# 啟動探測
 all_tasks = []
 for target in TARGET_IPS:
     all_tasks.append((target, "TW"))
     all_tasks.append((target, current_overseas["country"]))
 
-print(f"[{now_str}] 雙向巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 10 產線啟動...")
+print(f"[{now_str}] 巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 10 產線啟動...")
 
 raw_results = {}
 with ThreadPoolExecutor(max_workers=10) as executor:
@@ -401,7 +400,6 @@ with ThreadPoolExecutor(max_workers=10) as executor:
         target, c_code, raw_out = future.result()
         raw_results[(target, c_code)] = raw_out
 
-# 解析初測結果
 parsed_tw = {}
 parsed_overseas = {}
 retry_tasks = []
@@ -417,9 +415,9 @@ for target in TARGET_IPS:
     if res_ov["cat"] == "NO_BR" and "429" not in res_ov["raw"]:
         retry_tasks.append((target, current_overseas["country"]))
 
-# 複測未達 BR 任務 (最多 2 次)
+# 複測未達節點任務
 if retry_tasks:
-    print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達 BR，啟動複測重試機制 (最多 2 次)...")
+    print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動複測重試機制...")
     for retry_round in range(1, 3):
         if not retry_tasks:
             break
@@ -441,7 +439,6 @@ if retry_tasks:
                     still_failing.append((target, c_code))
         retry_tasks = still_failing
 
-# 統計四大分類計數
 tw_nobr_count = 0
 tw_priv_count = 0
 ov_nobr_count = 0
@@ -451,7 +448,6 @@ current_results = []
 newly_alerted = []
 newly_recovered = []
 
-# 初始化節點專屬狀態庫
 for node_key in ["TW", current_overseas["country"]]:
     if node_key not in state["node_status"]:
         state["node_status"][node_key] = {}
@@ -461,7 +457,6 @@ for target in TARGET_IPS:
     p_tw = parsed_tw[target]
     p_ov = parsed_overseas[target]
 
-    # 跳數基準
     if target not in state["baselines_tw"] and p_tw["last_hop"] > 0:
         state["baselines_tw"][target] = p_tw["last_hop"]
     base_tw = state["baselines_tw"].get(target, p_tw["last_hop"])
@@ -475,61 +470,55 @@ for target in TARGET_IPS:
     diff_ov = p_ov["last_hop"] - base_ov
     diff_ov_str = f"+{diff_ov}" if diff_ov > 0 else (str(diff_ov) if diff_ov < 0 else "0")
 
-    # 分類計數
     if p_tw["cat"] == "NO_BR": tw_nobr_count += 1
     elif p_tw["cat"] == "PRIVATE": tw_priv_count += 1
 
     if p_ov["cat"] == "NO_BR": ov_nobr_count += 1
     elif p_ov["cat"] == "PRIVATE": ov_priv_count += 1
 
-    # 綜合判定 (精準描述，抵達 BR 就老實寫抵達 BR)
-    is_alert = (p_tw["status"] == "ALERT" or p_ov["status"] == "ALERT")
+    # 綜合判定 (精簡脫敏)
     if p_tw["cat"] == "NO_BR" and p_ov["cat"] == "NO_BR":
         combined_status = "ALERT"
-        combined_desc = f"🔴 雙向丟包 (台灣未達 / {current_overseas['city']}未達)"
+        combined_desc = f"🔴 國內外丟包 (台灣未達 / {current_overseas['city']}未達)"
     elif p_tw["cat"] == "NO_BR":
         combined_status = "ALERT"
-        combined_desc = "🚨 台灣端丟包 (未達 BR)"
+        combined_desc = "🚨 台灣端丟包 (未達節點)"
     elif p_ov["cat"] == "NO_BR":
         combined_status = "ALERT"
-        combined_desc = f"🚨 {current_overseas['city']}端丟包 (未達 BR)"
+        combined_desc = f"🚨 {current_overseas['city']}端丟包 (未達節點)"
     elif p_tw["cat"] == "PRIVATE" or p_ov["cat"] == "PRIVATE":
         combined_status = "ALERT"
-        combined_desc = f"⚠️ 雙向抵達 BR (但 HiNet 骨幹含私網)"
+        combined_desc = "⚠️ 抵達節點 (骨幹含私網)"
     else:
         combined_status = "OK"
-        combined_desc = "✔ 雙向正常抵達 BR"
+        combined_desc = "✔ 國內外正常抵達節點"
 
-    target_label = f"{target} [{meta.get('cidr')} {meta.get('part')}]"
+    target_label = f"{target} [{meta.get('elem','')}]"
 
-    # --- 獨立節點狀態比對 (台灣獨立、境外各城市獨立) ---
-    # 1. 檢驗台灣端
+    # 台灣端狀態變更
     prev_tw = state["node_status"]["TW"].get(target, "OK")
     if prev_tw == "OK" and p_tw["status"] == "ALERT":
         state["event_logs"].insert(0, f"🔴 {now_str} 【台灣告警】{target_label} ➔ {p_tw['desc']}")
-        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
+        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
     elif prev_tw == "ALERT" and p_tw["status"] == "OK":
         state["event_logs"].insert(0, f"🟢 {now_str} 【台灣恢復】{target_label} ➔ 抵達 {p_tw['br_name']}")
-        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
+        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
     state["node_status"]["TW"][target] = p_tw["status"]
 
-    # 2. 檢驗當前境外城市端 (只比對同一個城市的歷史紀錄)
+    # 境外端狀態變更
     ov_c = current_overseas["country"]
     prev_ov = state["node_status"][ov_c].get(target, "OK")
     if prev_ov == "OK" and p_ov["status"] == "ALERT":
         state["event_logs"].insert(0, f"🔴 {now_str} 【{current_overseas['city']}告警】{target_label} ➔ {p_ov['desc']}")
-        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
+        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
     elif prev_ov == "ALERT" and p_ov["status"] == "OK":
         state["event_logs"].insert(0, f"🟢 {now_str} 【{current_overseas['city']}恢復】{target_label} ➔ 抵達 {p_ov['br_name']}")
-        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "cidr": meta.get("cidr",""), "part": meta.get("part",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
+        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
     state["node_status"][ov_c][target] = p_ov["status"]
 
     current_results.append({
         "target": target,
-        "cidr": meta.get("cidr", ""),
-        "part": meta.get("part", ""),
         "elem": meta.get("elem", ""),
-        "nat": meta.get("nat", ""),
         "tw_hop": p_tw["last_hop"],
         "tw_base": base_tw,
         "tw_diff": diff_tw_str,
@@ -594,23 +583,22 @@ alert_rounds_count = len(alert_rounds_24h)
 # 第四部分：Teams Webhook 推播觸發
 # ==============================================================================
 
-# 1. 每日 08:00 定時發送健康日報
 if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
     if alert_rounds_count == 0:
-        report_title = "4G/5G 路由巡檢 24小時健康日報"
+        report_title = "Internet 路由巡檢 24小時健康日報"
         is_report_alert = False
-        anomaly_summary = "0 次 (全時段國內外正常連通抵達 BR)"
+        anomaly_summary = "0 次 (全時段國內外正常連通抵達節點)"
     else:
-        report_title = "4G/5G 路由巡檢 24小時健康日報 (曾有異常)"
+        report_title = "Internet 路由巡檢 24小時健康日報 (曾有異常)"
         is_report_alert = True
         latest_err_time = alert_rounds_24h[0]["time"]
         anomaly_summary = f"⚠️ 曾出現 {alert_rounds_count} 次異常巡檢 (最近一次: {latest_err_time})"
 
-    current_summary = f"102 組全數正常 (抵達 16 台 BR)" if total_alert_count == 0 else f"🚨 目前尚有 {total_alert_count} 組異常待處理"
+    current_summary = f"102 組全數正常 (抵達 16 台節點)" if total_alert_count == 0 else f"🚨 目前尚有 {total_alert_count} 組異常待處理"
 
     daily_facts = [
         {"title": "系統狀態", "value": "🟢 背景巡檢持續運作中 (間隔 15 分鐘)"},
-        {"title": "監控規模", "value": "102 組 IP (抵達 16 台 BR 白名單)"},
+        {"title": "監控規模", "value": "102 組 IP (抵達 16 台節點白名單)"},
         {"title": "探測涵蓋", "value": "🇹🇼 台灣本地 ＋ 🌏 境外輪播 (東京/香港/新加坡)"},
         {"title": "統計區間", "value": f"截至今日 08:00 (過去 24 小時)"},
         {"title": "巡檢總次數", "value": f"共執行 {len(snapshots_24h)} 次自動巡檢"},
@@ -621,24 +609,22 @@ if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
     send_teams_notification(report_title, is_report_alert, daily_facts, now_str)
     state["last_heartbeat_date"] = today_date_str
 
-# 2. 告警通知 (🚨)
 if newly_alerted:
-    send_teams_notification("4G/5G 路由巡檢異常告警", True, newly_alerted, now_str)
+    send_teams_notification("Internet 路由巡檢異常告警", True, newly_alerted, now_str)
 
-# 3. 恢復通知 (🟢 清楚註明是哪裡恢復)
 if newly_recovered:
-    send_teams_notification("4G/5G 路由恢復連通通知", False, newly_recovered, now_str)
+    send_teams_notification("Internet 路由恢復連通通知", False, newly_recovered, now_str)
 
 with open(HISTORY_FILE, "w", encoding="utf-8") as f:
     json.dump(state, f, ensure_ascii=False, indent=2)
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (六格指標卡、雙音高音量警報、乾淨表格)
+# 第五部分：HTML 前端組裝 (極簡四卡片、大字體、純淨表格)
 # ==============================================================================
 
 if not alert_rounds_24h:
-    stat_24h_html = '<span style="color:#34d399;font-weight:bold;">✔ 過去 24 小時無異常事件（全時段國內外平穩正常抵達 BR）</span>'
+    stat_24h_html = '<span style="color:#34d399;font-weight:bold;">✔ 過去 24 小時無異常事件（全時段國內外平穩正常抵達節點）</span>'
 else:
     latest_err = alert_rounds_24h[0]
     stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]}）</span>'
@@ -669,7 +655,7 @@ for item in state["history_snapshots"][:100]:
     </tr>
     """
 
-# 102 組雙向即時巡檢表格
+# 巡檢表格：只保留目標 IP 與元件代號，不洩漏 CIDR 與 NAT
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
@@ -677,9 +663,9 @@ for idx, r in enumerate(current_results):
     if r["status"] == "ALERT":
         status_badge = f'<span style="color:#f87171;font-weight:bold;font-size:15px;">{r["desc"]}</span>'
     else:
-        status_badge = '<span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 雙向正常</span>'
+        status_badge = '<span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 國內外正常</span>'
 
-    # 台灣端顯示 (簡化私網文字)
+    # 台灣端路徑
     if r["tw_cat"] == "OK":
         tw_display = f"""<div style="color:#4ade80;font-weight:bold;font-size:14px;">✔ {r['tw_br']}</div>
                          <div style="font-size:12px;color:#94a3b8;">{r['tw_node']} ({r['tw_hop']}跳 / 差:{r['tw_diff']})</div>"""
@@ -690,7 +676,7 @@ for idx, r in enumerate(current_results):
         tw_display = f"""<div style="color:#f87171;font-weight:bold;font-size:14px;">{r['tw_desc']}</div>
                          <div style="font-size:12px;color:#f87171;">{r['tw_node']} ({r['tw_hop']}跳)</div>"""
 
-    # 境外端顯示 (簡化私網文字)
+    # 境外端路徑
     if r["ov_cat"] == "OK":
         ov_display = f"""<div style="color:#4ade80;font-weight:bold;font-size:14px;">✔ {r['ov_br']}</div>
                          <div style="font-size:12px;color:#94a3b8;">{r['ov_node']} ({r['ov_hop']}跳 / 差:{r['ov_diff']})</div>"""
@@ -705,11 +691,9 @@ for idx, r in enumerate(current_results):
     <tr style="background-color:{bg_color};border-bottom:1px solid #334155;">
         <td style="padding:14px 12px;">
             <div style="font-weight:bold;font-size:16px;color:#f8fafc;">{r['target']}</div>
-            <div style="font-size:13px;color:#38bdf8;margin-top:2px;">{r['cidr']} ({r['part']})</div>
         </td>
         <td style="padding:14px 12px;">
-            <div style="font-weight:bold;font-size:15px;">{r['elem']}</div>
-            <div style="font-size:13px;color:#94a3b8;margin-top:2px;">{r['nat']}</div>
+            <div style="font-weight:bold;font-size:15px;color:#e2e8f0;">{r['elem']}</div>
         </td>
         <td style="padding:14px 12px;">{tw_display}</td>
         <td style="padding:14px 12px;">{ov_display}</td>
@@ -737,13 +721,13 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4G/5G 行網 Internet 路由巡檢儀表板</title>
+    <title>Internet 路由巡檢儀表板</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
         .cards {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }}
-        .card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:16px 18px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
+        .card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:18px 20px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
@@ -762,7 +746,6 @@ html_content = f"""<!DOCTYPE html>
         var beepInterval = null;
         var currentScanTime = "{now_str}";
 
-        // 高音量、急促高低雙音警報聲
         function playWarningBeep() {{
             try {{
                 if (!audioCtx) {{
@@ -770,7 +753,6 @@ html_content = f"""<!DOCTYPE html>
                 }}
                 var now = audioCtx.currentTime;
                 
-                // 第一聲高音 (1200Hz)
                 var osc1 = audioCtx.createOscillator();
                 var gain1 = audioCtx.createGain();
                 osc1.type = 'sawtooth';
@@ -782,7 +764,6 @@ html_content = f"""<!DOCTYPE html>
                 osc1.start(now);
                 osc1.stop(now + 0.18);
 
-                // 第二聲次高音 (800Hz)
                 var osc2 = audioCtx.createOscillator();
                 var gain2 = audioCtx.createGain();
                 osc2.type = 'sawtooth';
@@ -897,7 +878,7 @@ html_content = f"""<!DOCTYPE html>
         <div class="header">
             <div>
                 <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:28px;">🌐</span> 4G/5G 行網 Internet 路由巡檢儀表板
+                    <span style="font-size:28px;">🌐</span> Internet 路由巡檢儀表板
                 </h1>
                 <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
                     📍 <strong>探測節點：</strong>🇹🇼 台灣本地 ＋ {current_overseas['flag']} 境外輪播節點 ({current_overseas['city']})<br>
@@ -918,9 +899,9 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-<!-- 頂部四大格維運指標卡 (內嵌細項拆分) -->
+        <!-- 頂部四大指標卡 (字體：標題 20px / 數值 36px) -->
         <div class="cards">
-            <!-- 1. 監控總數 -->
+            <!-- 1. 總數 -->
             <div class="card" style="border-top:4px solid #38bdf8;">
                 <div style="font-size:20px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
                 <div style="font-size:36px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
@@ -928,7 +909,7 @@ html_content = f"""<!DOCTYPE html>
 
             <!-- 2. 國內外全正常 -->
             <div class="card" style="border-top:4px solid #10b981;">
-                <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">國內外全正常 (抵達 16 台 BR)</div>
+                <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">國內外全正常 (抵達 16 台節點)</div>
                 <div style="font-size:36px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
             </div>
 
@@ -937,7 +918,7 @@ html_content = f"""<!DOCTYPE html>
                 <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣端異常</div>
                 <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
                 <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
-                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達BR: {tw_nobr_count}</span>
+                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {tw_nobr_count}</span>
                     <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {tw_priv_count}</span>
                 </div>
             </div>
@@ -947,7 +928,7 @@ html_content = f"""<!DOCTYPE html>
                 <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} 境外端異常 ({current_overseas['city']})</div>
                 <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
                 <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
-                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達BR: {ov_nobr_count}</span>
+                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {ov_nobr_count}</span>
                     <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {ov_priv_count}</span>
                 </div>
             </div>
@@ -957,16 +938,16 @@ html_content = f"""<!DOCTYPE html>
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 表格區塊 -->
+        <!-- 巡檢表格：脫敏後只呈現目標 IP 與元件 -->
         <table>
             <thead>
                 <tr>
-                    <th style="width:20%;">目標 IP / 所屬網段</th>
-                    <th style="width:14%;">元件 / NAT 群組</th>
-                    <th style="width:23%;">🇹🇼 台灣端路徑 (本地)</th>
-                    <th style="width:23%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
-                    <th style="width:12%;">綜合判定</th>
-                    <th style="text-align:center;width:8%;">完整日誌</th>
+                    <th style="width:20%;">目標 IP</th>
+                    <th style="width:14%;">元件</th>
+                    <th style="width:25%;">🇹🇼 台灣端路徑</th>
+                    <th style="width:25%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
+                    <th style="width:10%;">綜合判定</th>
+                    <th style="text-align:center;width:6%;">探測日誌</th>
                 </tr>
             </thead>
             <tbody>
@@ -985,10 +966,10 @@ html_content = f"""<!DOCTYPE html>
                             <th style="background:#090d16;padding:10px 12px;">探測節點</th>
                             <th style="background:#090d16;padding:10px 12px;">目標總數</th>
                             <th style="background:#090d16;padding:10px 12px;">國內外全正常</th>
-                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣未達BR</th>
-                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣含私網</th>
-                            <th style="background:#090d16;padding:10px 12px;">🌏 境外未達BR</th>
-                            <th style="background:#090d16;padding:10px 12px;">🌏 境外含私網</th>
+                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣未達</th>
+                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣私網</th>
+                            <th style="background:#090d16;padding:10px 12px;">🌏 境外未達</th>
+                            <th style="background:#090d16;padding:10px 12px;">🌏 境外私網</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1013,4 +994,4 @@ html_content = f"""<!DOCTYPE html>
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 雙向巡檢完成，已產出完整儀表板。")
+print(f"[{now_str}] 巡檢完成，已產出完整儀表板。")

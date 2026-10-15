@@ -14,7 +14,6 @@ from datetime import datetime, timezone, timedelta
 
 FALLBACK_WEBHOOK_URL = "https://default54eb9440cf0345fe835e61bd4ce515.c8.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/29/workflows/1d01e593bf3649bea39eba02ca408ecb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Gv35_ySE7WCYKGPhw-41NZfHFw7ODncvpvxHvCj4VUc"
 
-# 骨幹節點脫敏為內部行話 (B-機房-機號)
 BR_LIST = {
     "210.65.126.209": "B-3L1-1",
     "210.65.126.213": "B-3L1-2",
@@ -40,7 +39,6 @@ OVERSEAS_NODES = [
     {"country": "SG", "city": "新加坡", "flag": "🇸🇬"}
 ]
 
-# 元件全面脫敏為 G-xxx，拿掉 NAT 與前半後半
 TARGET_METADATA = {
   # --- 3L1 機房 ---
   "42.72.0.8":     {"elem": "G-3L1-1"},
@@ -267,15 +265,20 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：探測與邏輯 (進入 HiNet 骨幹後才檢驗私網)
+# 第三部分：探測與邏輯 (放寬境外 30 跳，重試防抖冷卻機制)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
     api_url = "https://api.globalping.io/v1/measurements"
+    max_hops = 30 if country_code != "TW" else 20
+    
     payload = json.dumps({
         "type": "traceroute",
         "target": target,
         "locations": [{"country": country_code}],
+        "measurementOptions": {
+            "maxHops": max_hops
+        },
         "limit": 1
     }).encode("utf-8")
     
@@ -303,7 +306,7 @@ def run_single_trace(target, country_code):
         return target, country_code, "無法取得測量ID"
 
     poll_url = f"{api_url}/{measurement_id}"
-    for _ in range(15):
+    for _ in range(16):
         time.sleep(2)
         try:
             req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "GitHub-Network-Probe"})
@@ -385,7 +388,7 @@ def parse_trace_output(target, raw_output, country_code, city_name):
         "raw": raw_output
     }
 
-# 啟動探測
+# 啟動初次探測
 all_tasks = []
 for target in TARGET_IPS:
     all_tasks.append((target, "TW"))
@@ -415,22 +418,22 @@ for target in TARGET_IPS:
     if res_ov["cat"] == "NO_BR" and "429" not in res_ov["raw"]:
         retry_tasks.append((target, current_overseas["country"]))
 
-# 複測未達節點任務
+# 溫和複測機制 (重試 2 輪，每次冷卻 3 秒防設備 CoPP/ICMP 限流)
 if retry_tasks:
-    print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動複測重試機制...")
-    for retry_round in range(1, 5):
+    print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動溫和防抖複測...")
+    for retry_round in range(1, 3):
         if not retry_tasks:
             break
-        time.sleep(2)
+        time.sleep(3)  # 讓中間設備的 ICMP token bucket 恢復
         still_failing = []
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
             for future in as_completed(future_to_task):
                 target, c_code, raw_out = future.result()
                 city_label = "台灣" if c_code == "TW" else current_overseas["city"]
                 retry_p = parse_trace_output(target, raw_out, c_code, city_label)
                 if retry_p["is_br"]:
-                    print(f"     ✔ [{city_label}] 目標 {target} 在第 {retry_round} 次複測成功抵達 {retry_p['br_name']}！")
+                    print(f"      ✔ [{city_label}] 目標 {target} 在第 {retry_round} 次複測成功抵達 {retry_p['br_name']}！")
                     if c_code == "TW":
                         parsed_tw[target] = retry_p
                     else:
@@ -445,6 +448,7 @@ ov_nobr_count = 0
 ov_priv_count = 0
 
 current_results = []
+failed_details = []
 newly_alerted = []
 newly_recovered = []
 
@@ -454,6 +458,7 @@ for node_key in ["TW", current_overseas["country"]]:
 
 for target in TARGET_IPS:
     meta = TARGET_METADATA.get(target, {})
+    elem_code = meta.get("elem", "")
     p_tw = parsed_tw[target]
     p_ov = parsed_overseas[target]
 
@@ -476,33 +481,53 @@ for target in TARGET_IPS:
     if p_ov["cat"] == "NO_BR": ov_nobr_count += 1
     elif p_ov["cat"] == "PRIVATE": ov_priv_count += 1
 
-    # 綜合判定 (精簡脫敏)
+    # 綜合判定
     if p_tw["cat"] == "NO_BR" and p_ov["cat"] == "NO_BR":
         combined_status = "ALERT"
         combined_desc = f"🔴 國內外丟包 (台灣未達 / {current_overseas['city']}未達)"
+        failed_details.append({
+            "target": target,
+            "elem": elem_code,
+            "reason": f"台灣丟包({p_tw['last_ip']}) ＆ {current_overseas['city']}丟包({p_ov['last_ip']})"
+        })
     elif p_tw["cat"] == "NO_BR":
         combined_status = "ALERT"
         combined_desc = "🚨 台灣端丟包 (未達節點)"
+        failed_details.append({
+            "target": target,
+            "elem": elem_code,
+            "reason": f"台灣丟包 (第 {p_tw['last_hop']} 跳斷在 {p_tw['last_ip']})"
+        })
     elif p_ov["cat"] == "NO_BR":
         combined_status = "ALERT"
         combined_desc = f"🚨 {current_overseas['city']}端丟包 (未達節點)"
+        failed_details.append({
+            "target": target,
+            "elem": elem_code,
+            "reason": f"{current_overseas['city']}丟包 (第 {p_ov['last_hop']} 跳斷在 {p_ov['last_ip']})"
+        })
     elif p_tw["cat"] == "PRIVATE" or p_ov["cat"] == "PRIVATE":
         combined_status = "ALERT"
         combined_desc = "⚠️ 抵達節點 (骨幹含私網)"
+        failed_details.append({
+            "target": target,
+            "elem": elem_code,
+            "reason": "骨幹路徑含私網 IP"
+        })
     else:
         combined_status = "OK"
         combined_desc = "✔ 國內外正常抵達節點"
 
-    target_label = f"{target} [{meta.get('elem','')}]"
+    target_label = f"{target} [{elem_code}]"
 
     # 台灣端狀態變更
     prev_tw = state["node_status"]["TW"].get(target, "OK")
     if prev_tw == "OK" and p_tw["status"] == "ALERT":
         state["event_logs"].insert(0, f"🔴 {now_str} 【台灣告警】{target_label} ➔ {p_tw['desc']}")
-        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
+        newly_alerted.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
     elif prev_tw == "ALERT" and p_tw["status"] == "OK":
         state["event_logs"].insert(0, f"🟢 {now_str} 【台灣恢復】{target_label} ➔ 抵達 {p_tw['br_name']}")
-        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
+        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
     state["node_status"]["TW"][target] = p_tw["status"]
 
     # 境外端狀態變更
@@ -510,15 +535,15 @@ for target in TARGET_IPS:
     prev_ov = state["node_status"][ov_c].get(target, "OK")
     if prev_ov == "OK" and p_ov["status"] == "ALERT":
         state["event_logs"].insert(0, f"🔴 {now_str} 【{current_overseas['city']}告警】{target_label} ➔ {p_ov['desc']}")
-        newly_alerted.append({"target": target, "elem": meta.get("elem",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
+        newly_alerted.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
     elif prev_ov == "ALERT" and p_ov["status"] == "OK":
         state["event_logs"].insert(0, f"🟢 {now_str} 【{current_overseas['city']}恢復】{target_label} ➔ 抵達 {p_ov['br_name']}")
-        newly_recovered.append({"target": target, "elem": meta.get("elem",""), "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
+        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
     state["node_status"][ov_c][target] = p_ov["status"]
 
     current_results.append({
         "target": target,
-        "elem": meta.get("elem", ""),
+        "elem": elem_code,
         "tw_hop": p_tw["last_hop"],
         "tw_base": base_tw,
         "tw_diff": diff_tw_str,
@@ -559,11 +584,25 @@ snapshot_entry = {
     "tw_priv": tw_priv_count,
     "ov_nobr": ov_nobr_count,
     "ov_priv": ov_priv_count,
-    "ov_city": current_overseas["city"]
+    "ov_city": current_overseas["city"],
+    "failures": failed_details
 }
 state["history_snapshots"].insert(0, snapshot_entry)
-state["history_snapshots"] = state["history_snapshots"][:700]
-state["event_logs"] = state["event_logs"][:60]
+
+# 歷史快照保持 7 天 (168 小時) 滾動清理
+seven_days_ago = now_dt - timedelta(days=7)
+valid_snapshots = []
+for s in state["history_snapshots"]:
+    try:
+        s_time = datetime.strptime(s["time"], '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
+        if s_time >= seven_days_ago:
+            valid_snapshots.append(s)
+    except Exception:
+        valid_snapshots.append(s)
+state["history_snapshots"] = valid_snapshots[:700]
+
+# LOG 保持最新 50 筆
+state["event_logs"] = state["event_logs"][:50]
 
 one_day_ago = now_dt - timedelta(hours=24)
 snapshots_24h = []
@@ -620,7 +659,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (極簡四卡片、大字體、純淨表格)
+# 第五部分：HTML 前端組裝 (支援點擊展開失敗 IP、LOG美化拉條)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -629,11 +668,14 @@ else:
     latest_err = alert_rounds_24h[0]
     stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]}）</span>'
 
-# 7 天歷史快照
+# 7 天歷史快照組裝 (具備異常展開抽屜)
 history_rows_html = ""
-for item in state["history_snapshots"][:100]:
+for s_idx, item in enumerate(state["history_snapshots"][:100]):
     has_err = (item.get("tw_nobr",0) > 0 or item.get("tw_priv",0) > 0 or item.get("ov_nobr",0) > 0 or item.get("ov_priv",0) > 0)
     row_bg = "#3f1a1a" if has_err else "transparent"
+    row_cursor = "pointer" if has_err else "default"
+    click_attr = f'onclick="toggleSnapshotDrawer(\'snap-drawer-{s_idx}\')"' if has_err else ""
+    expand_hint = ' <span style="font-size:11px;color:#fca5a5;font-weight:normal;">▼點擊看細節</span>' if has_err else ""
     
     tw_nobr_b = f'<span style="color:#fb7185;font-weight:bold;">{item.get("tw_nobr",0)} 組 🚨</span>' if item.get("tw_nobr",0) > 0 else '<span style="color:#94a3b8;">0</span>'
     tw_priv_b = f'<span style="color:#facc15;font-weight:bold;">{item.get("tw_priv",0)} 組 ⚠️</span>' if item.get("tw_priv",0) > 0 else '<span style="color:#94a3b8;">0</span>'
@@ -642,9 +684,45 @@ for item in state["history_snapshots"][:100]:
     ov_nobr_b = f'<span style="color:#fb7185;font-weight:bold;">{item.get("ov_nobr",0)} 組 🚨</span>' if item.get("ov_nobr",0) > 0 else '<span style="color:#94a3b8;">0</span>'
     ov_priv_b = f'<span style="color:#facc15;font-weight:bold;">{item.get("ov_priv",0)} 組 ⚠️</span>' if item.get("ov_priv",0) > 0 else '<span style="color:#94a3b8;">0</span>'
 
+    failures = item.get("failures", [])
+    drawer_html = ""
+    if has_err:
+        drawer_rows = ""
+        if failures:
+            for fail in failures:
+                drawer_rows += f"""
+                <tr style="border-bottom:1px solid #1e293b;">
+                    <td style="padding:6px 12px;font-family:monospace;color:#f87171;font-weight:bold;">{fail.get('target')}</td>
+                    <td style="padding:6px 12px;color:#e2e8f0;font-weight:bold;">{fail.get('elem')}</td>
+                    <td style="padding:6px 12px;color:#fca5a5;">{fail.get('reason')}</td>
+                </tr>
+                """
+        else:
+            drawer_rows = '<tr><td colspan="3" style="padding:8px 12px;color:#94a3b8;">此為舊版本巡檢紀錄，未記錄詳細出事 IP 清單</td></tr>'
+
+        drawer_html = f"""
+        <tr id="snap-drawer-{s_idx}" style="display:none;background:#0d1527;">
+            <td colspan="8" style="padding:14px 18px;border-bottom:1px solid #475569;">
+                <div style="font-weight:bold;color:#f87171;margin-bottom:8px;font-size:13px;">🚨 該次巡檢異常項目明細：</div>
+                <table style="width:100%;font-size:13px;background:#090d16;border:1px solid #334155;border-radius:6px;">
+                    <thead>
+                        <tr style="background:#1e293b;color:#94a3b8;">
+                            <th style="padding:6px 12px;width:25%;">目標 IP</th>
+                            <th style="padding:6px 12px;width:20%;">元件代號</th>
+                            <th style="padding:6px 12px;width:55%;">異常原因</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {drawer_rows}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        """
+
     history_rows_html += f"""
-    <tr style="background-color:{row_bg};border-bottom:1px solid #334155;">
-        <td style="padding:10px 12px;font-family:monospace;color:#f8fafc;">{item.get("time")}</td>
+    <tr {click_attr} style="background-color:{row_bg};border-bottom:1px solid #334155;cursor:{row_cursor};" title="{'點擊展開異常清單' if has_err else ''}">
+        <td style="padding:10px 12px;font-family:monospace;color:#f8fafc;">{item.get("time")}{expand_hint}</td>
         <td style="padding:10px 12px;color:#38bdf8;">{item.get("nodes")}</td>
         <td style="padding:10px 12px;font-weight:bold;color:#f8fafc;">{item.get("total", 102)} 組</td>
         <td style="padding:10px 12px;font-weight:bold;color:#34d399;">{item.get("ok", 102)} 組</td>
@@ -653,9 +731,10 @@ for item in state["history_snapshots"][:100]:
         <td style="padding:10px 12px;">{ov_nobr_b} ({ov_c_name})</td>
         <td style="padding:10px 12px;">{ov_priv_b}</td>
     </tr>
+    {drawer_html}
     """
 
-# 巡檢表格：只保留目標 IP 與元件代號，不洩漏 CIDR 與 NAT
+# 巡檢主表格
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
@@ -712,7 +791,7 @@ for idx, r in enumerate(current_results):
     </tr>
     """
 
-logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in state["event_logs"]])
+logs_html = "".join([f"<li style='margin-bottom:8px;'>{log}</li>" for log in state["event_logs"][:50]])
 if not logs_html:
     logs_html = "<li style='color:#94a3b8;'>目前尚無狀態變更紀錄（系統正常運行中）</li>"
 
@@ -733,6 +812,11 @@ html_content = f"""<!DOCTYPE html>
         table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
         th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
         
+        .custom-scrollbar::-webkit-scrollbar {{ width: 8px; }}
+        .custom-scrollbar::-webkit-scrollbar-track {{ background: #090d16; border-radius: 6px; }}
+        .custom-scrollbar::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 6px; }}
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {{ background: #475569; }}
+
         @keyframes pulse-red {{
             0% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }}
             70% {{ box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }}
@@ -844,6 +928,13 @@ html_content = f"""<!DOCTYPE html>
             checkOpenedLogs();
         }}
 
+        function toggleSnapshotDrawer(id) {{
+            var el = document.getElementById(id);
+            if (el) {{
+                el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'table-row' : 'none';
+            }}
+        }}
+
         function checkOpenedLogs() {{
             var rows = document.getElementsByClassName('log-detail-row');
             anyLogOpened = false;
@@ -899,7 +990,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 頂部四大指標卡 (字體：標題 20px / 數值 36px) -->
+        <!-- 頂部四大指標卡 -->
         <div class="cards">
             <!-- 1. 總數 -->
             <div class="card" style="border-top:4px solid #38bdf8;">
@@ -938,7 +1029,7 @@ html_content = f"""<!DOCTYPE html>
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 巡檢表格：脫敏後只呈現目標 IP 與元件 -->
+        <!-- 巡檢主表格 -->
         <table>
             <thead>
                 <tr>
@@ -955,10 +1046,10 @@ html_content = f"""<!DOCTYPE html>
             </tbody>
         </table>
 
-        <!-- 7 天快照 -->
+        <!-- 7 天歷史快照 (支援點擊展開細節) -->
         <div class="history-box">
-            <h3 style="margin-top:0;margin-bottom:8px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照</h3>
-            <div style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
+            <h3 style="margin-top:0;margin-bottom:8px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(若該次有異常，點擊該列即可展開失敗 IP 清單)</span></h3>
+            <div class="custom-scrollbar" style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
                 <table style="box-shadow:none;">
                     <thead>
                         <tr>
@@ -979,12 +1070,14 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 顯示路由變更LOG -->
+        <!-- 顯示路由變更LOG (具備拉條與最大高度限制) -->
         <div class="audit-box">
-            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG</h3>
-            <ul style="margin:0;padding-left:24px;font-size:14px;line-height:1.7;">
-                {logs_html}
-            </ul>
+            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(保留最新 50 筆)</span></h3>
+            <div class="custom-scrollbar" style="max-height:260px; overflow-y:auto; background:#090d16; padding:14px 18px; border-radius:8px; border:1px solid #334155;">
+                <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.8;">
+                    {logs_html}
+                </ul>
+            </div>
         </div>
     </div>
 </body>

@@ -31,7 +31,7 @@ jobs:
         env:
           PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
         run: |
-          npx -y staticrypt index.html -p "$PAGE_PASSWORD" --salt "ip-tracer-salt-2026" --short --remember 30 --template-color-primary "#2563eb" --template-color-secondary "#0b0f19" && mv encrypted/index.html index.html
+          npx -y staticrypt index.html -p "$PAGE_PASSWORD" --salt "a1b2c3d4e5f60718293a4b5c6d7e8f90" --short --remember 30 --template-color-primary "#2563eb" --template-color-secondary "#0b0f19" && mv encrypted/index.html index.html
       - name: Commit and Push Results
         run: |
           git config --global user.name "github-actions[bot]"

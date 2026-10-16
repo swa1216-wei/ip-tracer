@@ -265,7 +265,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：探測與邏輯 (Globalping 標準合法請求，溫和防抖重試)
+# 第三部分：探測與邏輯 (抗 429 階梯退避，溫和防抖重試)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
@@ -285,14 +285,15 @@ def run_single_trace(target, country_code):
     )
     
     measurement_id = None
-    for attempt in range(2):
+    # 遇到 429 時最多重試 3 次，採取 3 秒、5 秒漸進退避，避免觸發限流閥
+    for attempt in range(3):
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
                 break
         except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt == 0:
-                time.sleep(3)
+            if e.code == 429 and attempt < 2:
+                time.sleep(3 + attempt * 2)
                 continue
             return target, country_code, f"發起請求失敗: {e}"
         except Exception as e:
@@ -302,8 +303,8 @@ def run_single_trace(target, country_code):
         return target, country_code, "無法取得測量ID"
 
     poll_url = f"{api_url}/{measurement_id}"
-    for _ in range(16):
-        time.sleep(2)
+    for _ in range(20):
+        time.sleep(1)  # 改為 1 秒輪詢一次，提升抓取效率
         try:
             req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "GitHub-Network-Probe"})
             with urllib.request.urlopen(req_poll, timeout=15) as resp:
@@ -392,16 +393,16 @@ def parse_trace_output(target, raw_output, country_code, city_name):
         "raw": raw_output
     }
 
-# 啟動初次探測
+# 啟動初次探測 (產線調整為 5 條，平滑請求避免觸發 429)
 all_tasks = []
 for target in TARGET_IPS:
     all_tasks.append((target, "TW"))
     all_tasks.append((target, current_overseas["country"]))
 
-print(f"[{now_str}] 巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 10 產線啟動...")
+print(f"[{now_str}] 巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 5 產線啟動...")
 
 raw_results = {}
-with ThreadPoolExecutor(max_workers=10) as executor:
+with ThreadPoolExecutor(max_workers=5) as executor:
     future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in all_tasks}
     for future in as_completed(future_to_task):
         target, c_code, raw_out = future.result()
@@ -414,37 +415,34 @@ retry_tasks = []
 for target in TARGET_IPS:
     res_tw = parse_trace_output(target, raw_results.get((target, "TW"), ""), "TW", "台灣")
     parsed_tw[target] = res_tw
-    if res_tw["cat"] == "NO_BR" and "429" not in res_tw["raw"] and "400" not in res_tw["raw"]:
+    if res_tw["cat"] == "NO_BR":
         retry_tasks.append((target, "TW"))
 
     res_ov = parse_trace_output(target, raw_results.get((target, current_overseas["country"]), ""), current_overseas["country"], current_overseas["city"])
     parsed_overseas[target] = res_ov
-    if res_ov["cat"] == "NO_BR" and "429" not in res_ov["raw"] and "400" not in res_ov["raw"]:
+    if res_ov["cat"] == "NO_BR":
         retry_tasks.append((target, current_overseas["country"]))
 
-# 溫和防抖複測 (2 輪，每次冷卻 3 秒防設備 CoPP/ICMP 限流)
+# 溫和防抖複測 (以 5 線程重試 1 輪，每次冷卻 2 秒)
 if retry_tasks:
     print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動溫和防抖複測...")
-    for retry_round in range(1, 3):
-        if not retry_tasks:
-            break
-        time.sleep(3)
-        still_failing = []
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
-            for future in as_completed(future_to_task):
-                target, c_code, raw_out = future.result()
-                city_label = "台灣" if c_code == "TW" else current_overseas["city"]
-                retry_p = parse_trace_output(target, raw_out, c_code, city_label)
-                if retry_p["is_br"]:
-                    print(f"      ✔ [{city_label}] 目標 {target} 在第 {retry_round} 次複測成功抵達 {retry_p['br_name']}！")
-                    if c_code == "TW":
-                        parsed_tw[target] = retry_p
-                    else:
-                        parsed_overseas[target] = retry_p
+    time.sleep(2)
+    still_failing = []
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
+        for future in as_completed(future_to_task):
+            target, c_code, raw_out = future.result()
+            city_label = "台灣" if c_code == "TW" else current_overseas["city"]
+            retry_p = parse_trace_output(target, raw_out, c_code, city_label)
+            if retry_p["is_br"] or retry_p["cat"] == "OK":
+                print(f"      ✔ [{city_label}] 目標 {target} 複測成功抵達 {retry_p['desc']}！")
+                if c_code == "TW":
+                    parsed_tw[target] = retry_p
                 else:
-                    still_failing.append((target, c_code))
-        retry_tasks = still_failing
+                    parsed_overseas[target] = retry_p
+            else:
+                still_failing.append((target, c_code))
+    retry_tasks = still_failing
 
 tw_nobr_count = 0
 tw_priv_count = 0
@@ -522,7 +520,7 @@ for target in TARGET_IPS:
         combined_status = "OK"
         combined_desc = "✔ 國內外正常抵達節點"
 
-    # 台灣端狀態變更 (結構化儲存，支援表格化)
+    # 台灣端狀態變更 (結構化字典儲存，支援表格化)
     prev_tw = state["node_status"]["TW"].get(target, "OK")
     if prev_tw == "OK" and p_tw["status"] == "ALERT":
         state["event_logs"].insert(0, {
@@ -541,12 +539,12 @@ for target in TARGET_IPS:
             "type": "OK",
             "target": target,
             "elem": elem_code,
-            "desc": f"抵達 {p_tw['br_name']}"
+            "desc": f"抵達 {p_tw['br_name']}" if p_tw['br_name'] else p_tw['desc']
         })
-        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端已恢復連通 (抵達 {p_tw['br_name']})"})
+        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端已恢復連通 ({p_tw['desc']})"})
     state["node_status"]["TW"][target] = p_tw["status"]
 
-    # 境外端狀態變更 (結構化儲存，支援表格化)
+    # 境外端狀態變更 (結構化字典儲存，支援表格化)
     ov_c = current_overseas["country"]
     prev_ov = state["node_status"][ov_c].get(target, "OK")
     if prev_ov == "OK" and p_ov["status"] == "ALERT":
@@ -566,9 +564,9 @@ for target in TARGET_IPS:
             "type": "OK",
             "target": target,
             "elem": elem_code,
-            "desc": f"抵達 {p_ov['br_name']}"
+            "desc": f"抵達 {p_ov['br_name']}" if p_ov['br_name'] else p_ov['desc']
         })
-        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 (抵達 {p_ov['br_name']})"})
+        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 ({p_ov['desc']})"})
     state["node_status"][ov_c][target] = p_ov["status"]
 
     current_results.append({

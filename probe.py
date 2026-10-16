@@ -1058,9 +1058,6 @@ html_content = f"""<!DOCTYPE html>
                 <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold;">
                     🔄 畫面刷新
                 </button>
-                <a href="https://github.com/swa1216-wei/ip-tracer/actions/workflows/schedule.yml" target="_blank" style="text-decoration:none; background:#10b981; color:#fff; border-radius:8px; padding:11px 20px; font-size:15px; font-weight:bold; display:inline-block;">
-                    ⚡ 立即發起探測
-                </a>
                 <a href="https://globalping.io/" target="_blank" style="text-decoration:none; background:#6366f1; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
                     🛠️ 自訂單點測試
                 </a>

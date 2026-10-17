@@ -5299,6 +5299,18 @@
   ],
   "history_snapshots": [
     {
+      "time": "2026-10-17 18:28:37",
+      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
+    {
       "time": "2026-10-17 17:59:06",
       "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
       "total": 102,
@@ -7997,7 +8009,7 @@
       "alert": 0
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

@@ -285,7 +285,6 @@ def run_single_trace(target, country_code):
     )
     
     measurement_id = None
-    # 遇到 429 時最多重試 3 次，採取 3 秒、5 秒漸進退避，避免觸發限流閥
     for attempt in range(3):
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
@@ -304,7 +303,7 @@ def run_single_trace(target, country_code):
 
     poll_url = f"{api_url}/{measurement_id}"
     for _ in range(20):
-        time.sleep(1)  # 改為 1 秒輪詢一次，提升抓取效率
+        time.sleep(1)
         try:
             req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "GitHub-Network-Probe"})
             with urllib.request.urlopen(req_poll, timeout=15) as resp:
@@ -321,7 +320,7 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     last_responded_hop = 0
     last_responded_ip = "無回應"
     last_responded_domain = ""
-    entered_hinet = (country_code == "TW")
+    entered_hinet = False  # 修改處 1：預設為 False，必須真正進入 HiNet 骨幹或 BR 後才開始計算私網
     hinet_private_ips = []
 
     lines = raw_output.splitlines()
@@ -345,7 +344,8 @@ def parse_trace_output(target, raw_output, country_code, city_name):
                     if last_responded_ip in BR_LIST:
                         entered_hinet = True
 
-                    if entered_hinet and hop_num >= 2:
+                    # 修改處 2：只有當已確認進入 HiNet 骨幹後，才將 10.x.x.x 納入私網告警檢查
+                    if entered_hinet:
                         for ip in effective_ips:
                             try:
                                 if ipaddress.ip_address(ip) in ipaddress.ip_network("10.0.0.0/8"):
@@ -358,7 +358,6 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     is_br = (br_name is not None)
     has_private = (len(hinet_private_ips) > 0)
 
-    # 針對新加坡節點：若已滿 20 跳且最後一跳確認進入 hinet 骨幹，視為正常抵達骨幹邊界
     is_sg_border_reach = (country_code == "SG" and last_responded_hop >= 20 and "hinet.net" in last_responded_domain.lower())
 
     if is_sg_border_reach:
@@ -932,7 +931,7 @@ html_content = f"""<!DOCTYPE html>
                 gain2.connect(audioCtx.destination);
                 osc2.start(now + 0.22);
                 osc2.stop(now + 0.42);
-            }} catch(e) {{
+            }}(e) {{
                 console.log("Audio waiting for user gesture:", e);
             }}
         }}

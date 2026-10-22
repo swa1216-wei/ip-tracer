@@ -930,8 +930,8 @@ html_content = f"""<!DOCTYPE html>
                 gain2.connect(audioCtx.destination);
                 osc2.start(now + 0.22);
                 osc2.stop(now + 0.42);
-            }} catch(e) {{
-                console.log("Audio waiting for user gesture:", e);
+            }} catch(err) {{
+                console.log("Audio waiting for user gesture:", err);
             }}
         }}
 

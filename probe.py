@@ -320,7 +320,7 @@ def parse_trace_output(target, raw_output, country_code, city_name):
     last_responded_hop = 0
     last_responded_ip = "無回應"
     last_responded_domain = ""
-    entered_hinet = False  # 修改處 1：預設為 False，必須真正進入 HiNet 骨幹或 BR 後才開始計算私網
+    entered_hinet = False
     hinet_private_ips = []
 
     lines = raw_output.splitlines()
@@ -344,7 +344,6 @@ def parse_trace_output(target, raw_output, country_code, city_name):
                     if last_responded_ip in BR_LIST:
                         entered_hinet = True
 
-                    # 修改處 2：只有當已確認進入 HiNet 骨幹後，才將 10.x.x.x 納入私網告警檢查
                     if entered_hinet:
                         for ip in effective_ips:
                             try:
@@ -695,7 +694,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (歷史快照抽屜、LOG 科技表格化)
+# 第五部分：HTML 前端組裝 (歷史快照抽屜、LOG 科技表格化、右上角導航鈕)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -931,7 +930,7 @@ html_content = f"""<!DOCTYPE html>
                 gain2.connect(audioCtx.destination);
                 osc2.start(now + 0.22);
                 osc2.stop(now + 0.42);
-            }}(e) {{
+            }} catch(e) {{
                 console.log("Audio waiting for user gesture:", e);
             }}
         }}
@@ -1059,6 +1058,9 @@ html_content = f"""<!DOCTYPE html>
                 </button>
                 <a href="https://globalping.io/" target="_blank" style="text-decoration:none; background:#6366f1; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
                     🛠️ 自訂單點測試
+                </a>
+                <a href="https://gcpuffchuang-png.github.io/traceroute-monitor/" target="_blank" style="text-decoration:none; background:#059669; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
+                    🚀 IPv6 巡檢儀表板
                 </a>
             </div>
         </div>

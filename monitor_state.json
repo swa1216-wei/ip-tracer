@@ -7377,6 +7377,18 @@
   ],
   "history_snapshots": [
     {
+      "time": "2026-10-23 08:08:30",
+      "nodes": "🇹🇼 台灣 ＋ 🇭🇰 香港",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "香港",
+      "failures": []
+    },
+    {
       "time": "2026-10-23 07:43:05",
       "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
       "total": 102,
@@ -12280,21 +12292,9 @@
           "reason": "台灣丟包(無回應) ＆ 香港丟包(無回應)"
         }
       ]
-    },
-    {
-      "time": "2026-10-16 08:02:09",
-      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
     }
   ],
-  "overseas_idx": 1,
+  "overseas_idx": 2,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",
@@ -12504,5 +12504,5 @@
     "42.78.224.8": 7
   },
   "teams_tested": true,
-  "last_heartbeat_date": "2026-10-22"
+  "last_heartbeat_date": "2026-10-23"
 }

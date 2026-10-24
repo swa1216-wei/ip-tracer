@@ -4973,17 +4973,21 @@
       "target": "42.78.64.8",
       "elem": "G-TN-11U",
       "desc": "🚨 台灣丟包 (未達節點)"
-    },
-    {
-      "time": "2026-10-17 12:25:36",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "114.136.0.8",
-      "elem": "G-2L3-1",
-      "desc": "抵達 B-2L3-3"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-10-24 12:26:40",
+      "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "新加坡",
+      "failures": []
+    },
     {
       "time": "2026-10-24 11:48:21",
       "nodes": "🇹🇼 台灣 ＋ 🇭🇰 香港",
@@ -9481,21 +9485,9 @@
           "reason": "台灣丟包 (第 6 跳斷在 220.128.27.53)"
         }
       ]
-    },
-    {
-      "time": "2026-10-17 12:25:36",
-      "nodes": "🇹🇼 台灣 ＋ 🇭🇰 香港",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": []
     }
   ],
-  "overseas_idx": 2,
+  "overseas_idx": 0,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

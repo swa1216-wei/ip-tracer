@@ -4957,33 +4957,21 @@
       "target": "223.140.0.8",
       "elem": "G-2L3-1",
       "desc": "🚨 台灣丟包 (未達節點)"
-    },
-    {
-      "time": "2026-10-18 18:28:18",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "42.73.128.8",
-      "elem": "G-3L1-2",
-      "desc": "抵達 B-3L1-2"
-    },
-    {
-      "time": "2026-10-18 17:58:43",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "111.83.192.8",
-      "elem": "G-4L1-3",
-      "desc": "抵達 B-4L1-4"
-    },
-    {
-      "time": "2026-10-18 17:58:43",
-      "badge": "🔴 台灣告警",
-      "type": "ALERT",
-      "target": "42.73.128.8",
-      "elem": "G-3L1-2",
-      "desc": "🚨 台灣丟包 (未達節點)"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-10-25 18:29:56",
+      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
     {
       "time": "2026-10-25 17:58:42",
       "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
@@ -9403,39 +9391,9 @@
       "ov_priv": 0,
       "ov_city": "東京",
       "failures": []
-    },
-    {
-      "time": "2026-10-18 18:28:18",
-      "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
-    },
-    {
-      "time": "2026-10-18 17:58:43",
-      "nodes": "🇹🇼 台灣 ＋ 🇭🇰 香港",
-      "total": 102,
-      "ok": 101,
-      "tw_nobr": 1,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": [
-        {
-          "target": "42.73.128.8",
-          "elem": "G-3L1-2",
-          "reason": "台灣丟包 (第 5 跳斷在 220.128.10.241)"
-        }
-      ]
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

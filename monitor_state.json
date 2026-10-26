@@ -4809,6 +4809,18 @@
   ],
   "history_snapshots": [
     {
+      "time": "2026-10-27 05:07:50",
+      "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "新加坡",
+      "failures": []
+    },
+    {
       "time": "2026-10-27 04:29:47",
       "nodes": "🇹🇼 台灣 ＋ 🇭🇰 香港",
       "total": 102,
@@ -9087,21 +9099,9 @@
       "ov_priv": 0,
       "ov_city": "東京",
       "failures": []
-    },
-    {
-      "time": "2026-10-20 04:47:58",
-      "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
     }
   ],
-  "overseas_idx": 2,
+  "overseas_idx": 0,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

@@ -4821,17 +4821,21 @@
       "target": "223.141.224.8",
       "elem": "G-4L1-3",
       "desc": "抵達 B-4L1-4"
-    },
-    {
-      "time": "2026-10-20 03:19:50",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "111.71.212.8",
-      "elem": "G-2L3-1",
-      "desc": "抵達 B-2L3-3"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-10-27 03:53:16",
+      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
     {
       "time": "2026-10-27 03:03:18",
       "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
@@ -9117,21 +9121,9 @@
           "reason": "香港丟包 (第 0 跳斷在 無回應)"
         }
       ]
-    },
-    {
-      "time": "2026-10-20 03:19:50",
-      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

@@ -4493,17 +4493,21 @@
       "target": "114.137.192.8",
       "elem": "G-3L1-3",
       "desc": "🚨 台灣丟包 (未達節點)"
-    },
-    {
-      "time": "2026-10-21 00:18:14",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "223.137.128.8",
-      "elem": "G-2L3-3",
-      "desc": "抵達 B-2L3-3"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-10-28 00:47:22",
+      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
     {
       "time": "2026-10-27 23:58:26",
       "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
@@ -8650,21 +8654,9 @@
           "reason": "骨幹路徑含私網 IP"
         }
       ]
-    },
-    {
-      "time": "2026-10-21 00:18:14",
-      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

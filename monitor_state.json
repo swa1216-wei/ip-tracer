@@ -2133,17 +2133,21 @@
       "target": "223.140.0.8",
       "elem": "G-2L3-1",
       "desc": "抵達 B-2L3-3"
-    },
-    {
-      "time": "2026-10-23 03:47:57",
-      "badge": "🔴 台灣告警",
-      "type": "ALERT",
-      "target": "223.140.0.8",
-      "elem": "G-2L3-1",
-      "desc": "🚨 台灣丟包 (未達節點)"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-10-30 04:14:38",
+      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
     {
       "time": "2026-10-30 03:16:33",
       "nodes": "🇹🇼 台灣 ＋ 🇸🇬 新加坡",
@@ -5306,27 +5310,9 @@
       "ov_priv": 0,
       "ov_city": "香港",
       "failures": []
-    },
-    {
-      "time": "2026-10-23 03:47:57",
-      "nodes": "🇹🇼 台灣 ＋ 🇯🇵 東京",
-      "total": 102,
-      "ok": 101,
-      "tw_nobr": 1,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": [
-        {
-          "target": "223.140.0.8",
-          "elem": "G-2L3-1",
-          "reason": "台灣丟包 (第 6 跳斷在 220.128.3.81)"
-        }
-      ]
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

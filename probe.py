@@ -580,6 +580,7 @@ for target in TARGET_IPS:
         "tw_status": p_tw["status"],
         "tw_raw": p_tw["raw"],
         "ov_city": current_overseas["city"],
+        "ov_country": current_overseas["country"],
         "ov_flag": current_overseas["flag"],
         "ov_hop": p_ov["last_hop"],
         "ov_base": base_ov,
@@ -694,7 +695,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (歷史快照抽屜、LOG 科技表格化、右上角導航鈕)
+# 第五部分：HTML 前端組裝 (歷史快照抽屜、LOG 科技表格化、即時複測彈窗)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -776,8 +777,12 @@ for idx, r in enumerate(current_results):
     
     if r["status"] == "ALERT":
         status_badge = f'<span style="color:#f87171;font-weight:bold;font-size:15px;">{r["desc"]}</span>'
+        retest_btn_style = "background:#ea580c;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;display:flex;align-items:center;gap:4px;"
+        retest_btn_text = "⚡ 立即複測"
     else:
         status_badge = '<span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 國內外正常</span>'
+        retest_btn_style = "background:#334155;color:#94a3b8;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;display:flex;align-items:center;gap:4px;"
+        retest_btn_text = "🔄 重測"
 
     # 台灣端路徑
     if r["tw_cat"] == "OK":
@@ -812,8 +817,11 @@ for idx, r in enumerate(current_results):
         <td style="padding:14px 12px;">{tw_display}</td>
         <td style="padding:14px 12px;">{ov_display}</td>
         <td style="padding:14px 12px;">{status_badge}</td>
-        <td style="padding:14px 12px;text-align:center;">
-            <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:bold;">查看</button>
+        <td style="padding:14px 12px;">
+            <div style="display:flex;gap:8px;justify-content:center;align-items:center;">
+                <button onclick="toggleLog('log-{idx}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;">查看</button>
+                <button id="retest-btn-{idx}" onclick="triggerLiveRetest('{r['target']}', '{r['elem']}', '{r['tw_status']}', '{r['ov_status']}', '{r['ov_country']}', '{r['ov_city']}', '{idx}')" style="{retest_btn_style}">{retest_btn_text}</button>
+            </div>
         </td>
     </tr>
     <tr id="log-{idx}" class="log-detail-row" style="display:none;background:#090d16;">
@@ -867,6 +875,8 @@ else:
         </tr>
         """
 
+br_whitelist_js = json.dumps(BR_LIST)
+
 html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -894,6 +904,43 @@ html_content = f"""<!DOCTYPE html>
             70% {{ box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }}
             100% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }}
         }}
+
+        /* 複測彈窗 Modal 樣式 */
+        .modal-overlay {{
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }}
+        .modal-box {{
+            background: #0f172a;
+            border: 1px solid #38bdf8;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 820px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh;
+        }}
+        .modal-header {{
+            background: #1e293b;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }}
+        .modal-body {{
+            padding: 20px;
+            overflow-y: auto;
+            color: #e2e8f0;
+        }}
     </style>
     <script>
         var anyLogOpened = false;
@@ -901,6 +948,7 @@ html_content = f"""<!DOCTYPE html>
         var audioCtx = null;
         var beepInterval = null;
         var currentScanTime = "{now_str}";
+        var brList = {br_whitelist_js};
 
         function playWarningBeep() {{
             try {{
@@ -1018,6 +1066,122 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
+        // ==================== 即時複測 (Live Retest) 核心邏輯 ====================
+        function closeRetestModal() {{
+            document.getElementById('retest-modal').style.display = 'none';
+        }}
+
+        function parseRawTraceJS(rawOutput, target) {{
+            var lines = rawOutput.split('\\n');
+            var lastIp = "無回應";
+            var lastHop = 0;
+            var ipRegex = /\\b(?:\\d{{1,3}}\\.){{3}}\\d{{1,3}}\\b/g;
+
+            for (var i = 0; i < lines.length; i++) {{
+                var line = lines[i];
+                var hopMatch = line.match(/^\\s*(\\d+)\\s+/);
+                if (hopMatch) {{
+                    var hopNum = parseInt(hopMatch[1]);
+                    var ips = line.match(ipRegex);
+                    if (ips) {{
+                        var eff = ips.filter(function(x) {{ return x !== target; }});
+                        if (eff.length > 0) {{
+                            lastHop = hopNum;
+                            lastIp = eff[eff.length - 1];
+                        }}
+                    }}
+                }}
+            }}
+            var brName = brList[lastIp] || null;
+            return {{
+                lastHop: lastHop,
+                lastIp: lastIp,
+                isBr: (brName !== null),
+                brName: brName
+            }};
+        }}
+
+        async function triggerLiveRetest(target, elem, twStatus, ovStatus, ovCountry, ovCity, idx) {{
+            var btn = document.getElementById('retest-btn-' + idx);
+            var originText = btn.innerText;
+            btn.innerText = "⏳ 探測中...";
+            btn.disabled = true;
+
+            // 判斷複測節點：若台灣端異常優先測台灣，若境外端異常測境外，若雙邊皆異常或正常則兩邊皆測
+            var testLocations = [];
+            if (twStatus === "ALERT" && ovStatus !== "ALERT") {{
+                testLocations.push({{ code: "TW", name: "🇹🇼 台灣本地節點" }});
+            }} else if (ovStatus === "ALERT" && twStatus !== "ALERT") {{
+                testLocations.push({{ code: ovCountry, name: ovCity + " 境外節點" }});
+            }} else {{
+                testLocations.push({{ code: "TW", name: "🇹🇼 台灣本地節點" }});
+                testLocations.push({{ code: ovCountry, name: ovCity + " 境外節點" }});
+            }}
+
+            var modal = document.getElementById('retest-modal');
+            var modalTitle = document.getElementById('modal-title');
+            var modalBody = document.getElementById('modal-body-content');
+
+            modalTitle.innerText = "⚡ 即時路由複測診斷： " + target + " (" + elem + ")";
+            modalBody.innerHTML = '<div style="padding:20px;text-align:center;color:#38bdf8;font-size:15px;">🌐 正在向 Globalping 發起即時 Traceroute 探測，請稍候約 5~10 秒...</div>';
+            modal.style.display = 'flex';
+
+            var resultsHtml = "";
+            for (var loc of testLocations) {{
+                try {{
+                    var reqBody = {{
+                        type: "traceroute",
+                        target: target,
+                        locations: [{{ country: loc.code }}],
+                        limit: 1
+                    }};
+                    var createRes = await fetch("https://api.globalping.io/v1/measurements", {{
+                        method: "POST",
+                        headers: {{ "Content-Type": "application/json" }},
+                        body: JSON.stringify(reqBody)
+                    }});
+                    var createData = await createRes.json();
+                    var mId = createData.id;
+
+                    var rawOutput = "探測逾時或無回應";
+                    for (var poll = 0; poll < 18; poll++) {{
+                        await new Promise(r => setTimeout(r, 1000));
+                        var pollRes = await fetch("https://api.globalping.io/v1/measurements/" + mId);
+                        var pollData = await pollRes.json();
+                        if (pollData.status === "finished") {{
+                            if (pollData.results && pollData.results.length > 0) {{
+                                rawOutput = pollData.results[0].result.rawOutput || "";
+                            }}
+                            break;
+                        }}
+                    }}
+
+                    var parsed = parseRawTraceJS(rawOutput, target);
+                    var verdictBadge = "";
+                    if (parsed.isBr) {{
+                        verdictBadge = '<span style="color:#34d399;font-weight:bold;font-size:16px;">✔ 當前已恢復正常 (成功抵達 ' + parsed.brName + ' / ' + parsed.lastIp + ' / ' + parsed.lastHop + '跳)</span>';
+                    }} else {{
+                        verdictBadge = '<span style="color:#fb7185;font-weight:bold;font-size:16px;">🚨 障礙持續中 (未達節點，斷在 ' + parsed.lastIp + ' / 第 ' + parsed.lastHop + ' 跳)</span>';
+                    }}
+
+                    resultsHtml += '<div style="margin-bottom:20px;background:#090d16;padding:14px;border-radius:8px;border:1px solid #334155;">';
+                    resultsHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+                    resultsHtml += '<strong style="color:#f8fafc;font-size:15px;">📍 ' + loc.name + '</strong>';
+                    resultsHtml += '<div>' + verdictBadge + '</div>';
+                    resultsHtml += '</div>';
+                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
+                    resultsHtml += '</div>';
+
+                }} catch(err) {{
+                    resultsHtml += '<div style="color:#fb7185;padding:10px;">❌ [' + loc.name + '] 探測失敗: ' + err.message + '</div>';
+                }}
+            }}
+
+            modalBody.innerHTML = resultsHtml;
+            btn.innerText = originText;
+            btn.disabled = false;
+        }}
+
         window.addEventListener('click', function() {{
             if (!audioCtx) {{
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1108,12 +1272,12 @@ html_content = f"""<!DOCTYPE html>
         <table>
             <thead>
                 <tr>
-                    <th style="width:20%;">目標 IP</th>
-                    <th style="width:14%;">元件</th>
-                    <th style="width:25%;">🇹🇼 台灣端路徑</th>
-                    <th style="width:25%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
+                    <th style="width:18%;">目標 IP</th>
+                    <th style="width:12%;">元件</th>
+                    <th style="width:24%;">🇹🇼 台灣端路徑</th>
+                    <th style="width:24%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
                     <th style="width:10%;">綜合判定</th>
-                    <th style="text-align:center;width:6%;">探測日誌</th>
+                    <th style="text-align:center;width:12%;">診斷與探測</th>
                 </tr>
             </thead>
             <tbody>
@@ -1163,6 +1327,22 @@ html_content = f"""<!DOCTYPE html>
                         {logs_rows_html}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 即時複測彈出視窗 (Modal) -->
+    <div id="retest-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span id="modal-title" style="font-weight:bold;color:#38bdf8;font-size:16px;">⚡ 即時路由複測診斷</span>
+                <button onclick="closeRetestModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;font-weight:bold;">&times;</button>
+            </div>
+            <div id="modal-body-content" class="modal-body custom-scrollbar">
+                <!-- 動態注入複測結果 -->
+            </div>
+            <div style="background:#1e293b;padding:12px 20px;text-align:right;border-top:1px solid #334155;">
+                <button onclick="closeRetestModal()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-weight:bold;font-size:14px;">關閉視窗</button>
             </div>
         </div>
     </div>

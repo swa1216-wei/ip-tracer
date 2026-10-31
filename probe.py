@@ -40,121 +40,121 @@ OVERSEAS_NODES = [
 ]
 
 TARGET_METADATA = {
-  # --- 3L1 機房 ---
-  "42.72.0.8":     {"elem": "G-3L1-1"},
-  "42.72.64.8":    {"elem": "G-3L1-1"},
-  "42.72.128.8":   {"elem": "G-3L1-1"},
-  "42.72.192.8":   {"elem": "G-3L1-1"},
-  "42.73.0.8":     {"elem": "G-3L1-2"},
-  "42.73.128.8":   {"elem": "G-3L1-2"},
-  "114.137.0.8":   {"elem": "G-3L1-3"},
-  "114.137.32.8":  {"elem": "G-3L1-3"},
-  "114.137.64.8":  {"elem": "G-3L1-3"},
-  "114.137.96.8":  {"elem": "G-3L1-3"},
-  "114.137.128.8": {"elem": "G-3L1-3"},
-  "114.137.192.8": {"elem": "G-3L1-3"},
-  "42.79.0.8":     {"elem": "G-3L1-4U"},
-  "42.79.64.8":    {"elem": "G-3L1-4U"},
+  # --- 3L1 機房 (桃園) ---
+  "42.72.0.8":     {"elem": "G-3L1-1", "loc": "桃園"},
+  "42.72.64.8":    {"elem": "G-3L1-1", "loc": "桃園"},
+  "42.72.128.8":   {"elem": "G-3L1-1", "loc": "桃園"},
+  "42.72.192.8":   {"elem": "G-3L1-1", "loc": "桃園"},
+  "42.73.0.8":     {"elem": "G-3L1-2", "loc": "桃園"},
+  "42.73.128.8":   {"elem": "G-3L1-2", "loc": "桃園"},
+  "114.137.0.8":   {"elem": "G-3L1-3", "loc": "桃園"},
+  "114.137.32.8":  {"elem": "G-3L1-3", "loc": "桃園"},
+  "114.137.64.8":  {"elem": "G-3L1-3", "loc": "桃園"},
+  "114.137.96.8":  {"elem": "G-3L1-3", "loc": "桃園"},
+  "114.137.128.8": {"elem": "G-3L1-3", "loc": "桃園"},
+  "114.137.192.8": {"elem": "G-3L1-3", "loc": "桃園"},
+  "42.79.0.8":     {"elem": "G-3L1-4U", "loc": "桃園"},
+  "42.79.64.8":    {"elem": "G-3L1-4U", "loc": "桃園"},
 
-  # --- 4L1 機房 ---
-  "42.76.0.8":     {"elem": "G-4L1-1"},
-  "42.76.64.8":    {"elem": "G-4L1-1"},
-  "42.76.128.8":   {"elem": "G-4L1-1"},
-  "42.76.192.8":   {"elem": "G-4L1-1"},
-  "111.71.214.8":  {"elem": "G-4L1-1"},
-  "111.71.215.8":  {"elem": "G-4L1-1"},
-  "223.141.0.8":   {"elem": "G-4L1-1"},
-  "223.141.64.8":  {"elem": "G-4L1-1"},
-  "111.82.0.8":    {"elem": "G-4L1-2"},
-  "111.82.128.8":  {"elem": "G-4L1-2"},
-  "111.83.0.8":    {"elem": "G-4L1-2"},
-  "111.83.64.8":   {"elem": "G-4L1-2"},
-  "42.79.192.8":   {"elem": "G-4L1-3"},
-  "42.79.224.8":   {"elem": "G-4L1-3"},
-  "111.83.128.8":  {"elem": "G-4L1-3"},
-  "111.83.192.8":  {"elem": "G-4L1-3"},
-  "223.138.128.8": {"elem": "G-4L1-3"},
-  "223.138.192.8": {"elem": "G-4L1-3"},
-  "223.141.128.8": {"elem": "G-4L1-3"},
-  "223.141.160.8": {"elem": "G-4L1-3"},
-  "223.141.192.8": {"elem": "G-4L1-3"},
-  "223.141.224.8": {"elem": "G-4L1-3"},
+  # --- 4L1 機房 (台中) ---
+  "42.76.0.8":     {"elem": "G-4L1-1", "loc": "台中"},
+  "42.76.64.8":    {"elem": "G-4L1-1", "loc": "台中"},
+  "42.76.128.8":   {"elem": "G-4L1-1", "loc": "台中"},
+  "42.76.192.8":   {"elem": "G-4L1-1", "loc": "台中"},
+  "111.71.214.8":  {"elem": "G-4L1-1", "loc": "台中"},
+  "111.71.215.8":  {"elem": "G-4L1-1", "loc": "台中"},
+  "223.141.0.8":   {"elem": "G-4L1-1", "loc": "台中"},
+  "223.141.64.8":  {"elem": "G-4L1-1", "loc": "台中"},
+  "111.82.0.8":    {"elem": "G-4L1-2", "loc": "台中"},
+  "111.82.128.8":  {"elem": "G-4L1-2", "loc": "台中"},
+  "111.83.0.8":    {"elem": "G-4L1-2", "loc": "台中"},
+  "111.83.64.8":   {"elem": "G-4L1-2", "loc": "台中"},
+  "42.79.192.8":   {"elem": "G-4L1-3", "loc": "台中"},
+  "42.79.224.8":   {"elem": "G-4L1-3", "loc": "台中"},
+  "111.83.128.8":  {"elem": "G-4L1-3", "loc": "台中"},
+  "111.83.192.8":  {"elem": "G-4L1-3", "loc": "台中"},
+  "223.138.128.8": {"elem": "G-4L1-3", "loc": "台中"},
+  "223.138.192.8": {"elem": "G-4L1-3", "loc": "台中"},
+  "223.141.128.8": {"elem": "G-4L1-3", "loc": "台中"},
+  "223.141.160.8": {"elem": "G-4L1-3", "loc": "台中"},
+  "223.141.192.8": {"elem": "G-4L1-3", "loc": "台中"},
+  "223.141.224.8": {"elem": "G-4L1-3", "loc": "台中"},
 
-  # --- 7L2 機房 ---
-  "42.77.0.8":     {"elem": "G-7L2-1"},
-  "42.77.64.8":    {"elem": "G-7L2-1"},
-  "223.138.0.8":   {"elem": "G-7L2-1"},
-  "223.138.32.8":  {"elem": "G-7L2-1"},
-  "223.139.0.8":   {"elem": "G-7L2-1"},
-  "223.139.64.8":  {"elem": "G-7L2-1"},
-  "42.77.128.8":   {"elem": "G-7L2-2"},
-  "42.77.192.8":   {"elem": "G-7L2-2"},
-  "223.138.64.8":  {"elem": "G-7L2-2"},
-  "223.138.96.8":  {"elem": "G-7L2-2"},
-  "223.139.128.8": {"elem": "G-7L2-2"},
-  "223.139.192.8": {"elem": "G-7L2-2"},
-  "42.74.0.8":     {"elem": "G-7L2-3"},
-  "42.75.0.8":     {"elem": "G-7L2-3"},
+  # --- 7L2 機房 (高雄) ---
+  "42.77.0.8":     {"elem": "G-7L2-1", "loc": "高雄"},
+  "42.77.64.8":    {"elem": "G-7L2-1", "loc": "高雄"},
+  "223.138.0.8":   {"elem": "G-7L2-1", "loc": "高雄"},
+  "223.138.32.8":  {"elem": "G-7L2-1", "loc": "高雄"},
+  "223.139.0.8":   {"elem": "G-7L2-1", "loc": "高雄"},
+  "223.139.64.8":  {"elem": "G-7L2-1", "loc": "高雄"},
+  "42.77.128.8":   {"elem": "G-7L2-2", "loc": "高雄"},
+  "42.77.192.8":   {"elem": "G-7L2-2", "loc": "高雄"},
+  "223.138.64.8":  {"elem": "G-7L2-2", "loc": "高雄"},
+  "223.138.96.8":  {"elem": "G-7L2-2", "loc": "高雄"},
+  "223.139.128.8": {"elem": "G-7L2-2", "loc": "高雄"},
+  "223.139.192.8": {"elem": "G-7L2-2", "loc": "高雄"},
+  "42.74.0.8":     {"elem": "G-7L2-3", "loc": "高雄"},
+  "42.75.0.8":     {"elem": "G-7L2-3", "loc": "高雄"},
 
-  # --- 2L3 機房 ---
-  "111.71.212.8":  {"elem": "G-2L3-1"},
-  "111.71.213.8":  {"elem": "G-2L3-1"},
-  "114.136.0.8":   {"elem": "G-2L3-1"},
-  "114.136.64.8":  {"elem": "G-2L3-1"},
-  "223.136.0.8":   {"elem": "G-2L3-1"},
-  "223.136.32.8":  {"elem": "G-2L3-1"},
-  "223.140.0.8":   {"elem": "G-2L3-1"},
-  "223.140.64.8":  {"elem": "G-2L3-1"},
-  "114.136.128.8": {"elem": "G-2L3-2"},
-  "114.136.192.8": {"elem": "G-2L3-2"},
-  "223.136.64.8":  {"elem": "G-2L3-2"},
-  "223.136.96.8":  {"elem": "G-2L3-2"},
-  "223.140.128.8": {"elem": "G-2L3-2"},
-  "223.140.192.8": {"elem": "G-2L3-2"},
-  "223.137.0.8":   {"elem": "G-2L3-3"},
-  "223.137.64.8":  {"elem": "G-2L3-3"},
-  "223.137.128.8": {"elem": "G-2L3-3"},
-  "223.137.192.8": {"elem": "G-2L3-3"},
-  "42.79.128.8":   {"elem": "G-2L3-4"},
-  "42.79.160.8":   {"elem": "G-2L3-4"},
-  "111.71.0.8":    {"elem": "G-2L3-4"},
-  "111.71.64.8":   {"elem": "G-2L3-4"},
-  "223.136.128.8": {"elem": "G-2L3-4"},
-  "223.136.192.8": {"elem": "G-2L3-4"},
-  "223.143.240.8": {"elem": "G-2L3-4"},
-  "223.143.242.8": {"elem": "G-2L3-4"},
-  "223.143.244.8": {"elem": "G-2L3-4"},
-  "223.143.246.8": {"elem": "G-2L3-4"},
+  # --- 2L3 機房 (台北) ---
+  "111.71.212.8":  {"elem": "G-2L3-1", "loc": "台北"},
+  "111.71.213.8":  {"elem": "G-2L3-1", "loc": "台北"},
+  "114.136.0.8":   {"elem": "G-2L3-1", "loc": "台北"},
+  "114.136.64.8":  {"elem": "G-2L3-1", "loc": "台北"},
+  "223.136.0.8":   {"elem": "G-2L3-1", "loc": "台北"},
+  "223.136.32.8":  {"elem": "G-2L3-1", "loc": "台北"},
+  "223.140.0.8":   {"elem": "G-2L3-1", "loc": "台北"},
+  "223.140.64.8":  {"elem": "G-2L3-1", "loc": "台北"},
+  "114.136.128.8": {"elem": "G-2L3-2", "loc": "台北"},
+  "114.136.192.8": {"elem": "G-2L3-2", "loc": "台北"},
+  "223.136.64.8":  {"elem": "G-2L3-2", "loc": "台北"},
+  "223.136.96.8":  {"elem": "G-2L3-2", "loc": "台北"},
+  "223.140.128.8": {"elem": "G-2L3-2", "loc": "台北"},
+  "223.140.192.8": {"elem": "G-2L3-2", "loc": "台北"},
+  "223.137.0.8":   {"elem": "G-2L3-3", "loc": "台北"},
+  "223.137.64.8":  {"elem": "G-2L3-3", "loc": "台北"},
+  "223.137.128.8": {"elem": "G-2L3-3", "loc": "台北"},
+  "223.137.192.8": {"elem": "G-2L3-3", "loc": "台北"},
+  "42.79.128.8":   {"elem": "G-2L3-4", "loc": "台北"},
+  "42.79.160.8":   {"elem": "G-2L3-4", "loc": "台北"},
+  "111.71.0.8":    {"elem": "G-2L3-4", "loc": "台北"},
+  "111.71.64.8":   {"elem": "G-2L3-4", "loc": "台北"},
+  "223.136.128.8": {"elem": "G-2L3-4", "loc": "台北"},
+  "223.136.192.8": {"elem": "G-2L3-4", "loc": "台北"},
+  "223.143.240.8": {"elem": "G-2L3-4", "loc": "台北"},
+  "223.143.242.8": {"elem": "G-2L3-4", "loc": "台北"},
+  "223.143.244.8": {"elem": "G-2L3-4", "loc": "台北"},
+  "223.143.246.8": {"elem": "G-2L3-4", "loc": "台北"},
 
-  # --- 2L1 節點 ---
-  "42.70.0.8":     {"elem": "G-2L1-11U"},
-  "42.70.32.8":    {"elem": "G-2L1-11U"},
-  "42.70.64.8":    {"elem": "G-2L1-11U"},
-  "42.70.96.8":    {"elem": "G-2L1-11U"},
-  "42.70.128.8":   {"elem": "G-2L1-12U"},
-  "42.70.160.8":   {"elem": "G-2L1-12U"},
-  "42.70.192.8":   {"elem": "G-2L1-12U"},
-  "42.70.224.8":   {"elem": "G-2L1-12U"},
+  # --- 2L1 節點 (三重) ---
+  "42.70.0.8":     {"elem": "G-2L1-11U", "loc": "三重"},
+  "42.70.32.8":    {"elem": "G-2L1-11U", "loc": "三重"},
+  "42.70.64.8":    {"elem": "G-2L1-11U", "loc": "三重"},
+  "42.70.96.8":    {"elem": "G-2L1-11U", "loc": "三重"},
+  "42.70.128.8":   {"elem": "G-2L1-12U", "loc": "三重"},
+  "42.70.160.8":   {"elem": "G-2L1-12U", "loc": "三重"},
+  "42.70.192.8":   {"elem": "G-2L1-12U", "loc": "三重"},
+  "42.70.224.8":   {"elem": "G-2L1-12U", "loc": "三重"},
 
-  # --- CH 節點 ---
-  "42.71.0.8":     {"elem": "G-CH-11U"},
-  "42.71.32.8":    {"elem": "G-CH-11U"},
-  "42.71.64.8":    {"elem": "G-CH-11U"},
-  "42.71.96.8":    {"elem": "G-CH-11U"},
-  "42.71.128.8":   {"elem": "G-CH-12U"},
-  "42.71.160.8":   {"elem": "G-CH-12U"},
-  "42.71.192.8":   {"elem": "G-CH-12U"},
-  "42.71.224.8":   {"elem": "G-CH-12U"},
+  # --- CH 節點 (彰化) ---
+  "42.71.0.8":     {"elem": "G-CH-11U", "loc": "彰化"},
+  "42.71.32.8":    {"elem": "G-CH-11U", "loc": "彰化"},
+  "42.71.64.8":    {"elem": "G-CH-11U", "loc": "彰化"},
+  "42.71.96.8":    {"elem": "G-CH-11U", "loc": "彰化"},
+  "42.71.128.8":   {"elem": "G-CH-12U", "loc": "彰化"},
+  "42.71.160.8":   {"elem": "G-CH-12U", "loc": "彰化"},
+  "42.71.192.8":   {"elem": "G-CH-12U", "loc": "彰化"},
+  "42.71.224.8":   {"elem": "G-CH-12U", "loc": "彰化"},
 
-  # --- TN 節點 ---
-  "42.78.0.8":     {"elem": "G-TN-11U"},
-  "42.78.32.8":    {"elem": "G-TN-11U"},
-  "42.78.64.8":    {"elem": "G-TN-11U"},
-  "42.78.96.8":    {"elem": "G-TN-11U"},
-  "42.78.128.8":   {"elem": "G-TN-12U"},
-  "42.78.160.8":   {"elem": "G-TN-12U"},
-  "42.78.192.8":   {"elem": "G-TN-12U"},
-  "42.78.224.8":   {"elem": "G-TN-12U"}
+  # --- TN 節點 (台南) ---
+  "42.78.0.8":     {"elem": "G-TN-11U", "loc": "台南"},
+  "42.78.32.8":    {"elem": "G-TN-11U", "loc": "台南"},
+  "42.78.64.8":    {"elem": "G-TN-11U", "loc": "台南"},
+  "42.78.96.8":    {"elem": "G-TN-11U", "loc": "台南"},
+  "42.78.128.8":   {"elem": "G-TN-12U", "loc": "台南"},
+  "42.78.160.8":   {"elem": "G-TN-12U", "loc": "台南"},
+  "42.78.192.8":   {"elem": "G-TN-12U", "loc": "台南"},
+  "42.78.224.8":   {"elem": "G-TN-12U", "loc": "台南"}
 }
 
 TARGET_IPS = list(TARGET_METADATA.keys())
@@ -265,7 +265,7 @@ def send_teams_notification(title, is_alert, event_items, timestamp_str):
 
 
 # ==============================================================================
-# 第三部分：探測與邏輯 (抗 429 階梯退避，溫和防抖重試)
+# 第三部分：探測與邏輯 (抗 429 階梯退避，溫和防抖 12 秒重試)
 # ==============================================================================
 
 def run_single_trace(target, country_code):
@@ -421,10 +421,10 @@ for target in TARGET_IPS:
     if res_ov["cat"] == "NO_BR":
         retry_tasks.append((target, current_overseas["country"]))
 
-# 溫和防抖複測 (以 5 線程重試 1 輪，每次冷卻 2 秒)
+# 【優化項目四】：假警報防抖等待延長至 12 秒
 if retry_tasks:
-    print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，啟動溫和防抖複測...")
-    time.sleep(2)
+    print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，防抖冷卻 12 秒後啟動複測...")
+    time.sleep(12)
     still_failing = []
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_task = {executor.submit(run_single_trace, t[0], t[1]): t for t in retry_tasks}
@@ -459,6 +459,7 @@ for node_key in ["TW", current_overseas["country"]]:
 for target in TARGET_IPS:
     meta = TARGET_METADATA.get(target, {})
     elem_code = meta.get("elem", "")
+    loc_name = meta.get("loc", "其他")
     p_tw = parsed_tw[target]
     p_ov = parsed_overseas[target]
 
@@ -570,6 +571,7 @@ for target in TARGET_IPS:
     current_results.append({
         "target": target,
         "elem": elem_code,
+        "loc": loc_name,
         "tw_hop": p_tw["last_hop"],
         "tw_base": base_tw,
         "tw_diff": diff_tw_str,
@@ -695,7 +697,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (歷史快照抽屜、LOG 科技表格化、即時複測彈窗)
+# 第五部分：HTML 前端組裝 (含純中文機房篩選、手機 RWD 自適應、頂部 Tab)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -704,7 +706,7 @@ else:
     latest_err = alert_rounds_24h[0]
     stat_24h_html = f'<span style="color:#fb7185;font-weight:bold;">⚠️ 過去 24 小時曾出現 {len(alert_rounds_24h)} 次異常巡檢（最近一次於 {latest_err["time"]}）</span>'
 
-# 7 天歷史快照組裝 (具備點擊展開異常 IP 功能)
+# 7 天歷史快照組裝
 history_rows_html = ""
 for s_idx, item in enumerate(state["history_snapshots"][:100]):
     has_err = (item.get("tw_nobr",0) > 0 or item.get("tw_priv",0) > 0 or item.get("ov_nobr",0) > 0 or item.get("ov_priv",0) > 0)
@@ -770,19 +772,32 @@ for s_idx, item in enumerate(state["history_snapshots"][:100]):
     {drawer_html}
     """
 
-# 巡檢主表格
+# 巡檢主表格 (含 data-location 支援分類過濾)
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
     
+    # 語意化動態按鈕判定
+    is_tw_alert = (r["tw_status"] == "ALERT")
+    is_ov_alert = (r["ov_status"] == "ALERT")
+
+    if is_tw_alert and not is_ov_alert:
+        retest_btn_style = "background:#ea580c;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
+        retest_btn_text = "⚡ 複測 🇹🇼台灣"
+    elif is_ov_alert and not is_tw_alert:
+        retest_btn_style = "background:#ea580c;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
+        retest_btn_text = f"⚡ 複測 {r['ov_flag']}{r['ov_city']}"
+    elif is_tw_alert and is_ov_alert:
+        retest_btn_style = "background:#dc2626;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
+        retest_btn_text = f"⚡ 雙向複測 (🇹🇼+{r['ov_flag']})"
+    else:
+        retest_btn_style = "background:#334155;color:#94a3b8;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
+        retest_btn_text = f"🔄 抽查 (🇹🇼+{r['ov_flag']})"
+
     if r["status"] == "ALERT":
         status_badge = f'<span style="color:#f87171;font-weight:bold;font-size:15px;">{r["desc"]}</span>'
-        retest_btn_style = "background:#ea580c;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;display:flex;align-items:center;gap:4px;"
-        retest_btn_text = "⚡ 立即複測"
     else:
         status_badge = '<span style="color:#4ade80;font-weight:bold;font-size:15px;">✔ 國內外正常</span>'
-        retest_btn_style = "background:#334155;color:#94a3b8;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;display:flex;align-items:center;gap:4px;"
-        retest_btn_text = "🔄 重測"
 
     # 台灣端路徑
     if r["tw_cat"] == "OK":
@@ -807,12 +822,13 @@ for idx, r in enumerate(current_results):
                          <div style="font-size:12px;color:#f87171;">{r['ov_node']} ({r['ov_hop']}跳)</div>"""
 
     rows_html += f"""
-    <tr style="background-color:{bg_color};border-bottom:1px solid #334155;">
+    <tr class="target-row" data-loc="{r['loc']}" style="background-color:{bg_color};border-bottom:1px solid #334155;">
         <td style="padding:14px 12px;">
             <div style="font-weight:bold;font-size:16px;color:#f8fafc;">{r['target']}</div>
         </td>
         <td style="padding:14px 12px;">
             <div style="font-weight:bold;font-size:15px;color:#e2e8f0;">{r['elem']}</div>
+            <div style="font-size:12px;color:#94a3b8;">{r['loc']}</div>
         </td>
         <td style="padding:14px 12px;">{tw_display}</td>
         <td style="padding:14px 12px;">{ov_display}</td>
@@ -824,7 +840,7 @@ for idx, r in enumerate(current_results):
             </div>
         </td>
     </tr>
-    <tr id="log-{idx}" class="log-detail-row" style="display:none;background:#090d16;">
+    <tr id="log-{idx}" class="log-detail-row" data-loc="{r['loc']}" style="display:none;background:#090d16;">
         <td colspan="6" style="padding:16px;">
             <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">🇹🇼 台灣本地節點 Traceroute 日誌：</div>
             <pre style="margin:0 0 16px 0;color:#38bdf8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['tw_raw']}</pre>
@@ -884,17 +900,35 @@ html_content = f"""<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Internet 路由巡檢儀表板</title>
     <style>
+        * {{ box-sizing: border-box; }}
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
+
+        /* 頂部系統導航 Tab 列 */
+        .system-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #334155; padding-bottom: 12px; }}
+        .tab-btn {{ padding: 10px 22px; font-size: 15px; font-weight: bold; border-radius: 8px 8px 0 0; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }}
+        .tab-active {{ background: #0284c7; color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }}
+        .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
+        .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
+
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
         .cards {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }}
         .card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:18px 20px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
+        
+        /* 機房分類篩選列 */
+        .filter-container {{ display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #0f172a; padding: 12px 16px; border-radius: 10px; border: 1px solid #334155; }}
+        .filter-btn {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 20px; padding: 6px 16px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }}
+        .filter-btn:hover {{ background: #334155; color: #ffffff; }}
+        .filter-btn.active {{ background: #0284c7; color: #ffffff; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }}
+
+        .table-responsive {{ width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; box-shadow:0 8px 24px rgba(0,0,0,0.3); margin-bottom: 20px; }}
+        table {{ width:100%; border-collapse:collapse; background:#1e293b; min-width: 820px; }}
+        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
+
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
-        table {{ width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }}
-        th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
         
-        .custom-scrollbar::-webkit-scrollbar {{ width: 8px; }}
+        .custom-scrollbar::-webkit-scrollbar {{ width: 8px; height: 8px; }}
         .custom-scrollbar::-webkit-scrollbar-track {{ background: #090d16; border-radius: 6px; }}
         .custom-scrollbar::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 6px; }}
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {{ background: #475569; }}
@@ -940,6 +974,21 @@ html_content = f"""<!DOCTYPE html>
             padding: 20px;
             overflow-y: auto;
             color: #e2e8f0;
+        }}
+
+        /* 【優化項目二】：手機版面 RWD 響應式優化 */
+        @media (max-width: 768px) {{
+            body {{ padding: 12px; }}
+            .header {{ flex-direction: column; align-items: flex-start; gap: 16px; }}
+            .header > div:last-child {{ width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
+            .header button, .header a {{ width: 100%; text-align: center; justify-content: center; }}
+            .cards {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
+            .card {{ padding: 14px; }}
+            .card > div:first-child {{ font-size: 15px !important; }}
+            .card > div:nth-child(2) {{ font-size: 26px !important; }}
+            .filter-container {{ padding: 10px; gap: 6px; }}
+            .filter-btn {{ font-size: 13px; padding: 5px 12px; }}
+            .modal-box {{ width: 95%; max-height: 90vh; }}
         }}
     </style>
     <script>
@@ -1066,6 +1115,32 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
+        // ==================== 【優化項目一】：純中文機房篩選 ====================
+        function filterLocation(locName, btnElement) {{
+            var filterBtns = document.querySelectorAll('.filter-btn');
+            filterBtns.forEach(function(btn) {{
+                btn.classList.remove('active');
+            }});
+            btnElement.classList.add('active');
+
+            var rows = document.querySelectorAll('.target-row');
+            var logRows = document.querySelectorAll('.log-detail-row');
+
+            rows.forEach(function(row) {{
+                if (locName === '全部' || row.getAttribute('data-loc') === locName) {{
+                    row.style.display = '';
+                }} else {{
+                    row.style.display = 'none';
+                }}
+            }});
+
+            logRows.forEach(function(lrow) {{
+                if (locName !== '全部' && lrow.getAttribute('data-loc') !== locName) {{
+                    lrow.style.display = 'none';
+                }}
+            }});
+        }}
+
         // ==================== 即時複測 (Live Retest) 核心邏輯 ====================
         function closeRetestModal() {{
             document.getElementById('retest-modal').style.display = 'none';
@@ -1107,7 +1182,6 @@ html_content = f"""<!DOCTYPE html>
             btn.innerText = "⏳ 探測中...";
             btn.disabled = true;
 
-            // 判斷複測節點：若台灣端異常優先測台灣，若境外端異常測境外，若雙邊皆異常或正常則兩邊皆測
             var testLocations = [];
             if (twStatus === "ALERT" && ovStatus !== "ALERT") {{
                 testLocations.push({{ code: "TW", name: "🇹🇼 台灣本地節點" }});
@@ -1202,6 +1276,16 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
+        <!-- 【優化項目三】：頂部系統導航 Tab 切換列 -->
+        <div class="system-tabs">
+            <a href="javascript:void(0)" class="tab-btn tab-active">
+                🌐 IPv4 核心巡檢
+            </a>
+            <a href="https://gcpuffchuang-png.github.io/traceroute-monitor/" class="tab-btn tab-inactive">
+                🚀 IPv6 核心巡檢
+            </a>
+        </div>
+
         <div class="header">
             <div>
                 <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; display:flex; align-items:center; gap:10px;">
@@ -1222,9 +1306,6 @@ html_content = f"""<!DOCTYPE html>
                 </button>
                 <a href="https://globalping.io/" target="_blank" style="text-decoration:none; background:#6366f1; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
                     🛠️ 自訂單點測試
-                </a>
-                <a href="https://gcpuffchuang-png.github.io/traceroute-monitor/" target="_blank" style="text-decoration:none; background:#059669; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
-                    🚀 IPv6 巡檢儀表板
                 </a>
             </div>
         </div>
@@ -1264,26 +1345,41 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:28px; font-size:14px; display:flex; align-items:center; gap:8px;">
+        <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:20px; font-size:14px; display:flex; align-items:center; gap:8px;">
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 巡檢主表格 -->
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:18%;">目標 IP</th>
-                    <th style="width:12%;">元件</th>
-                    <th style="width:24%;">🇹🇼 台灣端路徑</th>
-                    <th style="width:24%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
-                    <th style="width:10%;">綜合判定</th>
-                    <th style="text-align:center;width:12%;">診斷與探測</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows_html}
-            </tbody>
-        </table>
+        <!-- 【優化項目一】：機房分類篩選列 (純中文由北到南) -->
+        <div class="filter-container">
+            <span style="font-size:14px; color:#94a3b8; font-weight:bold;">📍 機房篩選：</span>
+            <button class="filter-btn active" onclick="filterLocation('全部', this)">全部</button>
+            <button class="filter-btn" onclick="filterLocation('台北', this)">台北</button>
+            <button class="filter-btn" onclick="filterLocation('桃園', this)">桃園</button>
+            <button class="filter-btn" onclick="filterLocation('台中', this)">台中</button>
+            <button class="filter-btn" onclick="filterLocation('高雄', this)">高雄</button>
+            <button class="filter-btn" onclick="filterLocation('三重', this)">三重</button>
+            <button class="filter-btn" onclick="filterLocation('彰化', this)">彰化</button>
+            <button class="filter-btn" onclick="filterLocation('台南', this)">台南</button>
+        </div>
+
+        <!-- 巡檢主表格 (包覆 table-responsive 支援手機滑動) -->
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:18%;">目標 IP</th>
+                        <th style="width:12%;">元件</th>
+                        <th style="width:24%;">🇹🇼 台灣端路徑</th>
+                        <th style="width:24%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
+                        <th style="width:10%;">綜合判定</th>
+                        <th style="text-align:center;width:12%;">診斷與探測</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
+        </div>
 
         <!-- 7 天歷史快照 (支援點擊展開細節) -->
         <div class="history-box">

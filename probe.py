@@ -27,8 +27,8 @@ BR_LIST = {
     "211.22.229.193": "B-2L1-2D",
     "203.74.98.85":   "B-CH-1D",
     "203.75.166.85":  "B-CH-2D",
-    "203.75.166.81":  "B-TN-1D",
-    "203.74.98.81":   "B-TN-2D",
+    "203.75.166.81":  "B-TNE-1D",
+    "203.74.98.81":   "B-TNE-2D",
     "211.22.229.205": "B-3L1-4U-1D",
     "211.22.229.201": "B-3L1-4U-2D"
 }
@@ -146,15 +146,15 @@ TARGET_METADATA = {
   "42.71.192.8":   {"elem": "G-CH-12U", "loc": "彰化"},
   "42.71.224.8":   {"elem": "G-CH-12U", "loc": "彰化"},
 
-  # --- TNE 節點 (台南) ---
-  "42.78.0.8":     {"elem": "G-TN-11U", "loc": "TNE"},
-  "42.78.32.8":    {"elem": "G-TN-11U", "loc": "TNE"},
-  "42.78.64.8":    {"elem": "G-TN-11U", "loc": "TNE"},
-  "42.78.96.8":    {"elem": "G-TN-11U", "loc": "TNE"},
-  "42.78.128.8":   {"elem": "G-TN-12U", "loc": "TNE"},
-  "42.78.160.8":   {"elem": "G-TN-12U", "loc": "TNE"},
-  "42.78.192.8":   {"elem": "G-TN-12U", "loc": "TNE"},
-  "42.78.224.8":   {"elem": "G-TN-12U", "loc": "TNE"}
+  # --- TNE 節點 (台南) 正名為 G-TNE- ---
+  "42.78.0.8":     {"elem": "G-TNE-11U", "loc": "台南"},
+  "42.78.32.8":    {"elem": "G-TNE-11U", "loc": "台南"},
+  "42.78.64.8":    {"elem": "G-TNE-11U", "loc": "台南"},
+  "42.78.96.8":    {"elem": "G-TNE-11U", "loc": "台南"},
+  "42.78.128.8":   {"elem": "G-TNE-12U", "loc": "台南"},
+  "42.78.160.8":   {"elem": "G-TNE-12U", "loc": "台南"},
+  "42.78.192.8":   {"elem": "G-TNE-12U", "loc": "台南"},
+  "42.78.224.8":   {"elem": "G-TNE-12U", "loc": "台南"}
 }
 
 TARGET_IPS = list(TARGET_METADATA.keys())
@@ -696,7 +696,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (無國旗 Emoji、TNE 正名、免橫向滑動日誌)
+# 第五部分：HTML 前端組裝 (含 Tab 內嵌同頁切換、純中文台南篩選、TNE 正名)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -776,7 +776,7 @@ rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
     
-    # 純中文語意化按鈕判定 (完全移除 Emoji)
+    # 純中文語意化按鈕判定
     is_tw_alert = (r["tw_status"] == "ALERT")
     is_ov_alert = (r["ov_status"] == "ALERT")
 
@@ -840,13 +840,11 @@ for idx, r in enumerate(current_results):
         </td>
     </tr>
     <tr id="log-{idx}" class="log-detail-row" data-loc="{r['loc']}" style="display:none;background:#090d16;">
-        <td colspan="6" style="padding:0;">
-            <div class="log-inner-box">
-                <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">台灣本地節點 Traceroute 日誌：</div>
-                <pre class="trace-pre" style="color:#38bdf8;">{r['tw_raw']}</pre>
-                <div style="font-weight:bold;color:#a855f7;margin-bottom:6px;margin-top:14px;">境外節點 ({r['ov_city']}) Traceroute 日誌：</div>
-                <pre class="trace-pre" style="color:#c084fc;">{r['ov_raw']}</pre>
-            </div>
+        <td colspan="6" style="padding:16px;">
+            <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">台灣本地節點 Traceroute 日誌：</div>
+            <pre style="margin:0 0 16px 0;color:#38bdf8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['tw_raw']}</pre>
+            <div style="font-weight:bold;color:#a855f7;margin-bottom:6px;">境外節點 ({r['ov_city']}) Traceroute 日誌：</div>
+            <pre style="margin:0;color:#c084fc;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['ov_raw']}</pre>
         </td>
     </tr>
     """
@@ -905,18 +903,22 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
 
-        /* 頂部系統導航 Tab 列 */
+        /* 頂部固定系統導航 Tab 列 */
         .system-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #334155; padding-bottom: 12px; }}
-        .tab-btn {{ padding: 10px 22px; font-size: 15px; font-weight: bold; border-radius: 8px 8px 0 0; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }}
-        .tab-active {{ background: #0284c7; color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }}
+        .tab-btn {{ padding: 10px 22px; font-size: 15px; font-weight: bold; border-radius: 8px 8px 0 0; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }}
+        .tab-active {{ background: #0284c7; color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); border: none; }}
         .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
         .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
+
+        /* 主視窗切換 (IPv4 與 IPv6 雙容器) */
+        #ipv6-view-container {{ display: none; width: 100%; height: 85vh; border: 1px solid #334155; border-radius: 12px; overflow: hidden; background: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }}
+        #ipv6-frame {{ width: 100%; height: 100%; border: none; }}
 
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
         .cards {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }}
         .card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:18px 20px; border:1px solid #334155; box-shadow:0 6px 16px rgba(0,0,0,0.25); }}
         
-        /* 機房分類篩選列 */
+        /* 機房分類篩選列 (純中文由北到南) */
         .filter-container {{ display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #0f172a; padding: 12px 16px; border-radius: 10px; border: 1px solid #334155; }}
         .filter-btn {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 20px; padding: 6px 16px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }}
         .filter-btn:hover {{ background: #334155; color: #ffffff; }}
@@ -925,10 +927,6 @@ html_content = f"""<!DOCTYPE html>
         .table-responsive {{ width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; box-shadow:0 8px 24px rgba(0,0,0,0.3); margin-bottom: 20px; }}
         table {{ width:100%; border-collapse:collapse; background:#1e293b; min-width: 820px; }}
         th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
-
-        /* 展開日誌容器與排版設定 */
-        .log-inner-box {{ padding: 16px; }}
-        .trace-pre {{ margin:0; font-size:13px; line-height:1.5; white-space:pre-wrap; word-break:break-all; background:#0d1527; padding:12px; border-radius:6px; }}
 
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
@@ -981,7 +979,7 @@ html_content = f"""<!DOCTYPE html>
             color: #e2e8f0;
         }}
 
-        /* 手機版 RWD 響應式優化 (解決寬度與日誌滑動問題) */
+        /* 手機版 RWD 樣式 */
         @media (max-width: 768px) {{
             body {{ padding: 12px; }}
             .header {{ flex-direction: column; align-items: flex-start; gap: 16px; }}
@@ -994,20 +992,6 @@ html_content = f"""<!DOCTYPE html>
             .filter-container {{ padding: 10px; gap: 6px; }}
             .filter-btn {{ font-size: 13px; padding: 5px 12px; }}
             .modal-box {{ width: 95%; max-height: 90vh; }}
-            
-            /* 將展開日誌寬度鎖定在手機螢幕視野，免橫向滑動 */
-            .log-inner-box {{
-                position: sticky;
-                left: 0;
-                width: calc(100vw - 24px);
-                max-width: calc(100vw - 24px);
-                padding: 12px;
-                box-sizing: border-box;
-            }}
-            .trace-pre {{
-                max-width: 100%;
-                font-size: 12px;
-            }}
         }}
     </style>
     <script>
@@ -1017,6 +1001,26 @@ html_content = f"""<!DOCTYPE html>
         var beepInterval = null;
         var currentScanTime = "{now_str}";
         var brList = {br_whitelist_js};
+
+        // 頂部 Tab 同頁切換邏輯 (頂部固定，下方容器無縫切換)
+        function switchSystemTab(tabType) {{
+            var tabV4 = document.getElementById('tab-v4');
+            var tabV6 = document.getElementById('tab-v6');
+            var v4View = document.getElementById('ipv4-view-container');
+            var v6View = document.getElementById('ipv6-view-container');
+
+            if (tabType === 'v4') {{
+                tabV4.className = 'tab-btn tab-active';
+                tabV6.className = 'tab-btn tab-inactive';
+                v4View.style.display = 'block';
+                v6View.style.display = 'none';
+            }} else if (tabType === 'v6') {{
+                tabV6.className = 'tab-btn tab-active';
+                tabV4.className = 'tab-btn tab-inactive';
+                v4View.style.display = 'none';
+                v6View.style.display = 'block';
+            }}
+        }}
 
         function playWarningBeep() {{
             try {{
@@ -1262,7 +1266,7 @@ html_content = f"""<!DOCTYPE html>
                     resultsHtml += '<strong style="color:#f8fafc;font-size:15px;">📍 ' + loc.name + '</strong>';
                     resultsHtml += '<div>' + verdictBadge + '</div>';
                     resultsHtml += '</div>';
-                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-all;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
+                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
                     resultsHtml += '</div>';
 
                 }} catch(err) {{
@@ -1295,154 +1299,162 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 頂部系統導航 Tab 切換列 (保持外觀，點擊開啟新分頁) -->
+        <!-- 頂部固定系統導航 Tab 切換列 (同頁切換核心視窗) -->
         <div class="system-tabs">
-            <a href="javascript:void(0)" class="tab-btn tab-active">
+            <button id="tab-v4" onclick="switchSystemTab('v4')" class="tab-btn tab-active">
                 🌐 IPv4 核心巡檢
-            </a>
-            <a href="https://gcpuffchuang-png.github.io/traceroute-monitor/" target="_blank" class="tab-btn tab-inactive">
+            </button>
+            <button id="tab-v6" onclick="switchSystemTab('v6')" class="tab-btn tab-inactive">
                 🚀 IPv6 核心巡檢
-            </a>
+            </button>
         </div>
 
-        <div class="header">
-            <div>
-                <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:28px;">🌐</span> Internet 路由巡檢儀表板
-                </h1>
-                <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
-                    📍 <strong>探測節點：</strong>台灣本地 ＋ 境外輪播節點 ({current_overseas['city']})<br>
-                    ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span>
+        <!-- 視窗容器 1：IPv4 原有完整儀表板 -->
+        <div id="ipv4-view-container">
+            <div class="header">
+                <div>
+                    <h1 style="margin:0 0 10px 0; font-size:26px; color:#f8fafc; font-weight:800; display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:28px;">🌐</span> Internet 路由巡檢儀表板
+                    </h1>
+                    <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
+                        📍 <strong>探測節點：</strong>台灣本地 ＋ 境外輪播節點 ({current_overseas['city']})<br>
+                        ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span>
+                    </div>
                 </div>
-            </div>
-            
-            <div style="display:flex; gap:12px; align-items:center;">
-                <button id="ack-btn" onclick="ackAlarm()" style="background:#334155; color:#94a3b8; border:none; border-radius:8px; padding:11px 18px; cursor:not-allowed; font-size:15px; font-weight:bold;">
-                    🔕 靜音警報 (無告警)
-                </button>
-                <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold;">
-                    🔄 畫面刷新
-                </button>
-                <a href="https://globalping.io/" target="_blank" style="text-decoration:none; background:#6366f1; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
-                    🛠️ 自訂單點測試
-                </a>
-            </div>
-        </div>
-
-        <!-- 頂部四大指標卡 -->
-        <div class="cards">
-            <!-- 1. 總數 -->
-            <div class="card" style="border-top:4px solid #38bdf8;">
-                <div style="font-size:20px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
-                <div style="font-size:36px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
-            </div>
-
-            <!-- 2. 國內外全正常 -->
-            <div class="card" style="border-top:4px solid #10b981;">
-                <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">國內外全正常 (抵達 16 台節點)</div>
-                <div style="font-size:36px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
-            </div>
-
-            <!-- 3. 台灣端異常 -->
-            <div class="card" style="border-top:4px solid {'#ef4444' if (tw_nobr_count + tw_priv_count) > 0 else '#334155'};">
-                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">台灣端異常</div>
-                <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
-                <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
-                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {tw_nobr_count}</span>
-                    <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {tw_priv_count}</span>
+                
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button id="ack-btn" onclick="ackAlarm()" style="background:#334155; color:#94a3b8; border:none; border-radius:8px; padding:11px 18px; cursor:not-allowed; font-size:15px; font-weight:bold;">
+                        🔕 靜音警報 (無告警)
+                    </button>
+                    <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:11px 20px; cursor:pointer; font-size:15px; font-weight:bold;">
+                        🔄 畫面刷新
+                    </button>
+                    <a href="https://globalping.io/" target="_blank" style="text-decoration:none; background:#6366f1; color:#fff; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:bold; display:inline-block;">
+                        🛠️ 自訂單點測試
+                    </a>
                 </div>
             </div>
 
-            <!-- 4. 境外端異常 -->
-            <div class="card" style="border-top:4px solid {'#ef4444' if (ov_nobr_count + ov_priv_count) > 0 else '#334155'};">
-                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">境外端異常 ({current_overseas['city']})</div>
-                <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
-                <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
-                    <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {ov_nobr_count}</span>
-                    <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {ov_priv_count}</span>
+            <!-- 頂部四大指標卡 -->
+            <div class="cards">
+                <!-- 1. 總數 -->
+                <div class="card" style="border-top:4px solid #38bdf8;">
+                    <div style="font-size:20px; font-weight:bold; color:#94a3b8; margin-bottom:6px;">監控目標總數</div>
+                    <div style="font-size:36px; font-weight:900; color:#ffffff;">{total_count} <span style="font-size:14px; color:#94a3b8; font-weight:normal;">組 IP</span></div>
+                </div>
+
+                <!-- 2. 國內外全正常 -->
+                <div class="card" style="border-top:4px solid #10b981;">
+                    <div style="font-size:20px; font-weight:bold; color:#a7f3d0; margin-bottom:6px;">國內外全正常 (抵達 16 台節點)</div>
+                    <div style="font-size:36px; font-weight:900; color:#34d399;">{dual_ok_count} <span style="font-size:14px; color:#a7f3d0; font-weight:normal;">組</span></div>
+                </div>
+
+                <!-- 3. 台灣端異常 -->
+                <div class="card" style="border-top:4px solid {'#ef4444' if (tw_nobr_count + tw_priv_count) > 0 else '#334155'};">
+                    <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">台灣端異常</div>
+                    <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+                    <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
+                        <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {tw_nobr_count}</span>
+                        <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {tw_priv_count}</span>
+                    </div>
+                </div>
+
+                <!-- 4. 境外端異常 -->
+                <div class="card" style="border-top:4px solid {'#ef4444' if (ov_nobr_count + ov_priv_count) > 0 else '#334155'};">
+                    <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">境外端異常 ({current_overseas['city']})</div>
+                    <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
+                    <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
+                        <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {ov_nobr_count}</span>
+                        <span style="background:rgba(245,158,11,0.2); color:#fde047; padding:2px 8px; border-radius:4px;">私網: {ov_priv_count}</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:20px; font-size:14px; display:flex; align-items:center; gap:8px;">
-            <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
-        </div>
+            <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:20px; font-size:14px; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
+            </div>
 
-        <!-- 機房分類篩選列 (TNE 正名) -->
-        <div class="filter-container">
-            <span style="font-size:14px; color:#94a3b8; font-weight:bold;">📍 機房篩選：</span>
-            <button class="filter-btn active" onclick="filterLocation('全部', this)">全部</button>
-            <button class="filter-btn" onclick="filterLocation('台北', this)">台北</button>
-            <button class="filter-btn" onclick="filterLocation('桃園', this)">桃園</button>
-            <button class="filter-btn" onclick="filterLocation('台中', this)">台中</button>
-            <button class="filter-btn" onclick="filterLocation('高雄', this)">高雄</button>
-            <button class="filter-btn" onclick="filterLocation('三重', this)">三重</button>
-            <button class="filter-btn" onclick="filterLocation('彰化', this)">彰化</button>
-            <button class="filter-btn" onclick="filterLocation('TNE', this)">TNE</button>
-        </div>
+            <!-- 機房分類篩選列 (維持台南純中文按鈕) -->
+            <div class="filter-container">
+                <span style="font-size:14px; color:#94a3b8; font-weight:bold;">📍 機房篩選：</span>
+                <button class="filter-btn active" onclick="filterLocation('全部', this)">全部</button>
+                <button class="filter-btn" onclick="filterLocation('台北', this)">台北</button>
+                <button class="filter-btn" onclick="filterLocation('桃園', this)">桃園</button>
+                <button class="filter-btn" onclick="filterLocation('台中', this)">台中</button>
+                <button class="filter-btn" onclick="filterLocation('高雄', this)">高雄</button>
+                <button class="filter-btn" onclick="filterLocation('三重', this)">三重</button>
+                <button class="filter-btn" onclick="filterLocation('彰化', this)">彰化</button>
+                <button class="filter-btn" onclick="filterLocation('台南', this)">台南</button>
+            </div>
 
-        <!-- 巡檢主表格 -->
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:18%;">目標 IP</th>
-                        <th style="width:12%;">元件</th>
-                        <th style="width:24%;">台灣端路徑</th>
-                        <th style="width:24%;">境外端路徑 ({current_overseas['city']})</th>
-                        <th style="width:10%;">綜合判定</th>
-                        <th style="text-align:center;width:12%;">診斷與探測</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 7 天歷史快照 -->
-        <div class="history-box">
-            <h3 style="margin-top:0;margin-bottom:8px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(若該次有異常，點擊該列即可展開失敗 IP 清單)</span></h3>
-            <div class="custom-scrollbar" style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
-                <table style="box-shadow:none;">
+            <!-- 巡檢主表格 -->
+            <div class="table-responsive">
+                <table>
                     <thead>
                         <tr>
-                            <th style="background:#090d16;padding:10px 12px;">巡檢時間點</th>
-                            <th style="background:#090d16;padding:10px 12px;">探測節點</th>
-                            <th style="background:#090d16;padding:10px 12px;">目標總數</th>
-                            <th style="background:#090d16;padding:10px 12px;">國內外全正常</th>
-                            <th style="background:#090d16;padding:10px 12px;">台灣未達</th>
-                            <th style="background:#090d16;padding:10px 12px;">台灣私網</th>
-                            <th style="background:#090d16;padding:10px 12px;">境外未達</th>
-                            <th style="background:#090d16;padding:10px 12px;">境外私網</th>
+                            <th style="width:18%;">目標 IP</th>
+                            <th style="width:12%;">元件</th>
+                            <th style="width:24%;">台灣端路徑</th>
+                            <th style="width:24%;">境外端路徑 ({current_overseas['city']})</th>
+                            <th style="width:10%;">綜合判定</th>
+                            <th style="text-align:center;width:12%;">診斷與探測</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {history_rows_html}
+                        {rows_html}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- 7 天歷史快照 -->
+            <div class="history-box">
+                <h3 style="margin-top:0;margin-bottom:8px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(若該次有異常，點擊該列即可展開失敗 IP 清單)</span></h3>
+                <div class="custom-scrollbar" style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
+                    <table style="box-shadow:none;">
+                        <thead>
+                            <tr>
+                                <th style="background:#090d16;padding:10px 12px;">巡檢時間點</th>
+                                <th style="background:#090d16;padding:10px 12px;">探測節點</th>
+                                <th style="background:#090d16;padding:10px 12px;">目標總數</th>
+                                <th style="background:#090d16;padding:10px 12px;">國內外全正常</th>
+                                <th style="background:#090d16;padding:10px 12px;">台灣未達</th>
+                                <th style="background:#090d16;padding:10px 12px;">台灣私網</th>
+                                <th style="background:#090d16;padding:10px 12px;">境外未達</th>
+                                <th style="background:#090d16;padding:10px 12px;">境外私網</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {history_rows_html}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 顯示路由變更 LOG -->
+            <div class="audit-box">
+                <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(保留過去 7 天內所有狀態變更)</span></h3>
+                <div class="custom-scrollbar" style="max-height:300px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
+                    <table style="box-shadow:none;">
+                        <thead>
+                            <tr>
+                                <th style="background:#090d16;padding:10px 12px;width:18%;">發生時間</th>
+                                <th style="background:#090d16;padding:10px 12px;width:15%;">事件類型</th>
+                                <th style="background:#090d16;padding:10px 12px;width:18%;">目標 IP</th>
+                                <th style="background:#090d16;padding:10px 12px;width:14%;">元件代號</th>
+                                <th style="background:#090d16;padding:10px 12px;width:35%;">路由變更明細 / 抵達節點</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {logs_rows_html}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- 顯示路由變更 LOG -->
-        <div class="audit-box">
-            <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(保留過去 7 天內所有狀態變更)</span></h3>
-            <div class="custom-scrollbar" style="max-height:300px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
-                <table style="box-shadow:none;">
-                    <thead>
-                        <tr>
-                            <th style="background:#090d16;padding:10px 12px;width:18%;">發生時間</th>
-                            <th style="background:#090d16;padding:10px 12px;width:15%;">事件類型</th>
-                            <th style="background:#090d16;padding:10px 12px;width:18%;">目標 IP</th>
-                            <th style="background:#090d16;padding:10px 12px;width:14%;">元件代號</th>
-                            <th style="background:#090d16;padding:10px 12px;width:35%;">路由變更明細 / 抵達節點</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {logs_rows_html}
-                    </tbody>
-                </table>
-            </div>
+        <!-- 視窗容器 2：IPv6 內嵌視窗 (同頁切換展示) -->
+        <div id="ipv6-view-container">
+            <iframe id="ipv6-frame" src="https://gcpuffchuang-png.github.io/traceroute-monitor/" loading="lazy"></iframe>
         </div>
     </div>
 

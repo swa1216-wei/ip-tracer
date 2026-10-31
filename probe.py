@@ -696,7 +696,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (含 Tab 內嵌同頁切換、純中文台南篩選、TNE 正名)
+# 第五部分：HTML 前端組裝 (無縫自然貼齊之 IPv6 容器、純中文台南、TNE 正名)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -840,11 +840,13 @@ for idx, r in enumerate(current_results):
         </td>
     </tr>
     <tr id="log-{idx}" class="log-detail-row" data-loc="{r['loc']}" style="display:none;background:#090d16;">
-        <td colspan="6" style="padding:16px;">
-            <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">台灣本地節點 Traceroute 日誌：</div>
-            <pre style="margin:0 0 16px 0;color:#38bdf8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['tw_raw']}</pre>
-            <div style="font-weight:bold;color:#a855f7;margin-bottom:6px;">境外節點 ({r['ov_city']}) Traceroute 日誌：</div>
-            <pre style="margin:0;color:#c084fc;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['ov_raw']}</pre>
+        <td colspan="6" style="padding:0;">
+            <div class="log-inner-box">
+                <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">台灣本地節點 Traceroute 日誌：</div>
+                <pre class="trace-pre" style="color:#38bdf8;">{r['tw_raw']}</pre>
+                <div style="font-weight:bold;color:#a855f7;margin-bottom:6px;margin-top:14px;">境外節點 ({r['ov_city']}) Traceroute 日誌：</div>
+                <pre class="trace-pre" style="color:#c084fc;">{r['ov_raw']}</pre>
+            </div>
         </td>
     </tr>
     """
@@ -910,9 +912,23 @@ html_content = f"""<!DOCTYPE html>
         .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
         .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
 
-        /* 主視窗切換 (IPv4 與 IPv6 雙容器) */
-        #ipv6-view-container {{ display: none; width: 100%; height: 85vh; border: 1px solid #334155; border-radius: 12px; overflow: hidden; background: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }}
-        #ipv6-frame {{ width: 100%; height: 100%; border: none; }}
+        /* IPv6 容器：徹底消除外框、陰影與畫中畫感，高度自動貼齊視窗 */
+        #ipv6-view-container {{ 
+            display: none; 
+            width: 100%; 
+            height: calc(100vh - 110px); 
+            border: none; 
+            margin: 0; 
+            padding: 0; 
+            background: #0b1120; 
+        }}
+        #ipv6-frame {{ 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            display: block; 
+            background: #0b1120; 
+        }}
 
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
         .cards {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }}
@@ -927,6 +943,10 @@ html_content = f"""<!DOCTYPE html>
         .table-responsive {{ width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; box-shadow:0 8px 24px rgba(0,0,0,0.3); margin-bottom: 20px; }}
         table {{ width:100%; border-collapse:collapse; background:#1e293b; min-width: 820px; }}
         th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
+
+        /* 展開日誌容器與自動換行設定 */
+        .log-inner-box {{ padding: 16px; }}
+        .trace-pre {{ margin:0; font-size:13px; line-height:1.5; white-space:pre-wrap; word-break:break-all; background:#0d1527; padding:12px; border-radius:6px; }}
 
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
@@ -979,7 +999,7 @@ html_content = f"""<!DOCTYPE html>
             color: #e2e8f0;
         }}
 
-        /* 手機版 RWD 樣式 */
+        /* 手機版 RWD 樣式 (寬度與日誌貼齊螢幕) */
         @media (max-width: 768px) {{
             body {{ padding: 12px; }}
             .header {{ flex-direction: column; align-items: flex-start; gap: 16px; }}
@@ -992,6 +1012,20 @@ html_content = f"""<!DOCTYPE html>
             .filter-container {{ padding: 10px; gap: 6px; }}
             .filter-btn {{ font-size: 13px; padding: 5px 12px; }}
             .modal-box {{ width: 95%; max-height: 90vh; }}
+            
+            /* 將展開日誌寬度鎖定在手機螢幕視野，免橫向滑動 */
+            .log-inner-box {{
+                position: sticky;
+                left: 0;
+                width: calc(100vw - 24px);
+                max-width: calc(100vw - 24px);
+                padding: 12px;
+                box-sizing: border-box;
+            }}
+            .trace-pre {{
+                max-width: 100%;
+                font-size: 12px;
+            }}
         }}
     </style>
     <script>
@@ -1002,7 +1036,7 @@ html_content = f"""<!DOCTYPE html>
         var currentScanTime = "{now_str}";
         var brList = {br_whitelist_js};
 
-        // 頂部 Tab 同頁切換邏輯 (頂部固定，下方容器無縫切換)
+        // 頂部 Tab 同頁切換邏輯
         function switchSystemTab(tabType) {{
             var tabV4 = document.getElementById('tab-v4');
             var tabV6 = document.getElementById('tab-v6');
@@ -1266,7 +1300,7 @@ html_content = f"""<!DOCTYPE html>
                     resultsHtml += '<strong style="color:#f8fafc;font-size:15px;">📍 ' + loc.name + '</strong>';
                     resultsHtml += '<div>' + verdictBadge + '</div>';
                     resultsHtml += '</div>';
-                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
+                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-all;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
                     resultsHtml += '</div>';
 
                 }} catch(err) {{
@@ -1299,7 +1333,7 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 頂部固定系統導航 Tab 切換列 (同頁切換核心視窗) -->
+        <!-- 頂部固定系統導航 Tab 切換列 -->
         <div class="system-tabs">
             <button id="tab-v4" onclick="switchSystemTab('v4')" class="tab-btn tab-active">
                 🌐 IPv4 核心巡檢
@@ -1452,7 +1486,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 視窗容器 2：IPv6 內嵌視窗 (同頁切換展示) -->
+        <!-- 視窗容器 2：無縫自然貼齊之 IPv6 容器 (無外框、無白捲軸、完全融合) -->
         <div id="ipv6-view-container">
             <iframe id="ipv6-frame" src="https://gcpuffchuang-png.github.io/traceroute-monitor/" loading="lazy"></iframe>
         </div>

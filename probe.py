@@ -34,9 +34,9 @@ BR_LIST = {
 }
 
 OVERSEAS_NODES = [
-    {"country": "JP", "city": "東京", "flag": "🇯🇵"},
-    {"country": "HK", "city": "香港", "flag": "🇭🇰"},
-    {"country": "SG", "city": "新加坡", "flag": "🇸🇬"}
+    {"country": "JP", "city": "東京"},
+    {"country": "HK", "city": "香港"},
+    {"country": "SG", "city": "新加坡"}
 ]
 
 TARGET_METADATA = {
@@ -146,15 +146,15 @@ TARGET_METADATA = {
   "42.71.192.8":   {"elem": "G-CH-12U", "loc": "彰化"},
   "42.71.224.8":   {"elem": "G-CH-12U", "loc": "彰化"},
 
-  # --- TN 節點 (台南) ---
-  "42.78.0.8":     {"elem": "G-TN-11U", "loc": "台南"},
-  "42.78.32.8":    {"elem": "G-TN-11U", "loc": "台南"},
-  "42.78.64.8":    {"elem": "G-TN-11U", "loc": "台南"},
-  "42.78.96.8":    {"elem": "G-TN-11U", "loc": "台南"},
-  "42.78.128.8":   {"elem": "G-TN-12U", "loc": "台南"},
-  "42.78.160.8":   {"elem": "G-TN-12U", "loc": "台南"},
-  "42.78.192.8":   {"elem": "G-TN-12U", "loc": "台南"},
-  "42.78.224.8":   {"elem": "G-TN-12U", "loc": "台南"}
+  # --- TNE 節點 (台南) ---
+  "42.78.0.8":     {"elem": "G-TN-11U", "loc": "TNE"},
+  "42.78.32.8":    {"elem": "G-TN-11U", "loc": "TNE"},
+  "42.78.64.8":    {"elem": "G-TN-11U", "loc": "TNE"},
+  "42.78.96.8":    {"elem": "G-TN-11U", "loc": "TNE"},
+  "42.78.128.8":   {"elem": "G-TN-12U", "loc": "TNE"},
+  "42.78.160.8":   {"elem": "G-TN-12U", "loc": "TNE"},
+  "42.78.192.8":   {"elem": "G-TN-12U", "loc": "TNE"},
+  "42.78.224.8":   {"elem": "G-TN-12U", "loc": "TNE"}
 }
 
 TARGET_IPS = list(TARGET_METADATA.keys())
@@ -391,13 +391,13 @@ def parse_trace_output(target, raw_output, country_code, city_name):
         "raw": raw_output
     }
 
-# 啟動初次探測 (產線調整為 5 條，平滑請求避免觸發 429)
+# 啟動初次探測 (5 條產線)
 all_tasks = []
 for target in TARGET_IPS:
     all_tasks.append((target, "TW"))
     all_tasks.append((target, current_overseas["country"]))
 
-print(f"[{now_str}] 巡檢 (🇹🇼 台灣 + {current_overseas['flag']} {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 5 產線啟動...")
+print(f"[{now_str}] 巡檢 (台灣 + {current_overseas['city']}) 共 {len(all_tasks)} 個任務，以 5 產線啟動...")
 
 raw_results = {}
 with ThreadPoolExecutor(max_workers=5) as executor:
@@ -421,7 +421,7 @@ for target in TARGET_IPS:
     if res_ov["cat"] == "NO_BR":
         retry_tasks.append((target, current_overseas["country"]))
 
-# 【優化項目四】：假警報防抖等待延長至 12 秒
+# 溫和防抖複測 (冷卻 12 秒後重試)
 if retry_tasks:
     print(f"[{now_str}] 偵測到 {len(retry_tasks)} 個任務未達節點，防抖冷卻 12 秒後啟動複測...")
     time.sleep(12)
@@ -519,7 +519,7 @@ for target in TARGET_IPS:
         combined_status = "OK"
         combined_desc = "✔ 國內外正常抵達節點"
 
-    # 台灣端狀態變更 (結構化字典儲存，支援表格化)
+    # 台灣端狀態變更
     prev_tw = state["node_status"]["TW"].get(target, "OK")
     if prev_tw == "OK" and p_tw["status"] == "ALERT":
         state["event_logs"].insert(0, {
@@ -530,7 +530,7 @@ for target in TARGET_IPS:
             "elem": elem_code,
             "desc": p_tw['desc']
         })
-        newly_alerted.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端: {p_tw['desc']}"})
+        newly_alerted.append({"target": target, "elem": elem_code, "desc": f"台灣端: {p_tw['desc']}"})
     elif prev_tw == "ALERT" and p_tw["status"] == "OK":
         state["event_logs"].insert(0, {
             "time": now_str,
@@ -540,10 +540,10 @@ for target in TARGET_IPS:
             "elem": elem_code,
             "desc": f"抵達 {p_tw['br_name']}" if p_tw['br_name'] else p_tw['desc']
         })
-        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"🇹🇼 台灣端已恢復連通 ({p_tw['desc']})"})
+        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"台灣端已恢復連通 ({p_tw['desc']})"})
     state["node_status"]["TW"][target] = p_tw["status"]
 
-    # 境外端狀態變更 (結構化字典儲存，支援表格化)
+    # 境外端狀態變更
     ov_c = current_overseas["country"]
     prev_ov = state["node_status"][ov_c].get(target, "OK")
     if prev_ov == "OK" and p_ov["status"] == "ALERT":
@@ -555,7 +555,7 @@ for target in TARGET_IPS:
             "elem": elem_code,
             "desc": p_ov['desc']
         })
-        newly_alerted.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端: {p_ov['desc']}"})
+        newly_alerted.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['city']}端: {p_ov['desc']}"})
     elif prev_ov == "ALERT" and p_ov["status"] == "OK":
         state["event_logs"].insert(0, {
             "time": now_str,
@@ -565,7 +565,7 @@ for target in TARGET_IPS:
             "elem": elem_code,
             "desc": f"抵達 {p_ov['br_name']}" if p_ov['br_name'] else p_ov['desc']
         })
-        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['flag']} {current_overseas['city']}端已恢復連通 ({p_ov['desc']})"})
+        newly_recovered.append({"target": target, "elem": elem_code, "desc": f"{current_overseas['city']}端已恢復連通 ({p_ov['desc']})"})
     state["node_status"][ov_c][target] = p_ov["status"]
 
     current_results.append({
@@ -583,7 +583,6 @@ for target in TARGET_IPS:
         "tw_raw": p_tw["raw"],
         "ov_city": current_overseas["city"],
         "ov_country": current_overseas["country"],
-        "ov_flag": current_overseas["flag"],
         "ov_hop": p_ov["last_hop"],
         "ov_base": base_ov,
         "ov_diff": diff_ov_str,
@@ -606,7 +605,7 @@ total_alert_count = total_count - dual_ok_count
 
 snapshot_entry = {
     "time": now_str,
-    "nodes": f"🇹🇼 台灣 ＋ {current_overseas['flag']} {current_overseas['city']}",
+    "nodes": f"台灣 ＋ {current_overseas['city']}",
     "total": total_count,
     "ok": dual_ok_count,
     "tw_nobr": tw_nobr_count,
@@ -618,7 +617,7 @@ snapshot_entry = {
 }
 state["history_snapshots"].insert(0, snapshot_entry)
 
-# 7 天 (168 小時) 滾動清理：歷史快照與 LOG 全面精準保留 7 天
+# 7 天滾動清理
 seven_days_ago = now_dt - timedelta(days=7)
 
 valid_snapshots = []
@@ -676,7 +675,7 @@ if now_dt.hour >= 8 and state.get("last_heartbeat_date") != today_date_str:
     daily_facts = [
         {"title": "系統狀態", "value": "🟢 背景巡檢持續運作中 (間隔 15 分鐘)"},
         {"title": "監控規模", "value": "102 組 IP (抵達 16 台節點白名單)"},
-        {"title": "探測涵蓋", "value": "🇹🇼 台灣本地 ＋ 🌏 境外輪播 (東京/香港/新加坡)"},
+        {"title": "探測涵蓋", "value": "台灣本地 ＋ 境外輪播 (東京/香港/新加坡)"},
         {"title": "統計區間", "value": f"截至今日 08:00 (過去 24 小時)"},
         {"title": "巡檢總次數", "value": f"共執行 {len(snapshots_24h)} 次自動巡檢"},
         {"title": "異常巡檢", "value": anomaly_summary},
@@ -697,7 +696,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (含純中文機房篩選、手機 RWD 自適應、頂部 Tab)
+# 第五部分：HTML 前端組裝 (無國旗 Emoji、TNE 正名、免橫向滑動日誌)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -772,27 +771,27 @@ for s_idx, item in enumerate(state["history_snapshots"][:100]):
     {drawer_html}
     """
 
-# 巡檢主表格 (含 data-location 支援分類過濾)
+# 巡檢主表格
 rows_html = ""
 for idx, r in enumerate(current_results):
     bg_color = "#3f1a1a" if r["status"] == "ALERT" else "transparent"
     
-    # 語意化動態按鈕判定
+    # 純中文語意化按鈕判定 (完全移除 Emoji)
     is_tw_alert = (r["tw_status"] == "ALERT")
     is_ov_alert = (r["ov_status"] == "ALERT")
 
     if is_tw_alert and not is_ov_alert:
         retest_btn_style = "background:#ea580c;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
-        retest_btn_text = "⚡ 複測 🇹🇼台灣"
+        retest_btn_text = "⚡ 複測 台灣"
     elif is_ov_alert and not is_tw_alert:
         retest_btn_style = "background:#ea580c;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
-        retest_btn_text = f"⚡ 複測 {r['ov_flag']}{r['ov_city']}"
+        retest_btn_text = f"⚡ 複測 {r['ov_city']}"
     elif is_tw_alert and is_ov_alert:
         retest_btn_style = "background:#dc2626;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
-        retest_btn_text = f"⚡ 雙向複測 (🇹🇼+{r['ov_flag']})"
+        retest_btn_text = f"⚡ 雙向複測 (台灣+{r['ov_city']})"
     else:
         retest_btn_style = "background:#334155;color:#94a3b8;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;"
-        retest_btn_text = f"🔄 抽查 (🇹🇼+{r['ov_flag']})"
+        retest_btn_text = f"🔄 抽查 (台灣+{r['ov_city']})"
 
     if r["status"] == "ALERT":
         status_badge = f'<span style="color:#f87171;font-weight:bold;font-size:15px;">{r["desc"]}</span>'
@@ -841,16 +840,18 @@ for idx, r in enumerate(current_results):
         </td>
     </tr>
     <tr id="log-{idx}" class="log-detail-row" data-loc="{r['loc']}" style="display:none;background:#090d16;">
-        <td colspan="6" style="padding:16px;">
-            <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">🇹🇼 台灣本地節點 Traceroute 日誌：</div>
-            <pre style="margin:0 0 16px 0;color:#38bdf8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['tw_raw']}</pre>
-            <div style="font-weight:bold;color:#a855f7;margin-bottom:6px;">{r['ov_flag']} 境外節點 ({r['ov_city']}) Traceroute 日誌：</div>
-            <pre style="margin:0;color:#c084fc;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#0d1527;padding:12px;border-radius:6px;">{r['ov_raw']}</pre>
+        <td colspan="6" style="padding:0;">
+            <div class="log-inner-box">
+                <div style="font-weight:bold;color:#34d399;margin-bottom:6px;">台灣本地節點 Traceroute 日誌：</div>
+                <pre class="trace-pre" style="color:#38bdf8;">{r['tw_raw']}</pre>
+                <div style="font-weight:bold;color:#a855f7;margin-bottom:6px;margin-top:14px;">境外節點 ({r['ov_city']}) Traceroute 日誌：</div>
+                <pre class="trace-pre" style="color:#c084fc;">{r['ov_raw']}</pre>
+            </div>
         </td>
     </tr>
     """
 
-# 路由變更 LOG：組裝為科技風整齊表格
+# 路由變更 LOG
 logs_rows_html = ""
 if not state["event_logs"]:
     logs_rows_html = """
@@ -925,6 +926,10 @@ html_content = f"""<!DOCTYPE html>
         table {{ width:100%; border-collapse:collapse; background:#1e293b; min-width: 820px; }}
         th {{ background:#0f172a; padding:16px 12px; text-align:left; color:#94a3b8; font-weight:700; font-size:15px; border-bottom:1px solid #334155; }}
 
+        /* 展開日誌容器與排版設定 */
+        .log-inner-box {{ padding: 16px; }}
+        .trace-pre {{ margin:0; font-size:13px; line-height:1.5; white-space:pre-wrap; word-break:break-all; background:#0d1527; padding:12px; border-radius:6px; }}
+
         .history-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #a855f7; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         .audit-box {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-left:5px solid #38bdf8; padding:22px; border-radius:10px; margin-top:32px; border:1px solid #334155; }}
         
@@ -976,7 +981,7 @@ html_content = f"""<!DOCTYPE html>
             color: #e2e8f0;
         }}
 
-        /* 【優化項目二】：手機版面 RWD 響應式優化 */
+        /* 手機版 RWD 響應式優化 (解決寬度與日誌滑動問題) */
         @media (max-width: 768px) {{
             body {{ padding: 12px; }}
             .header {{ flex-direction: column; align-items: flex-start; gap: 16px; }}
@@ -989,6 +994,20 @@ html_content = f"""<!DOCTYPE html>
             .filter-container {{ padding: 10px; gap: 6px; }}
             .filter-btn {{ font-size: 13px; padding: 5px 12px; }}
             .modal-box {{ width: 95%; max-height: 90vh; }}
+            
+            /* 將展開日誌寬度鎖定在手機螢幕視野，免橫向滑動 */
+            .log-inner-box {{
+                position: sticky;
+                left: 0;
+                width: calc(100vw - 24px);
+                max-width: calc(100vw - 24px);
+                padding: 12px;
+                box-sizing: border-box;
+            }}
+            .trace-pre {{
+                max-width: 100%;
+                font-size: 12px;
+            }}
         }}
     </style>
     <script>
@@ -1115,7 +1134,7 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        // ==================== 【優化項目一】：純中文機房篩選 ====================
+        // 機房分類篩選 (純中文地名)
         function filterLocation(locName, btnElement) {{
             var filterBtns = document.querySelectorAll('.filter-btn');
             filterBtns.forEach(function(btn) {{
@@ -1141,7 +1160,7 @@ html_content = f"""<!DOCTYPE html>
             }});
         }}
 
-        // ==================== 即時複測 (Live Retest) 核心邏輯 ====================
+        // 即時複測 (Live Retest) 核心邏輯
         function closeRetestModal() {{
             document.getElementById('retest-modal').style.display = 'none';
         }}
@@ -1184,11 +1203,11 @@ html_content = f"""<!DOCTYPE html>
 
             var testLocations = [];
             if (twStatus === "ALERT" && ovStatus !== "ALERT") {{
-                testLocations.push({{ code: "TW", name: "🇹🇼 台灣本地節點" }});
+                testLocations.push({{ code: "TW", name: "台灣本地節點" }});
             }} else if (ovStatus === "ALERT" && twStatus !== "ALERT") {{
                 testLocations.push({{ code: ovCountry, name: ovCity + " 境外節點" }});
             }} else {{
-                testLocations.push({{ code: "TW", name: "🇹🇼 台灣本地節點" }});
+                testLocations.push({{ code: "TW", name: "台灣本地節點" }});
                 testLocations.push({{ code: ovCountry, name: ovCity + " 境外節點" }});
             }}
 
@@ -1243,7 +1262,7 @@ html_content = f"""<!DOCTYPE html>
                     resultsHtml += '<strong style="color:#f8fafc;font-size:15px;">📍 ' + loc.name + '</strong>';
                     resultsHtml += '<div>' + verdictBadge + '</div>';
                     resultsHtml += '</div>';
-                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
+                    resultsHtml += '<pre style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-all;background:#020617;padding:12px;border-radius:6px;max-height:220px;overflow-y:auto;">' + rawOutput + '</pre>';
                     resultsHtml += '</div>';
 
                 }} catch(err) {{
@@ -1276,12 +1295,12 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 【優化項目三】：頂部系統導航 Tab 切換列 -->
+        <!-- 頂部系統導航 Tab 切換列 (保持外觀，點擊開啟新分頁) -->
         <div class="system-tabs">
             <a href="javascript:void(0)" class="tab-btn tab-active">
                 🌐 IPv4 核心巡檢
             </a>
-            <a href="https://gcpuffchuang-png.github.io/traceroute-monitor/" class="tab-btn tab-inactive">
+            <a href="https://gcpuffchuang-png.github.io/traceroute-monitor/" target="_blank" class="tab-btn tab-inactive">
                 🚀 IPv6 核心巡檢
             </a>
         </div>
@@ -1292,7 +1311,7 @@ html_content = f"""<!DOCTYPE html>
                     <span style="font-size:28px;">🌐</span> Internet 路由巡檢儀表板
                 </h1>
                 <div style="font-size:14px; color:#94a3b8; line-height:1.7;">
-                    📍 <strong>探測節點：</strong>🇹🇼 台灣本地 ＋ {current_overseas['flag']} 境外輪播節點 ({current_overseas['city']})<br>
+                    📍 <strong>探測節點：</strong>台灣本地 ＋ 境外輪播節點 ({current_overseas['city']})<br>
                     ⏱ <strong>最後巡檢時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span>
                 </div>
             </div>
@@ -1326,7 +1345,7 @@ html_content = f"""<!DOCTYPE html>
 
             <!-- 3. 台灣端異常 -->
             <div class="card" style="border-top:4px solid {'#ef4444' if (tw_nobr_count + tw_priv_count) > 0 else '#334155'};">
-                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">🇹🇼 台灣端異常</div>
+                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">台灣端異常</div>
                 <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (tw_nobr_count + tw_priv_count) > 0 else '#94a3b8'};">{tw_nobr_count + tw_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
                 <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
                     <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {tw_nobr_count}</span>
@@ -1336,7 +1355,7 @@ html_content = f"""<!DOCTYPE html>
 
             <!-- 4. 境外端異常 -->
             <div class="card" style="border-top:4px solid {'#ef4444' if (ov_nobr_count + ov_priv_count) > 0 else '#334155'};">
-                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">{current_overseas['flag']} 境外端異常 ({current_overseas['city']})</div>
+                <div style="font-size:20px; font-weight:bold; color:#fecdd3; margin-bottom:6px;">境外端異常 ({current_overseas['city']})</div>
                 <div style="font-size:36px; font-weight:900; color:{'#fb7185' if (ov_nobr_count + ov_priv_count) > 0 else '#94a3b8'};">{ov_nobr_count + ov_priv_count} <span style="font-size:14px; font-weight:normal; color:#94a3b8;">組</span></div>
                 <div style="display:flex; gap:8px; margin-top:8px; font-size:12px;">
                     <span style="background:rgba(239,68,68,0.2); color:#fca5a5; padding:2px 8px; border-radius:4px;">未達: {ov_nobr_count}</span>
@@ -1349,7 +1368,7 @@ html_content = f"""<!DOCTYPE html>
             <span style="font-size:16px;">📊</span> <strong>24小時巡檢健康指標：</strong> {stat_24h_html}
         </div>
 
-        <!-- 【優化項目一】：機房分類篩選列 (純中文由北到南) -->
+        <!-- 機房分類篩選列 (TNE 正名) -->
         <div class="filter-container">
             <span style="font-size:14px; color:#94a3b8; font-weight:bold;">📍 機房篩選：</span>
             <button class="filter-btn active" onclick="filterLocation('全部', this)">全部</button>
@@ -1359,18 +1378,18 @@ html_content = f"""<!DOCTYPE html>
             <button class="filter-btn" onclick="filterLocation('高雄', this)">高雄</button>
             <button class="filter-btn" onclick="filterLocation('三重', this)">三重</button>
             <button class="filter-btn" onclick="filterLocation('彰化', this)">彰化</button>
-            <button class="filter-btn" onclick="filterLocation('台南', this)">台南</button>
+            <button class="filter-btn" onclick="filterLocation('TNE', this)">TNE</button>
         </div>
 
-        <!-- 巡檢主表格 (包覆 table-responsive 支援手機滑動) -->
+        <!-- 巡檢主表格 -->
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
                         <th style="width:18%;">目標 IP</th>
                         <th style="width:12%;">元件</th>
-                        <th style="width:24%;">🇹🇼 台灣端路徑</th>
-                        <th style="width:24%;">{current_overseas['flag']} 境外端路徑 ({current_overseas['city']})</th>
+                        <th style="width:24%;">台灣端路徑</th>
+                        <th style="width:24%;">境外端路徑 ({current_overseas['city']})</th>
                         <th style="width:10%;">綜合判定</th>
                         <th style="text-align:center;width:12%;">診斷與探測</th>
                     </tr>
@@ -1381,7 +1400,7 @@ html_content = f"""<!DOCTYPE html>
             </table>
         </div>
 
-        <!-- 7 天歷史快照 (支援點擊展開細節) -->
+        <!-- 7 天歷史快照 -->
         <div class="history-box">
             <h3 style="margin-top:0;margin-bottom:8px;font-size:18px;color:#c084fc;">📈 過去 7 天排程巡檢歷史快照 <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(若該次有異常，點擊該列即可展開失敗 IP 清單)</span></h3>
             <div class="custom-scrollbar" style="max-height:280px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
@@ -1392,10 +1411,10 @@ html_content = f"""<!DOCTYPE html>
                             <th style="background:#090d16;padding:10px 12px;">探測節點</th>
                             <th style="background:#090d16;padding:10px 12px;">目標總數</th>
                             <th style="background:#090d16;padding:10px 12px;">國內外全正常</th>
-                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣未達</th>
-                            <th style="background:#090d16;padding:10px 12px;">🇹🇼 台灣私網</th>
-                            <th style="background:#090d16;padding:10px 12px;">🌏 境外未達</th>
-                            <th style="background:#090d16;padding:10px 12px;">🌏 境外私網</th>
+                            <th style="background:#090d16;padding:10px 12px;">台灣未達</th>
+                            <th style="background:#090d16;padding:10px 12px;">台灣私網</th>
+                            <th style="background:#090d16;padding:10px 12px;">境外未達</th>
+                            <th style="background:#090d16;padding:10px 12px;">境外私網</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1405,7 +1424,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 顯示路由變更LOG (7天科技風表格 + 美化拉條) -->
+        <!-- 顯示路由變更 LOG -->
         <div class="audit-box">
             <h3 style="margin-top:0;margin-bottom:12px;font-size:18px;color:#38bdf8;">📋 顯示路由變更LOG <span style="font-size:13px;color:#94a3b8;font-weight:normal;">(保留過去 7 天內所有狀態變更)</span></h3>
             <div class="custom-scrollbar" style="max-height:300px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">

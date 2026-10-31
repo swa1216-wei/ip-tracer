@@ -696,7 +696,7 @@ with open(HISTORY_FILE, "w", encoding="utf-8") as f:
 
 
 # ==============================================================================
-# 第五部分：HTML 前端組裝 (無縫自然貼齊之 IPv6 容器、純中文台南、TNE 正名)
+# 第五部分：HTML 前端組裝 (單一外層捲軸、無縫 IPv6 展開、純中文台南、TNE 正名)
 # ==============================================================================
 
 if not alert_rounds_24h:
@@ -912,19 +912,18 @@ html_content = f"""<!DOCTYPE html>
         .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
         .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
 
-        /* IPv6 容器：徹底消除外框、陰影與畫中畫感，高度自動貼齊視窗 */
+        /* IPv6 容器：展開實際高度，由外層單一捲軸滾動，完全關閉內層拉條 */
         #ipv6-view-container {{ 
             display: none; 
             width: 100%; 
-            height: calc(100vh - 110px); 
-            border: none; 
             margin: 0; 
             padding: 0; 
-            background: #0b1120; 
+            border: none;
+            overflow: visible;
         }}
         #ipv6-frame {{ 
             width: 100%; 
-            height: 100%; 
+            min-height: 1450px; 
             border: none; 
             display: block; 
             background: #0b1120; 
@@ -1036,7 +1035,7 @@ html_content = f"""<!DOCTYPE html>
         var currentScanTime = "{now_str}";
         var brList = {br_whitelist_js};
 
-        // 頂部 Tab 同頁切換邏輯
+        // 頂部 Tab 同頁切換邏輯 (由外層捲軸全權負責滾動)
         function switchSystemTab(tabType) {{
             var tabV4 = document.getElementById('tab-v4');
             var tabV6 = document.getElementById('tab-v6');
@@ -1054,6 +1053,7 @@ html_content = f"""<!DOCTYPE html>
                 v4View.style.display = 'none';
                 v6View.style.display = 'block';
             }}
+            window.scrollTo({{ top: 0, behavior: 'smooth' }});
         }}
 
         function playWarningBeep() {{
@@ -1486,9 +1486,9 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 視窗容器 2：無縫自然貼齊之 IPv6 容器 (無外框、無白捲軸、完全融合) -->
+        <!-- 視窗容器 2：IPv6 內嵌視窗 (單一外層捲軸，內層捲軸關閉) -->
         <div id="ipv6-view-container">
-            <iframe id="ipv6-frame" src="https://gcpuffchuang-png.github.io/traceroute-monitor/" loading="lazy"></iframe>
+            <iframe id="ipv6-frame" src="https://gcpuffchuang-png.github.io/traceroute-monitor/" scrolling="no" loading="lazy"></iframe>
         </div>
     </div>
 

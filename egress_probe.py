@@ -7,45 +7,51 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的設定 (覆蓋主要塞車點、CDN、OTT 與遊戲平台)
+# 第一部分：監控標的設定 (鎖定社群熱議的真實圖片、Reels 影音與檔案下載節點)
 # ==============================================================================
 
 TARGET_SERVICES = [
     {
-        "id": "fastly",
-        "name": "Fastly CDN (X圖片 / GitHub / Reddit)",
-        "target": "fastly.com",
-        "category": "近期主要塞車點"
+        "id": "x_media",
+        "name": "X (Twitter) 圖片節點",
+        "url": "https://pbs.twimg.com",
+        "category": "Fastly CDN (破圖/轉圈災情)",
+        "desc": "X / Twitter 圖片專用 CDN 伺服器"
     },
     {
-        "id": "cloudflare",
-        "name": "Cloudflare (Discord / 遊戲API / 1.1.1.1)",
-        "target": "1.1.1.1",
-        "category": "主流 CDN 骨幹"
+        "id": "meta_reels",
+        "name": "Meta / IG Reels 影片串流",
+        "url": "https://video.xx.fbcdn.net",
+        "category": "Meta 影音骨幹 (看一半轉圈)",
+        "desc": "Instagram Reels 與 FB 短影音串流節點"
     },
     {
-        "id": "google",
-        "name": "Google / YouTube (8.8.8.8)",
-        "target": "8.8.8.8",
-        "category": "國際直連指標"
+        "id": "github_fastly",
+        "name": "GitHub 檔案下載節點",
+        "url": "https://objects.githubusercontent.com",
+        "category": "Fastly CDN (下載掉速災情)",
+        "desc": "GitHub Release 檔案下載骨幹"
     },
     {
-        "id": "akamai",
-        "name": "Akamai CDN (Apple AppStore / 微軟更新)",
-        "target": "www.akamai.com",
-        "category": "主流 CDN 骨幹"
+        "id": "reddit_media",
+        "name": "Reddit 圖片節點",
+        "url": "https://i.redd.it",
+        "category": "Fastly CDN (海外無本島快取)",
+        "desc": "Reddit 討論區高解析圖片來源"
     },
     {
-        "id": "aws",
-        "name": "AWS CloudFront (海外手遊 / 串流影音)",
-        "target": "aws.amazon.com",
-        "category": "跨國雲端節點"
+        "id": "discord_media",
+        "name": "Discord 媒體傳輸節點",
+        "url": "https://cdn.discordapp.com",
+        "category": "Cloudflare CDN (語音/圖床)",
+        "desc": "Discord 聊天圖片與語音附件"
     },
     {
-        "id": "steam",
-        "name": "Steam 遊戲節點 (Valve 海外連線)",
-        "target": "store.steampowered.com",
-        "category": "跨國遊戲連線"
+        "id": "youtube_stream",
+        "name": "YouTube 影音串流指標",
+        "url": "https://googlevideo.com",
+        "category": "Google 國際直連指標",
+        "desc": "YouTube 影音封包對照標準"
     }
 ]
 
@@ -56,19 +62,19 @@ now_str = now_dt.strftime('%Y-%m-%d %H:%M:%S')
 time_short = now_dt.strftime('%H:%M')
 
 # ==============================================================================
-# 第二部分：Globalping 探測函式 (鎖定 TW 且指定 HiNet ASN 3462 / 9294)
+# 第二部分：Globalping HTTPS 體感量測 (鎖定 TW 且指定 HiNet ASN 3462/9294)
 # ==============================================================================
 
-def ping_service(service, ip_version):
+def measure_https_service(service, ip_version):
     """
-    透過 Globalping API 發起 Ping 量測，取得 RTT (延遲) 與 掉包率
-    指定來源必須在台灣 (TW) 且 ASN 包含 3462 (HiNet) 或 9294 (行動核心出口)
+    透過 Globalping API 發起 HTTPS HEAD 請求，
+    精確取得 TCP 握手 + TLS 加密耗時 + 首字節時間 (TTFB)，真實反映開圖/看影片轉圈體驗。
     """
     api_url = "https://api.globalping.io/v1/measurements"
     
     payload = json.dumps({
-        "type": "ping",
-        "target": service["target"],
+        "type": "http",
+        "target": service["url"],
         "locations": [
             {
                 "country": "TW",
@@ -76,7 +82,8 @@ def ping_service(service, ip_version):
             }
         ],
         "measurementOptions": {
-            "packets": 5,
+            "protocol": "HTTPS",
+            "method": "HEAD",
             "ipVersion": ip_version
         },
         "limit": 1
@@ -98,15 +105,15 @@ def ping_service(service, ip_version):
             if e.code == 429:
                 time.sleep(3)
                 continue
-            return service["id"], ip_version, {"status": "FAIL", "rtt": 0, "loss": 100, "probe": "無回應"}
-        except Exception:
-            return service["id"], ip_version, {"status": "FAIL", "rtt": 0, "loss": 100, "probe": "連線異常"}
+            return service["id"], ip_version, {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "err": str(e)}
+        except Exception as e:
+            return service["id"], ip_version, {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "err": str(e)}
 
     if not measurement_id:
-        return service["id"], ip_version, {"status": "FAIL", "rtt": 0, "loss": 100, "probe": "無測量ID"}
+        return service["id"], ip_version, {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "err": "無測量ID"}
 
     poll_url = f"{api_url}/{measurement_id}"
-    for _ in range(12):
+    for _ in range(15):
         time.sleep(1)
         try:
             req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "HiNet-Egress-Probe"})
@@ -116,29 +123,38 @@ def ping_service(service, ip_version):
                     results = data.get("results", [])
                     if results:
                         res = results[0].get("result", {})
-                        probe_info = results[0].get("probe", {})
-                        probe_network = f"{probe_info.get('city', 'TW')} (AS{probe_info.get('asn', '3462')})"
+                        timings = res.get("timings", {})
+                        status_code = res.get("statusCode", 0)
                         
-                        stats = res.get("stats", {})
-                        avg_rtt = stats.get("avg", 0)
-                        loss = stats.get("loss", 0)
+                        # connect (TCP握手), tls (TLS加密), total (首字節抵達總耗時)
+                        tcp_ms = round(timings.get("connect", 0), 1)
+                        total_ms = round(timings.get("total", 0), 1)
                         
-                        return service["id"], ip_version, {
-                            "status": "OK" if loss < 100 else "FAIL",
-                            "rtt": round(avg_rtt, 1),
-                            "loss": round(loss, 1),
-                            "probe": probe_network
-                        }
+                        # 只要有取得回應代碼且非 0，即代表成功建立連線
+                        if status_code > 0 and total_ms > 0:
+                            return service["id"], ip_version, {
+                                "status": "OK",
+                                "code": status_code,
+                                "tcp_ms": tcp_ms,
+                                "total_ms": total_ms
+                            }
+                        else:
+                            return service["id"], ip_version, {
+                                "status": "FAIL",
+                                "code": status_code,
+                                "tcp_ms": tcp_ms,
+                                "total_ms": 0
+                            }
         except Exception:
             pass
 
-    return service["id"], ip_version, {"status": "TIMEOUT", "rtt": 0, "loss": 100, "probe": "逾時"}
+    return service["id"], ip_version, {"status": "TIMEOUT", "total_ms": 0, "tcp_ms": 0, "err": "探測逾時"}
 
-# ==============================================================================
+# ==========================================
 # 第三部分：平行執行探測 (IPv4 與 IPv6 雙棧)
-# ==============================================================================
+# ==========================================
 
-print(f"[{now_str}] 啟動 HiNet 出口體感探測 (指定 ASN 3462)...")
+print(f"[{now_str}] 啟動 HiNet 出口體感 HTTPS 探測 (針對社群卡頓節點)...")
 
 tasks = []
 for s in TARGET_SERVICES:
@@ -147,7 +163,7 @@ for s in TARGET_SERVICES:
 
 results = {}
 with ThreadPoolExecutor(max_workers=4) as executor:
-    future_to_task = {executor.submit(ping_service, t[0], t[1]): (t[0]["id"], t[1]) for t in tasks}
+    future_to_task = {executor.submit(measure_https_service, t[0], t[1]): (t[0]["id"], t[1]) for t in tasks}
     for future in as_completed(future_to_task):
         svc_id, ip_v, res_data = future.result()
         if svc_id not in results:
@@ -155,7 +171,7 @@ with ThreadPoolExecutor(max_workers=4) as executor:
         results[svc_id][ip_v] = res_data
 
 # ==============================================================================
-# 第四部分：歷史資料滾動管理 (保留 24 小時，約 72 筆)
+# 第四部分：體感狀態判定與歷史資料滾動管理 (保留 24 小時)
 # ==============================================================================
 
 history_state = []
@@ -174,58 +190,55 @@ current_snapshot = {
 
 for s in TARGET_SERVICES:
     sid = s["id"]
-    v4 = results.get(sid, {}).get(4, {"status": "FAIL", "rtt": 0, "loss": 100})
-    v6 = results.get(sid, {}).get(6, {"status": "FAIL", "rtt": 0, "loss": 100})
+    v4 = results.get(sid, {}).get(4, {"status": "FAIL", "total_ms": 0, "tcp_ms": 0})
+    v6 = results.get(sid, {}).get(6, {"status": "FAIL", "total_ms": 0, "tcp_ms": 0})
 
-    # 體感狀態判定
-    is_congested = False
-    status_text = "順暢良好"
-    status_color = "#34d399"
+    v4_ms = v4.get("total_ms", 0)
+    v6_ms = v6.get("total_ms", 0)
 
-    v4_rtt = v4.get("rtt", 0)
-    v6_rtt = v6.get("rtt", 0)
-
-    if v4.get("loss", 0) >= 20:
-        is_congested = True
-        status_text = f"🚨 掉包嚴重 ({v4['loss']}%)"
+    # 體感狀態量化判定標準：
+    # 綠燈：< 100ms (秒開良好)
+    # 黃燈：100ms ~ 250ms (稍微延遲)
+    # 橘燈：比 IPv6 慢 2.5 倍且 > 120ms (典型 IPv4 出口壅塞)
+    # 紅燈：>= 350ms 或 連線逾時 (嚴重轉圈/卡死)
+    if v4.get("status") != "OK":
+        status_text = "🚨 連線逾時 / 失敗"
         status_color = "#f87171"
-    elif v4_rtt >= 200:
-        is_congested = True
-        status_text = f"🚨 延遲暴增 ({v4_rtt}ms)"
+    elif v4_ms >= 350:
+        status_text = f"🚨 嚴重轉圈 ({v4_ms}ms)"
         status_color = "#f87171"
-    elif v6_rtt > 0 and v4_rtt > (v6_rtt * 2.5) and v4_rtt > 90:
-        is_congested = True
-        status_text = f"⚠️ IPv4 塞車 (v4:{v4_rtt}ms / v6:{v6_rtt}ms)"
+    elif v6_ms > 0 and v4_ms > (v6_ms * 2.5) and v4_ms > 120:
+        status_text = f"⚠️ IPv4 出口偏塞 (v4:{v4_ms}ms vs v6:{v6_ms}ms)"
         status_color = "#fbbf24"
-    elif v4_rtt >= 80:
-        status_text = f"微幅延遲 ({v4_rtt}ms)"
+    elif v4_ms >= 100:
+        status_text = f"稍微延遲 ({v4_ms}ms)"
         status_color = "#fde047"
+    else:
+        status_text = "順暢良好 (秒開)"
+        status_color = "#34d399"
 
     current_snapshot["data"][sid] = {
         "name": s["name"],
         "category": s["category"],
-        "v4_rtt": v4_rtt,
-        "v4_loss": v4.get("loss", 0),
-        "v6_rtt": v6_rtt,
-        "v6_loss": v6.get("loss", 0),
-        "probe": v4.get("probe", "HiNet"),
+        "desc": s["desc"],
+        "v4_ms": v4_ms,
+        "v4_status": v4.get("status"),
+        "v6_ms": v6_ms,
+        "v6_status": v6.get("status"),
         "status_text": status_text,
-        "status_color": status_color,
-        "is_congested": is_congested
+        "status_color": status_color
     }
 
-# 存入滾動歷史 (保留最近 72 筆，以 20 分鐘一筆計算剛好 24 小時)
 history_state.insert(0, current_snapshot)
-history_state = history_state[:72]
+history_state = history_state[:72]  # 保留 24 小時
 
 with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：前端 HTML 組裝 (整合 Chart.js 繪製 24 小時雙軌折線圖)
+# 第五部分：前端 HTML 組裝 (清晰的量化標準、HTTPS 雙軌折線圖)
 # ==============================================================================
 
-# 準備折線圖的時間軸標籤與各服務的歷史數列 (由舊到新排序)
 chronological_data = list(reversed(history_state))
 chart_labels = json.dumps([item["time_short"] for item in chronological_data])
 
@@ -233,37 +246,35 @@ chart_datasets = {}
 for s in TARGET_SERVICES:
     sid = s["id"]
     chart_datasets[sid] = {
-        "v4": [item.get("data", {}).get(sid, {}).get("v4_rtt", 0) for item in chronological_data],
-        "v6": [item.get("data", {}).get(sid, {}).get("v6_rtt", 0) for item in chronological_data]
+        "v4": [item.get("data", {}).get(sid, {}).get("v4_ms", 0) for item in chronological_data],
+        "v6": [item.get("data", {}).get(sid, {}).get("v6_ms", 0) for item in chronological_data]
     }
 
 cards_html = ""
 for s in TARGET_SERVICES:
     sid = s["id"]
     curr = current_snapshot["data"].get(sid, {})
-    v4_str = f"{curr['v4_rtt']} ms" if curr['v4_loss'] < 100 else "無法連通"
-    v6_str = f"{curr['v6_rtt']} ms" if curr['v6_loss'] < 100 else "無 / 斷線"
-    loss_tag = f"<span style='color:#f87171;'> (掉包 {curr['v4_loss']}%)</span>" if curr['v4_loss'] > 0 else ""
+    v4_str = f"{curr['v4_ms']} ms" if curr['v4_status'] == "OK" else "逾時 / 失敗"
+    v6_str = f"{curr['v6_ms']} ms" if curr['v6_status'] == "OK" else "不支援 / 斷線"
 
     cards_html += f"""
     <div style="background:linear-gradient(145deg, #1e293b, #0f172a);border-radius:12px;padding:20px;border:1px solid #334155;border-top:4px solid {curr['status_color']};box-shadow:0 6px 16px rgba(0,0,0,0.25);">
-        <div style="font-size:12px;color:#94a3b8;font-weight:bold;margin-bottom:4px;">{curr['category']}</div>
-        <div style="font-size:18px;font-weight:bold;color:#f8fafc;margin-bottom:14px;">{curr['name']}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:12px;color:#94a3b8;font-weight:bold;">{curr['category']}</span>
+            <span style="color:{curr['status_color']};font-weight:bold;font-size:13px;">{curr['status_text']}</span>
+        </div>
+        <div style="font-size:18px;font-weight:bold;color:#f8fafc;margin-bottom:2px;">{curr['name']}</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:14px;">{curr['desc']}</div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#090d16;padding:12px;border-radius:8px;margin-bottom:14px;">
             <div>
-                <div style="font-size:12px;color:#94a3b8;">IPv4 延遲 (HiNet)</div>
-                <div style="font-size:22px;font-weight:bold;color:{'#f87171' if curr['v4_rtt']>180 else '#38bdf8'};">{v4_str}{loss_tag}</div>
+                <div style="font-size:12px;color:#94a3b8;">IPv4 連線耗時 (TTFB)</div>
+                <div style="font-size:22px;font-weight:bold;color:{'#f87171' if curr['v4_ms']>250 else '#38bdf8'};">{v4_str}</div>
             </div>
             <div>
-                <div style="font-size:12px;color:#94a3b8;">IPv6 延遲</div>
-                <div style="font-size:22px;font-weight:bold;color:{'#f87171' if curr['v6_rtt']>180 else '#a855f7'};">{v6_str}</div>
+                <div style="font-size:12px;color:#94a3b8;">IPv6 連線耗時 (TTFB)</div>
+                <div style="font-size:22px;font-weight:bold;color:{'#f87171' if curr['v6_ms']>250 else '#a855f7'};">{v6_str}</div>
             </div>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:14px;">
-            <span style="color:#94a3b8;">即時體感：</span>
-            <span style="color:{curr['status_color']};font-weight:bold;">{curr['status_text']}</span>
         </div>
 
         <div style="background:#090d16;padding:10px;border-radius:8px;height:120px;">
@@ -272,7 +283,6 @@ for s in TARGET_SERVICES:
     </div>
     """
 
-# 注入 Chart.js 畫圖指令
 chart_init_js = ""
 for s in TARGET_SERVICES:
     sid = s["id"]
@@ -290,7 +300,7 @@ for s in TARGET_SERVICES:
                     backgroundColor: 'rgba(56, 189, 248, 0.1)',
                     borderWidth: 2,
                     tension: 0.3,
-                    pointRadius: 1
+                    pointRadius: 2
                 }},
                 {{
                     label: 'IPv6 (ms)',
@@ -300,7 +310,7 @@ for s in TARGET_SERVICES:
                     borderWidth: 1.5,
                     borderDash: [3, 3],
                     tension: 0.3,
-                    pointRadius: 0
+                    pointRadius: 1
                 }}
             ]
         }},
@@ -328,14 +338,15 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
 
-        /* 頂部固定系統導航 Tab 列 */
         .system-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #334155; padding-bottom: 12px; }}
         .tab-btn {{ padding: 10px 22px; font-size: 15px; font-weight: bold; border-radius: 8px 8px 0 0; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }}
         .tab-active {{ background: #0284c7; color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); border: none; }}
         .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
         .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
 
-        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid #334155; }}
+        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid #334155; }}
+        
+        .criteria-box {{ background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 8px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; line-height: 1.7; }}
         .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-bottom: 30px; }}
 
         @media (max-width: 768px) {{
@@ -362,7 +373,7 @@ html_content = f"""<!DOCTYPE html>
                 <div style="color:#94a3b8; font-size:14px; line-height:1.6;">
                     📍 <strong>探針來源：</strong>台灣本地 HiNet 寬頻節點 (AS3462/AS9294)<br>
                     ⏱ <strong>最後量測時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span>
-                    <span style="margin-left:12px; color:#a855f7;">• 藍實線: IPv4 / 紫虛線: IPv6 (過去 24 小時數線趨勢)</span>
+                    <span style="margin-left:12px; color:#a855f7;">• 藍實線: IPv4 / 紫虛線: IPv6 (過去 24 小時連線耗時趨勢)</span>
                 </div>
             </div>
             <div>
@@ -370,6 +381,15 @@ html_content = f"""<!DOCTYPE html>
                     🔄 畫面刷新
                 </button>
             </div>
+        </div>
+
+        <!-- 體感研判標準說明列 -->
+        <div class="criteria-box">
+            <strong style="color:#f8fafc;">📊 體感量化判定標準說明：</strong><br>
+            • <span style="color:#34d399;font-weight:bold;">順暢良好 (秒開)</span>：耗時 &lt; 100ms 且成功連線。<br>
+            • <span style="color:#fde047;font-weight:bold;">稍微延遲</span>：耗時 100ms ～ 250ms，開圖有些許等待感。<br>
+            • <span style="color:#fbbf24;font-weight:bold;">⚠️ IPv4 出口偏塞</span>：IPv4 耗時超過 IPv6 的 2.5 倍且 &gt; 120ms (典型單邊海纜壅塞特徵)。<br>
+            • <span style="color:#f87171;font-weight:bold;">🚨 嚴重轉圈 / 逾時</span>：耗時 &ge; 350ms 或連線超時，短影音播一半轉圈、大圖破圖。
         </div>
 
         <!-- 6 大指標服務卡片與即時折線圖 -->
@@ -388,4 +408,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 出口體感巡檢完成，已產出 egress.html 與 egress_state.json。")
+print(f"[{now_str}] 出口體感巡檢完成，已產出全新 HTTPS 體感儀表板。")

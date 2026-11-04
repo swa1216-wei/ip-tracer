@@ -1,5 +1,71 @@
 [
   {
+    "timestamp": "2026-11-05 02:42:36",
+    "time_short": "02:42",
+    "data": {
+      "threads_ig": {
+        "name": "Threads & IG 圖片 CDN",
+        "category": "Meta 媒體骨幹 (看圖轉圈/破圖)",
+        "desc": "Threads 與 Instagram 照片/靜態內容主要來源",
+        "total_ms": 11,
+        "tcp_ms": 1,
+        "status": "OK",
+        "status_text": "順暢良好 (秒開)",
+        "status_color": "#34d399"
+      },
+      "meta_reels": {
+        "name": "Meta Reels 影音串流",
+        "category": "Meta 影音骨幹 (短影音看一半轉圈)",
+        "desc": "Instagram Reels 與 FB 短影音分段載入伺服器",
+        "total_ms": 92,
+        "tcp_ms": 2,
+        "status": "OK",
+        "status_text": "順暢良好 (秒開)",
+        "status_color": "#34d399"
+      },
+      "x_media": {
+        "name": "X (Twitter) 圖片節點",
+        "category": "Fastly CDN (東京 NRT POP 延遲)",
+        "desc": "X / Twitter 圖片專用 Fastly 節點",
+        "total_ms": 379,
+        "tcp_ms": 59,
+        "status": "OK",
+        "status_text": "🚨 轉圈卡頓 (379ms)",
+        "status_color": "#f87171"
+      },
+      "github_fastly": {
+        "name": "GitHub 檔案下載骨幹",
+        "category": "Fastly CDN (Release 下載掉速)",
+        "desc": "GitHub Release 與大型資產檔案下載骨幹",
+        "total_ms": 165,
+        "tcp_ms": 42,
+        "status": "OK",
+        "status_text": "稍微延遲 (165ms)",
+        "status_color": "#fde047"
+      },
+      "discord_media": {
+        "name": "Discord 媒體傳輸節點",
+        "category": "Cloudflare CDN (語音/圖床)",
+        "desc": "Discord 聊天圖片、語音及附件傳輸節點",
+        "total_ms": 18,
+        "tcp_ms": 2,
+        "status": "OK",
+        "status_text": "順暢良好 (秒開)",
+        "status_color": "#34d399"
+      },
+      "youtube_stream": {
+        "name": "YouTube 影音串流指標",
+        "category": "Google 國際直連指標",
+        "desc": "YouTube 影音封包對照標準基準線",
+        "total_ms": 32,
+        "tcp_ms": 3,
+        "status": "OK",
+        "status_text": "順暢良好 (秒開)",
+        "status_color": "#34d399"
+      }
+    }
+  },
+  {
     "timestamp": "2026-11-05 01:42:38",
     "time_short": "01:42",
     "data": {

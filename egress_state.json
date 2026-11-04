@@ -1,5 +1,77 @@
 [
   {
+    "timestamp": "2026-11-04 23:17:25",
+    "time_short": "23:17",
+    "data": {
+      "x_media": {
+        "name": "X (Twitter) 圖片節點",
+        "category": "Fastly CDN (破圖/轉圈災情)",
+        "desc": "X / Twitter 圖片專用 CDN 伺服器",
+        "v4_ms": 0,
+        "v4_status": "FAIL",
+        "v6_ms": 0,
+        "v6_status": "FAIL",
+        "status_text": "🚨 連線逾時 / 失敗",
+        "status_color": "#f87171"
+      },
+      "meta_reels": {
+        "name": "Meta / IG Reels 影片串流",
+        "category": "Meta 影音骨幹 (看一半轉圈)",
+        "desc": "Instagram Reels 與 FB 短影音串流節點",
+        "v4_ms": 0,
+        "v4_status": "FAIL",
+        "v6_ms": 0,
+        "v6_status": "FAIL",
+        "status_text": "🚨 連線逾時 / 失敗",
+        "status_color": "#f87171"
+      },
+      "github_fastly": {
+        "name": "GitHub 檔案下載節點",
+        "category": "Fastly CDN (下載掉速災情)",
+        "desc": "GitHub Release 檔案下載骨幹",
+        "v4_ms": 0,
+        "v4_status": "FAIL",
+        "v6_ms": 0,
+        "v6_status": "FAIL",
+        "status_text": "🚨 連線逾時 / 失敗",
+        "status_color": "#f87171"
+      },
+      "reddit_media": {
+        "name": "Reddit 圖片節點",
+        "category": "Fastly CDN (海外無本島快取)",
+        "desc": "Reddit 討論區高解析圖片來源",
+        "v4_ms": 0,
+        "v4_status": "FAIL",
+        "v6_ms": 0,
+        "v6_status": "FAIL",
+        "status_text": "🚨 連線逾時 / 失敗",
+        "status_color": "#f87171"
+      },
+      "discord_media": {
+        "name": "Discord 媒體傳輸節點",
+        "category": "Cloudflare CDN (語音/圖床)",
+        "desc": "Discord 聊天圖片與語音附件",
+        "v4_ms": 0,
+        "v4_status": "FAIL",
+        "v6_ms": 0,
+        "v6_status": "FAIL",
+        "status_text": "🚨 連線逾時 / 失敗",
+        "status_color": "#f87171"
+      },
+      "youtube_stream": {
+        "name": "YouTube 影音串流指標",
+        "category": "Google 國際直連指標",
+        "desc": "YouTube 影音封包對照標準",
+        "v4_ms": 0,
+        "v4_status": "FAIL",
+        "v6_ms": 0,
+        "v6_status": "FAIL",
+        "status_text": "🚨 連線逾時 / 失敗",
+        "status_color": "#f87171"
+      }
+    }
+  },
+  {
     "timestamp": "2026-11-04 22:40:57",
     "time_short": "22:40",
     "data": {

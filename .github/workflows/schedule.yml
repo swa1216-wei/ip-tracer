@@ -25,16 +25,19 @@ jobs:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
           python probe.py
+          python egress_probe.py
 
-      # --- 新增：使用 pagecrypt 進行 AES 靜態網頁加密 ---
+      # --- 使用 staticrypt 進行 AES 靜態網頁加密 (index.html + egress.html) ---
       - name: Encrypt HTML dashboard
         env:
           PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
         run: |
           npx -y staticrypt index.html -p "$PAGE_PASSWORD" --salt "a1b2c3d4e5f60718293a4b5c6d7e8f90" --short --remember 30 --template-color-primary "#2563eb" --template-color-secondary "#0b0f19" && mv encrypted/index.html index.html
+          npx -y staticrypt egress.html -p "$PAGE_PASSWORD" --salt "a1b2c3d4e5f60718293a4b5c6d7e8f90" --short --remember 30 --template-color-primary "#2563eb" --template-color-secondary "#0b0f19" && mv encrypted/egress.html egress.html
+
       - name: Commit and Push Results
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html monitor_state.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update routing dashboard" && git push)
+          git add index.html monitor_state.json egress.html egress_state.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update routing and egress dashboard" && git push)

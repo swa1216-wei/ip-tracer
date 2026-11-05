@@ -7,75 +7,88 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：擴充監控標的 (權威節點，防盜鏈/逾時徹底解決)
+# 第一部分：擴充監控標的 (區分台灣本地快取與國際出口)
 # ==============================================================================
 
 TARGET_SERVICES = [
+    # --- 台灣本地快取直連組 (CDN Edge) ---
     {
         "id": "threads_ig",
         "name": "Threads & IG 圖片 CDN",
         "host": "scontent.cdninstagram.com",
-        "category": "Meta 核心"
+        "category": "Meta 核心",
+        "scope": "local"
     },
     {
         "id": "meta_reels",
         "name": "Instagram Reels",
         "host": "video.xx.fbcdn.net",
-        "category": "Meta 核心"
+        "category": "Meta 核心",
+        "scope": "local"
     },
     {
         "id": "fb_static",
         "name": "Facebook 動態圖文",
         "host": "static.xx.fbcdn.net",
-        "category": "Meta 核心"
-    },
-    {
-        "id": "hongguo_drama",
-        "name": "紅果短劇 (字節跳動骨幹)",
-        "host": "lf-cdn-tos.bytescm.com",
-        "category": "爆款短劇"
-    },
-    {
-        "id": "tiktok_gateway",
-        "name": "TikTok 資訊流入口",
-        "host": "www.tiktok.com",
-        "category": "熱門短影音"
-    },
-    {
-        "id": "x_media",
-        "name": "X (Twitter) 圖片",
-        "host": "pbs.twimg.com",
-        "category": "Fastly CDN"
+        "category": "Meta 核心",
+        "scope": "local"
     },
     {
         "id": "youtube_stream",
         "name": "YouTube Shorts / 串流",
         "host": "googlevideo.com",
-        "category": "Google 直連"
+        "category": "Google 直連",
+        "scope": "local"
     },
     {
         "id": "line_obs",
         "name": "LINE 圖片與貼圖",
         "host": "obs.line-scdn.net",
-        "category": "通訊社群"
-    },
-    {
-        "id": "github_fastly",
-        "name": "GitHub 檔案下載",
-        "host": "objects.githubusercontent.com",
-        "category": "Fastly 骨幹"
-    },
-    {
-        "id": "discord_media",
-        "name": "Discord 媒體傳輸",
-        "host": "cdn.discordapp.com",
-        "category": "Cloudflare"
+        "category": "通訊社群",
+        "scope": "local"
     },
     {
         "id": "netflix_fast",
         "name": "Netflix 邊緣節點",
         "host": "api.fast.com",
-        "category": "串流影音"
+        "category": "串流影音",
+        "scope": "local"
+    },
+    # --- 國際海纜出口直連組 (Overseas POP) ---
+    {
+        "id": "hongguo_drama",
+        "name": "紅果短劇",
+        "host": "lf-cdn-tos.bytescm.com",
+        "category": "爆款短劇",
+        "scope": "global"
+    },
+    {
+        "id": "tiktok_gateway",
+        "name": "TikTok 資訊流入口",
+        "host": "www.tiktok.com",
+        "category": "熱門短影音",
+        "scope": "global"
+    },
+    {
+        "id": "x_media",
+        "name": "X (Twitter) 圖片",
+        "host": "pbs.twimg.com",
+        "category": "Fastly CDN",
+        "scope": "global"
+    },
+    {
+        "id": "github_fastly",
+        "name": "GitHub 檔案下載",
+        "host": "objects.githubusercontent.com",
+        "category": "Fastly 骨幹",
+        "scope": "global"
+    },
+    {
+        "id": "discord_media",
+        "name": "Discord 媒體傳輸",
+        "host": "cdn.discordapp.com",
+        "category": "Cloudflare",
+        "scope": "global"
     }
 ]
 
@@ -85,11 +98,11 @@ now_dt = datetime.now(tz)
 now_str = now_dt.strftime('%Y-%m-%d %H:%M:%S')
 time_short = now_dt.strftime('%H:%M')
 
-# 實體地理經緯度資料庫 (供 Leaflet 跨太平洋地圖繪製)
-# 注意：美西 lng 設為 238.1 (180 + (180 - 121.9))，確保在 Leaflet 跨太平洋向東連線而不穿過非洲
+# 實體地理經緯度資料庫
+# 美西經度換算為 238.1137，保證向東穿過太平洋直達美西
 KNOWN_GEO_COORDS = {
     "TW": {"name": "台灣台中 (探針起點)", "lat": 24.1477, "lng": 120.6736},
-    "TPE": {"name": "台北本地節點", "lat": 25.0330, "lng": 121.5654},
+    "TPE": {"name": "台北本地節點 (CDN Edge)", "lat": 25.0330, "lng": 121.5654},
     "TYO": {"name": "日本 (東京 NRT/HND)", "lat": 35.6762, "lng": 139.6503},
     "OSA": {"name": "日本 (大阪 KIX)", "lat": 34.6937, "lng": 135.5023},
     "HKG": {"name": "香港 (HKG POP)", "lat": 22.3193, "lng": 114.1694},
@@ -100,7 +113,6 @@ KNOWN_GEO_COORDS = {
 def determine_geo(resolved_ip, headers_str, tcp_ms):
     """依據 Header、IP 與延遲綜合判定落地節點"""
     h_lower = headers_str.lower()
-    
     if tcp_ms > 130:
         return "US_WEST"
     if "nrt" in h_lower or "hnd" in h_lower or "tyo" in h_lower or "japan" in h_lower:
@@ -127,9 +139,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
 # ==============================================================================
 
 def execute_single_probe(host, dns_resolver=None):
-    """發起一次 Globalping 探測，可指定 DNS Resolver (如 8.8.8.8)"""
     api_url = "https://api.globalping.io/v1/measurements"
-    
     measurement_options = {"protocol": "HTTPS"}
     if dns_resolver:
         measurement_options["resolver"] = dns_resolver
@@ -185,7 +195,6 @@ def execute_single_probe(host, dns_resolver=None):
     return None
 
 def probe_single_stream(service, dns_resolver=None):
-    """帶重試機制探測單一流向"""
     res = execute_single_probe(service["host"], dns_resolver)
     if not res or res["total_ms"] <= 0:
         time.sleep(2)
@@ -212,23 +221,16 @@ def probe_single_stream(service, dns_resolver=None):
         }
 
 def probe_service_both_dns(service):
-    """同時探測 HiNet 原生與 Google DNS"""
     sid = service["id"]
-    # 1. HiNet 預設 DNS
     hinet_res = probe_single_stream(service, None)
-    # 2. Google DNS (8.8.8.8)
     google_res = probe_single_stream(service, "8.8.8.8")
-    
-    return sid, {
-        "hinet": hinet_res,
-        "google": google_res
-    }
+    return sid, {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
 # 第三部分：平行發起巡檢
 # ==============================================================================
 
-print(f"[{now_str}] 啟動 HiNet 出口體感巡檢 (雙軌 DNS PK 對決模式)...")
+print(f"[{now_str}] 啟動 HiNet 出口體感巡檢 (雙軌 DNS 完整版)...")
 
 results = {}
 with ThreadPoolExecutor(max_workers=3) as executor:
@@ -268,13 +270,11 @@ for s in TARGET_SERVICES:
     h_data = res["hinet"]
     g_data = res["google"]
 
-    # 記錄節點給地圖
     for stream in [h_data, g_data]:
         gk = stream.get("geo_key", "TYO")
         if stream.get("status") == "OK" and gk in KNOWN_GEO_COORDS:
             active_geo_nodes[gk] = KNOWN_GEO_COORDS[gk]
 
-    # 勝負判定：誰延遲低誰贏 (0 代表失敗不計勝)
     h_ms = h_data.get("total_ms", 0)
     g_ms = g_data.get("total_ms", 0)
     
@@ -293,18 +293,19 @@ for s in TARGET_SERVICES:
     current_snapshot["data"][sid] = {
         "name": s["name"],
         "category": s["category"],
+        "scope": s["scope"],
         "hinet": {**h_data, "win": h_win},
         "google": {**g_data, "win": g_win}
     }
 
 history_state.insert(0, current_snapshot)
-history_state = history_state[:72]  # 保存 24 小時
+history_state = history_state[:72]
 
 with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：前端 HTML 組裝 (新聞 PK 紅色大讚章 + 雙軌折線圖 + 全太平洋地圖)
+# 第五部分：前端 HTML 組裝 (子母畫中畫地圖 + 三頁籤 + 完整大折線圖)
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -314,106 +315,167 @@ chart_datasets = {}
 for s in TARGET_SERVICES:
     sid = s["id"]
     chart_datasets[sid] = {
-        "hinet": [item.get("data", {}).get(sid, {}).get("hinet", {}).get("total_ms", 0) for item in chronological_data],
-        "google": [item.get("data", {}).get(sid, {}).get("google", {}).get("total_ms", 0) for item in chronological_data]
+        "hinet_total": [item.get("data", {}).get(sid, {}).get("hinet", {}).get("total_ms", 0) for item in chronological_data],
+        "hinet_tcp": [item.get("data", {}).get(sid, {}).get("hinet", {}).get("tcp_ms", 0) for item in chronological_data],
+        "google_total": [item.get("data", {}).get(sid, {}).get("google", {}).get("total_ms", 0) for item in chronological_data],
+        "google_tcp": [item.get("data", {}).get(sid, {}).get("google", {}).get("tcp_ms", 0) for item in chronological_data]
     }
 
-cards_html = ""
-chart_init_js = ""
-
-# 紅色大讚章 HTML 模板
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
 
-for s in TARGET_SERVICES:
-    sid = s["id"]
-    curr = current_snapshot["data"].get(sid, {})
-    h = curr.get("hinet", {})
-    g = curr.get("google", {})
+def render_cards_by_view(view_mode):
+    """
+    view_mode: 'hinet', 'google', 'pk'
+    分流輸出：台灣本地快取直連組 vs 國際海纜出口直連組
+    """
+    local_cards = ""
+    global_cards = ""
 
-    h_total_str = f"{h.get('total_ms', 0)} ms" if h.get("status") == "OK" else "逾時"
-    g_total_str = f"{g.get('total_ms', 0)} ms" if g.get("status") == "OK" else "逾時"
+    for s in TARGET_SERVICES:
+        sid = s["id"]
+        curr = current_snapshot["data"].get(sid, {})
+        h = curr.get("hinet", {})
+        g = curr.get("google", {})
 
-    h_stamp = stamp_html if h.get("win") else ""
-    g_stamp = stamp_html if g.get("win") else ""
+        card_content = ""
 
-    cards_html += f"""
-    <div class="service-card" id="card-{sid}" onmouseenter="highlightMapArc('{sid}')" onmouseleave="resetMapArc()">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span style="font-size:15px; font-weight:800; color:#f8fafc;">{curr['name']}</span>
-            <span class="badge">{curr['category']}</span>
-        </div>
+        if view_mode == "pk":
+            h_total_str = f"{h.get('total_ms', 0)} ms" if h.get("status") == "OK" else "逾時"
+            g_total_str = f"{g.get('total_ms', 0)} ms" if g.get("status") == "OK" else "逾時"
+            h_stamp = stamp_html if h.get("win") else ""
+            g_stamp = stamp_html if g.get("win") else ""
 
-        <!-- 電視新聞 PK 對照列 -->
-        <div class="pk-container">
-            <!-- HiNet DNS 列 -->
-            <div class="pk-row {'pk-row-win' if h.get('win') else ''}">
-                <div class="pk-dns-name" style="color:#38bdf8;">HiNet DNS</div>
-                <div class="pk-ms" style="color:{'#f87171' if h.get('total_ms',0)>350 else '#38bdf8'};">
-                    {h_total_str} {h_stamp}
+            card_content = f"""
+            <div class="pk-container">
+                <div class="pk-row {'pk-row-win' if h.get('win') else ''}">
+                    <div class="pk-dns-name" style="color:#38bdf8;">HiNet DNS</div>
+                    <div class="pk-ms" style="color:{'#f87171' if h.get('total_ms',0)>350 else '#38bdf8'};">
+                        {h_total_str} {h_stamp}
+                    </div>
+                    <div class="pk-node-info">
+                        <span>{h.get('geo_name','--')}</span>
+                        <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms</span>
+                    </div>
                 </div>
-                <div class="pk-node-info">
-                    <span>{h.get('geo_name','--')}</span>
-                    <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms</span>
+                <div class="pk-row {'pk-row-win' if g.get('win') else ''}">
+                    <div class="pk-dns-name" style="color:#fb923c;">Google DNS</div>
+                    <div class="pk-ms" style="color:{'#f87171' if g.get('total_ms',0)>350 else '#fb923c'};">
+                        {g_total_str} {g_stamp}
+                    </div>
+                    <div class="pk-node-info">
+                        <span>{g.get('geo_name','--')}</span>
+                        <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms</span>
+                    </div>
                 </div>
             </div>
+            """
+        else:
+            # 單一 DNS 模式 (HiNet 或 Google)
+            target_data = h if view_mode == "hinet" else g
+            total_val = target_data.get('total_ms', 0)
+            tcp_val = target_data.get('tcp_ms', 0)
+            total_str = f"{total_val} ms" if target_data.get("status") == "OK" else "逾時"
+            tcp_str = f"{tcp_val} ms" if target_data.get("status") == "OK" else "--"
+            accent_color = "#38bdf8" if view_mode == "hinet" else "#fb923c"
 
-            <!-- Google DNS 列 -->
-            <div class="pk-row {'pk-row-win' if g.get('win') else ''}">
-                <div class="pk-dns-name" style="color:#fb923c;">Google DNS</div>
-                <div class="pk-ms" style="color:{'#f87171' if g.get('total_ms',0)>350 else '#fb923c'};">
-                    {g_total_str} {g_stamp}
+            status_text = "順暢良好" if target_data.get("status") == "OK" and total_val < 150 else ("稍慢" if total_val < 350 else "轉圈卡頓")
+            status_color = "#34d399" if target_data.get("status") == "OK" and total_val < 150 else ("#fde047" if total_val < 350 else "#f87171")
+
+            card_content = f"""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:{status_color}; font-size:12px; font-weight:bold;">{status_text}</span>
+                <span style="color:#94a3b8; font-size:11px;">{target_data.get('geo_name','--')}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#070d18; padding:8px 10px; border-radius:6px; margin-bottom:12px;">
+                <div>
+                    <div style="font-size:11px; color:#94a3b8;">總體感 (Total)</div>
+                    <div style="font-size:18px; font-weight:800; color:{accent_color};">{total_str}</div>
                 </div>
-                <div class="pk-node-info">
-                    <span>{g.get('geo_name','--')}</span>
-                    <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms</span>
+                <div>
+                    <div style="font-size:11px; color:#94a3b8;">TCP 握手</div>
+                    <div style="font-size:18px; font-weight:800; color:#a855f7;">{tcp_str}</div>
                 </div>
             </div>
-        </div>
+            """
 
-        <!-- 24 小時歷史雙軌大折線圖 -->
-        <div style="background:#070d18; padding:8px; border-radius:8px; height:120px;">
-            <canvas id="chart-{sid}"></canvas>
+        card_html = f"""
+        <div class="service-card" id="card-{view_mode}-{sid}" onmouseenter="highlightMapArc('{sid}')" onmouseleave="resetMapArc()">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:15px; font-weight:800; color:#f8fafc;">{curr['name']}</span>
+                <span class="badge">{curr['category']}</span>
+            </div>
+            {card_content}
+            <div style="background:#070d18; padding:6px; border-radius:6px; height:110px;">
+                <canvas id="chart-{view_mode}-{sid}"></canvas>
+            </div>
         </div>
-    </div>
+        """
+
+        if s["scope"] == "local":
+            local_cards += card_html
+        else:
+            global_cards += card_html
+
+    return f"""
+    <div class="section-title">🟢 台灣本地快取直連組 (CDN Edge 直連)</div>
+    <div class="cards-grid">{local_cards}</div>
+    <div class="section-title" style="margin-top:24px;">🌐 國際海纜出口直連組 (Overseas POP 直連)</div>
+    <div class="cards-grid">{global_cards}</div>
     """
 
+# 產生三大分頁 HTML
+html_hinet_cards = render_cards_by_view("hinet")
+html_google_cards = render_cards_by_view("google")
+html_pk_cards = render_cards_by_view("pk")
+
+# 產生所有圖表初始 JavaScript
+chart_init_js = ""
+for s in TARGET_SERVICES:
+    sid = s["id"]
     ds = chart_datasets[sid]
+
+    # 1. HiNet 專屬圖 (Total 藍實線 + TCP 紫虛線)
     chart_init_js += f"""
-    new Chart(document.getElementById('chart-{sid}'), {{
+    new Chart(document.getElementById('chart-hinet-{sid}'), {{
         type: 'line',
         data: {{
             labels: {chart_labels},
             datasets: [
-                {{
-                    label: 'HiNet DNS (ms)',
-                    data: {json.dumps(ds['hinet'])},
-                    borderColor: '#38bdf8',
-                    backgroundColor: 'rgba(56, 189, 248, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 1.5
-                }},
-                {{
-                    label: 'Google DNS (ms)',
-                    data: {json.dumps(ds['google'])},
-                    borderColor: '#fb923c',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [2, 2],
-                    tension: 0.3,
-                    pointRadius: 1
-                }}
+                {{ label: 'Total (ms)', data: {json.dumps(ds['hinet_total'])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3, pointRadius: 1 }},
+                {{ label: 'TCP (ms)', data: {json.dumps(ds['hinet_tcp'])}, borderColor: '#a855f7', borderWidth: 1.5, borderDash: [2, 2], tension: 0.3, pointRadius: 0 }}
             ]
         }},
-        options: {{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {{ legend: {{ display: false }} }},
-            scales: {{
-                x: {{ display: true, ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }},
-                y: {{ display: true, ticks: {{ color: '#64748b', font: {{ size: 9 }} }}, beginAtZero: false }}
-            }}
-        }}
+        options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }} }}
+    }});
+    """
+
+    # 2. Google 專屬圖 (Total 橘實線 + TCP 紫虛線)
+    chart_init_js += f"""
+    new Chart(document.getElementById('chart-google-{sid}'), {{
+        type: 'line',
+        data: {{
+            labels: {chart_labels},
+            datasets: [
+                {{ label: 'Total (ms)', data: {json.dumps(ds['google_total'])}, borderColor: '#fb923c', borderWidth: 2, tension: 0.3, pointRadius: 1 }},
+                {{ label: 'TCP (ms)', data: {json.dumps(ds['google_tcp'])}, borderColor: '#a855f7', borderWidth: 1.5, borderDash: [2, 2], tension: 0.3, pointRadius: 0 }}
+            ]
+        }},
+        options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }} }}
+    }});
+    """
+
+    # 3. PK 對決圖 (HiNet 藍線 vs Google 橘線)
+    chart_init_js += f"""
+    new Chart(document.getElementById('chart-pk-{sid}'), {{
+        type: 'line',
+        data: {{
+            labels: {chart_labels},
+            datasets: [
+                {{ label: 'HiNet Total', data: {json.dumps(ds['hinet_total'])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3, pointRadius: 1.2 }},
+                {{ label: 'Google Total', data: {json.dumps(ds['google_total'])}, borderColor: '#fb923c', borderWidth: 2, borderDash: [2, 2], tension: 0.3, pointRadius: 1 }}
+            ]
+        }},
+        options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }} }}
     }});
     """
 
@@ -427,7 +489,7 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HiNet AS3462 出口體感對決戰情室</title>
+    <title>HiNet AS3462 國際出口體感戰情室</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -438,31 +500,67 @@ html_content = f"""<!DOCTYPE html>
 
         /* 頂部切換導航 */
         .system-tabs {{ display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }}
-        .tab-btn {{ padding: 8px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; text-decoration: none; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b; }}
-        .tab-active {{ background: #0284c7; color: #ffffff; border: none; }}
+        .tab-btn {{ padding: 8px 18px; font-size: 13px; font-weight: bold; border-radius: 6px; text-decoration: none; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b; cursor: pointer; transition: all 0.2s; }}
+        .tab-btn:hover {{ background: #1e293b; color: #f8fafc; }}
+        .tab-active {{ background: #0284c7; color: #ffffff; border: none; box-shadow: 0 0 12px rgba(2, 132, 199, 0.4); }}
 
-        /* 標題區 (已清除雜訊字體) */
+        /* 標題區 (清空雜訊) */
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #1e293b; }}
-        
-        /* 地圖容器 (全幅環太平洋視野) */
-        .map-wrapper {{ position:relative; background:#070d18; border:1px solid #1e293b; border-radius:12px; height:460px; margin-bottom:24px; overflow:hidden; }}
-        #map {{ width:100%; height:100%; background:#070d18; }}
+
+        /* 子母地圖視窗容器 */
+        .map-wrapper {{ position:relative; background:#070d18; border:1px solid #1e293b; border-radius:12px; height:480px; margin-bottom:24px; overflow:hidden; }}
+        #map-global {{ width:100%; height:100%; background:#070d18; }}
+
+        /* 右上角畫中畫：台灣島內放大鏡 */
+        #taiwan-submap-wrapper {{
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 250px;
+            height: 290px;
+            background: rgba(11, 19, 36, 0.94);
+            border: 1.5px solid #38bdf8;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8), 0 0 14px rgba(56, 189, 248, 0.3);
+            z-index: 1000;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+        }}
+        #taiwan-submap-title {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #38bdf8;
+            border-bottom: 1px solid #1e293b;
+            z-index: 1001;
+            display: flex;
+            justify-content: space-between;
+        }}
+        #map-local {{ width: 100%; height: 100%; }}
 
         /* 懸浮 HUD 資訊卡 */
-        #hud-card {{ position:absolute; top:20px; right:20px; width:280px; background:rgba(15, 23, 42, 0.94); border:1px solid #38bdf8; border-radius:8px; padding:12px; backdrop-filter:blur(8px); display:none; z-index:1000; pointer-events:none; }}
+        #hud-card {{ position:absolute; bottom:20px; left:20px; width:280px; background:rgba(15, 23, 42, 0.95); border:1px solid #38bdf8; border-radius:8px; padding:12px; backdrop-filter:blur(8px); display:none; z-index:1000; pointer-events:none; box-shadow: 0 0 16px rgba(0,0,0,0.8); }}
+
+        /* 分類標題 */
+        .section-title {{ font-size: 15px; font-weight: 800; color: #f8fafc; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }}
 
         /* 下方卡片網格 */
-        .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; margin-bottom: 30px; }}
-        .service-card {{ background:linear-gradient(145deg, #0f172a, #131d31); border-radius:10px; padding:16px; border:1px solid #1e293b; transition:all 0.2s; }}
+        .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }}
+        .service-card {{ background:linear-gradient(145deg, #0f172a, #131d31); border-radius:10px; padding:14px; border:1px solid #1e293b; transition:all 0.2s; }}
         .service-card:hover {{ border-color:#38bdf8; transform:translateY(-2px); }}
         .badge {{ background:#1e293b; color:#94a3b8; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:bold; }}
 
         /* PK 對照表排版 */
-        .pk-container {{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }}
-        .pk-row {{ display: flex; justify-content: space-between; align-items: center; background: #070d18; padding: 8px 10px; border-radius: 6px; border: 1px solid #1e293b; }}
-        .pk-row-win {{ border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); }}
+        .pk-container {{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }}
+        .pk-row {{ display: flex; justify-content: space-between; align-items: center; background: #070d18; padding: 7px 9px; border-radius: 6px; border: 1px solid #1e293b; }}
+        .pk-row-win {{ border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.06); }}
         .pk-dns-name {{ font-weight: bold; font-size: 12px; width: 85px; }}
-        .pk-ms {{ font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 6px; flex: 1; }}
+        .pk-ms {{ font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; flex: 1; }}
         .pk-node-info {{ text-align: right; font-size: 11px; color: #cbd5e1; display: flex; flex-direction: column; }}
 
         /* 紅色大讚章樣式 */
@@ -476,33 +574,56 @@ html_content = f"""<!DOCTYPE html>
             font-weight: 900;
             padding: 2px 7px;
             border-radius: 4px;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
             letter-spacing: 0.5px;
             transform: rotate(-3deg);
         }}
 
+        /* 頁面切換控制 */
+        .view-panel {{ display: none; }}
+        .view-active {{ display: block; }}
+
         /* 海纜公告區塊 */
-        .cable-notice-panel {{ background:#0f172a; border:1px solid #334155; border-left:4px solid #f59e0b; border-radius:8px; padding:16px 20px; margin-top:20px; }}
+        .cable-notice-panel {{ background:#0f172a; border:1px solid #334155; border-left:4px solid #f59e0b; border-radius:8px; padding:16px 20px; margin-top:24px; }}
         .notice-row {{ display:grid; grid-template-columns:120px 180px 180px 1fr; gap:12px; font-size:13px; padding:8px 0; border-bottom:1px solid #1e293b; }}
         .notice-row:last-child {{ border-bottom:none; }}
 
         @media (max-width: 768px) {{
             body {{ padding:12px; }}
-            .map-wrapper {{ height:350px; }}
+            .map-wrapper {{ height:380px; }}
+            #taiwan-submap-wrapper {{ width: 140px; height: 180px; top: 10px; right: 10px; }}
             .notice-row {{ grid-template-columns: 1fr; }}
         }}
     </style>
 </head>
 <body>
+    <!-- SVG 霓虹發光濾鏡定義 -->
+    <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
+        <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </svg>
+
     <div class="container">
-        <!-- 導航列 -->
+        <!-- 頂部頁籤切換：依序排布 HiNet ➔ Google ➔ PK 對決 -->
         <div class="system-tabs">
-            <a href="index.html" class="tab-btn">🌐 IPv4 核心巡檢</a>
-            <a href="index.html" class="tab-btn">🚀 IPv6 核心巡檢</a>
-            <a href="egress.html" class="tab-btn tab-active">⚡ 海外出口動態拓撲戰情室</a>
+            <button class="tab-btn tab-active" onclick="switchView('hinet', this)">🌐 HiNet 預設 DNS</button>
+            <button class="tab-btn" onclick="switchView('google', this)">🚀 Google DNS (8.8.8.8)</button>
+            <button class="tab-btn" onclick="switchView('pk', this)">⚡ 雙軌對決 PK 總結</button>
         </div>
 
-        <!-- 頂部資訊區 (已清除雜訊) -->
+        <!-- 頂部資訊區 (清空雜訊字樣) -->
         <div class="header">
             <div>
                 <h1 style="margin:0 0 6px 0; font-size:22px; color:#f8fafc; font-weight:800;">
@@ -520,10 +641,20 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 第一屏核心：全幅暗黑世界地圖 (環太平洋全覽) -->
+        <!-- 第一屏核心：子母地圖 (環太平洋全景 + 右上角台灣島內放大鏡) -->
         <div class="map-wrapper">
-            <div id="map"></div>
-            <!-- HUD 懸浮窗 -->
+            <div id="map-global"></div>
+
+            <!-- 右上角台灣島內放大鏡 -->
+            <div id="taiwan-submap-wrapper">
+                <div id="taiwan-submap-title">
+                    <span>🇹🇼 台灣本地 Edge 快取</span>
+                    <span>10G 骨幹</span>
+                </div>
+                <div id="map-local"></div>
+            </div>
+
+            <!-- 懸浮 HUD 資訊卡 -->
             <div id="hud-card">
                 <div id="hud-title" style="font-size:14px; font-weight:bold; color:#f8fafc; margin-bottom:6px;">--</div>
                 <div style="font-size:12px; color:#38bdf8; margin-bottom:4px;">HiNet DNS: <strong id="hud-h-total">--</strong> (<span id="hud-h-geo">--</span>)</div>
@@ -531,16 +662,20 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 第二屏主體：所有 App 雙軌 PK 卡片與獨立 24hr 大圖 -->
-        <div style="margin-bottom:12px; font-size:16px; font-weight:bold; color:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
-            <span>📊 DNS 路由體感對決 (藍線: HiNet DNS vs 橘線: Google DNS)</span>
-            <span style="font-size:12px; color:#64748b;">滑鼠懸停卡片或地圖光線即可突顯路徑</span>
-        </div>
-        <div class="cards-grid">
-            {cards_html}
+        <!-- 第二屏主體：三大獨立視圖 -->
+        <div id="view-hinet" class="view-panel view-active">
+            {html_hinet_cards}
         </div>
 
-        <!-- 最底部：HiNet 官方海纜障礙與維修重點公告 -->
+        <div id="view-google" class="view-panel">
+            {html_google_cards}
+        </div>
+
+        <div id="view-pk" class="view-panel">
+            {html_pk_cards}
+        </div>
+
+        <!-- 最底部：HiNet 官方海纜障礙與維修公告 -->
         <div class="cable-notice-panel">
             <div style="font-size:15px; font-weight:bold; color:#f59e0b; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
                 ⚠️ HiNet 國際海纜即時狀況與重點維修公告
@@ -573,8 +708,8 @@ html_content = f"""<!DOCTYPE html>
     </div>
 
     <script>
-        // 初始化 Leaflet 暗黑地圖底圖 (錨定環太平洋中心 175°E，一眼看齊台港星、日本、美西)
-        const map = L.map('map', {{
+        // 1. 初始化國際海纜主地圖 (環太平洋中心 175°E，一眼看齊左台港星、中日本、右美西)
+        const mapGlobal = L.map('map-global', {{
             center: [28.0, 175.0],
             zoom: 3,
             zoomControl: false,
@@ -584,34 +719,49 @@ html_content = f"""<!DOCTYPE html>
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
             maxZoom: 7,
             minZoom: 2
-        }}).addTo(map);
+        }}).addTo(mapGlobal);
+
+        // 2. 初始化台灣島內放大鏡地圖 (高解析鎖定台灣本島)
+        const mapLocal = L.map('map-local', {{
+            center: [24.3, 120.9],
+            zoom: 7,
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false
+        }});
+
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+            maxZoom: 9,
+            minZoom: 6
+        }}).addTo(mapLocal);
 
         const mapData = {json.dumps(map_payload)};
         const twCoord = [mapData.nodes.TW.lat, mapData.nodes.TW.lng];
+        const tpeCoord = [mapData.nodes.TPE.lat, mapData.nodes.TPE.lng];
 
-        // 標記台灣台中起點 (中心脈衝節點)
-        L.circleMarker(twCoord, {{
-            radius: 7,
-            fillColor: '#f43f5e',
-            color: '#ffffff',
-            weight: 2,
-            fillOpacity: 1
-        }}).addTo(map);
+        // 在主地圖標記台中中心節點
+        L.circleMarker(twCoord, {{ radius: 6, fillColor: '#f43f5e', color: '#fff', weight: 2, fillOpacity: 1 }}).addTo(mapGlobal);
+
+        // 在放大鏡地圖標記台中與台北節點
+        L.circleMarker(twCoord, {{ radius: 5, fillColor: '#f43f5e', color: '#fff', weight: 1.5, fillOpacity: 1 }}).addTo(mapLocal);
+        L.circleMarker(tpeCoord, {{ radius: 5, fillColor: '#38bdf8', color: '#fff', weight: 1.5, fillOpacity: 1 }}).addTo(mapLocal);
 
         // 繪製海外目標節點 (無白標，僅科技光點)
         for (const [key, node] of Object.entries(mapData.nodes)) {{
-            if (key !== "TW") {{
+            if (key !== "TW" && key !== "TPE") {{
                 L.circleMarker([node.lat, node.lng], {{
                     radius: 5,
                     fillColor: '#38bdf8',
                     color: '#070d18',
                     weight: 1.5,
                     fillOpacity: 0.9
-                }}).addTo(map);
+                }}).addTo(mapGlobal);
             }}
         }}
 
-        // 二次貝茲曲線生成 (包含正負上下展開弧度)
+        // 二次貝茲曲線演算法 (支援正負發散弧度)
         function getCurvedCoords(start, end, curvature) {{
             const lat1 = start[0], lng1 = start[1];
             const lat2 = end[0], lng2 = end[1];
@@ -630,46 +780,48 @@ html_content = f"""<!DOCTYPE html>
         const activePulses = [];
         const destCounts = {{}};
 
-        // 繪製雙軌流光
+        // 分流繪製：島內線進放大鏡、國際線進主地圖
         for (const [sid, svc] of Object.entries(mapData.services)) {{
-            // 取 HiNet 路由作為主要繪製代表 (若有 Google 路由差異亦可發散)
             const h = svc.hinet;
             const geo = mapData.nodes[h.geo_key];
             if (!geo) continue;
+
+            const isLocal = (h.geo_key === "TPE");
+            const targetMap = isLocal ? mapLocal : mapGlobal;
 
             if (!destCounts[h.geo_key]) destCounts[h.geo_key] = 0;
             destCounts[h.geo_key]++;
             const count = destCounts[h.geo_key];
             const sign = (count % 2 === 1) ? 1 : -1;
-            const curvature = sign * (0.08 + Math.floor((count - 1) / 2) * 0.12);
+            const curvature = isLocal ? (sign * 0.15) : (sign * (0.08 + Math.floor((count - 1) / 2) * 0.12));
 
             const curveCoords = getCurvedCoords(twCoord, [geo.lat, geo.lng], curvature);
+            const color = (h.total_ms > 350) ? '#f87171' : (isLocal ? '#38bdf8' : '#38bdf8');
 
-            const color = (h.total_ms > 350) ? '#f87171' : '#38bdf8';
-
+            // 實體光束 (包含霓虹光暈)
             const polyline = L.polyline(curveCoords, {{
                 color: color,
-                weight: 2.8,
-                opacity: 0.65,
+                weight: isLocal ? 2.2 : 3,
+                opacity: 0.75,
                 smoothFactor: 1
-            }}).addTo(map);
+            }}).addTo(targetMap);
 
-            // 雙向光點：白光去程 + 彩光回程
+            // 雙向流動粒子：去程白光、回程彩光
             const fMarker = L.circleMarker(curveCoords[0], {{
-                radius: 3,
+                radius: isLocal ? 2.5 : 3,
                 fillColor: '#ffffff',
                 color: '#38bdf8',
                 weight: 1,
                 fillOpacity: 1
-            }}).addTo(map);
+            }}).addTo(targetMap);
 
             const bMarker = L.circleMarker(curveCoords[curveCoords.length - 1], {{
-                radius: 3.5,
+                radius: isLocal ? 3 : 3.5,
                 fillColor: color,
                 color: '#ffffff',
                 weight: 1,
                 fillOpacity: 1
-            }}).addTo(map);
+            }}).addTo(targetMap);
 
             activePulses.push({{
                 coords: curveCoords,
@@ -690,7 +842,7 @@ html_content = f"""<!DOCTYPE html>
             arcLayers[sid] = polyline;
         }}
 
-        // 流光動畫定時器
+        // 流光動畫定時器 (60ms 推進一次)
         let animStep = 0;
         setInterval(() => {{
             animStep++;
@@ -713,15 +865,12 @@ html_content = f"""<!DOCTYPE html>
                     line.setStyle({{ opacity: 0.12 }});
                 }}
             }}
-            const card = document.getElementById('card-' + sid);
-            if (card) card.style.borderColor = '#38bdf8';
         }}
 
         function resetMapArc() {{
             for (const [sid, line] of Object.entries(arcLayers)) {{
-                line.setStyle({{ weight: 2.8, opacity: 0.65 }});
+                line.setStyle({{ weight: 2.8, opacity: 0.75 }});
             }}
-            document.querySelectorAll('.service-card').forEach(c => c.style.borderColor = '#1e293b');
         }}
 
         function showHud(svc) {{
@@ -738,7 +887,16 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('hud-card').style.display = 'none';
         }}
 
-        // 初始化所有 App 的雙軌歷史 Chart.js
+        // 三頁籤切換
+        function switchView(viewName, btn) {{
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+            btn.classList.add('tab-active');
+
+            document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('view-active'));
+            document.getElementById('view-' + viewName).classList.add('view-active');
+        }}
+
+        // 初始化所有圖表
         {chart_init_js}
     </script>
 </body>
@@ -748,4 +906,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功產出具備雙軌 DNS PK 與全幅環太平洋拓撲戰情室。")
+print(f"[{now_str}] 成功產出子母戰情地圖、三大切換分頁與電視新聞 PK 對決儀表板。")

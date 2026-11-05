@@ -179,7 +179,6 @@ def execute_single_probe(host, dns_resolver=None):
         return None
 
     poll_url = f"{api_url}/{measurement_id}"
-    # 增加至 15 秒等待，避免台灣探針忙碌排隊時誤判逾時
     for _ in range(15):
         time.sleep(1)
         try:
@@ -208,20 +207,15 @@ def execute_single_probe(host, dns_resolver=None):
     return None
 
 def probe_single_stream(service, dns_resolver=None):
-    # 第一次正常探測
     res = execute_single_probe(service["host"], dns_resolver)
     
-    # 判斷是否需要啟動防抖動連續測試 (逾時、失敗或 >= 150ms 警戒值)
     is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 150)
-    
     if is_abnormal:
-        # 有狀況時連續複測最多 2 次 (加首次共 3 次)
         for attempt in range(2):
             time.sleep(2.5)
             retry_res = execute_single_probe(service["host"], dns_resolver)
             if retry_res and retry_res.get("total_ms", 0) > 0:
                 res = retry_res
-                # 若複測回到綠燈區 (<150ms)，代表為瞬間假性抖動，立即採納正常值中斷重測
                 if res["total_ms"] < 150:
                     break
 
@@ -256,7 +250,7 @@ def probe_service_both_dns(service):
     return sid, {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
-# 第三部分：平行發起巡檢 (降低為 2 條平行產線，徹底防禦 429 限流)
+# 第三部分：平行發起巡檢
 # ==============================================================================
 
 print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢 (含 3 次異常複測防抖機制)...")
@@ -398,7 +392,7 @@ for s in TARGET_SERVICES:
         "google_tcp": g_tcps
     }
 
-# 頂部最新異動橫條 (判定 1 小時內是否有節點漂移)
+# 頂部最新異動橫條：合併最新時間點發生的「所有」異動，且移除錨點跳轉
 latest_switch_banner = ""
 one_hour_ago = now_dt - timedelta(hours=1)
 recent_logs = []
@@ -412,26 +406,35 @@ for log in node_switch_logs:
         pass
 
 if recent_logs:
-    latest = recent_logs[-1]
-    latest_switch_banner = f"""
-    <div style="background:rgba(239, 68, 68, 0.15); border:1px solid #ef4444; border-radius:8px; padding:12px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:16px;">🚨</span>
-            <span style="font-weight:bold; color:#f8fafc; font-size:14px;">最新路由變更 ({latest['time']})：</span>
-            <span style="color:#38bdf8; font-weight:bold;">{latest['service']}</span>
-            <span style="color:#94a3b8; font-size:13px;">({latest['dns']})</span>
-            <span style="color:#fca5a5;">➔ {latest['trajectory']}</span>
+    latest_time = recent_logs[-1]["time"]
+    same_time_logs = [l for l in recent_logs if l["time"] == latest_time]
+    
+    items_html = ""
+    for idx, l in enumerate(same_time_logs):
+        dns_col = "#38bdf8" if "HiNet" in l["dns"] else "#c084fc"
+        items_html += f"""
+        <div style="font-size:13px; line-height:1.7; display:flex; align-items:center; gap:8px;">
+            <span style="color:#f87171; font-weight:bold;">•</span>
+            <span style="font-weight:bold; color:#f8fafc;">{l['service']}</span>
+            <span style="color:{dns_col}; font-size:12px; font-weight:bold;">[{l['dns']}]</span>
+            <span style="color:#fca5a5;">{l['trajectory']}</span>
         </div>
-        <div>
-            <a href="#drawer-toggle" onclick="openDrawerIfClosed()" style="color:#38bdf8; text-decoration:none; font-size:13px; font-weight:bold;">
-                📋 點此查看異動日誌 ▼
-            </a>
+        """
+
+    latest_switch_banner = f"""
+    <div style="background:rgba(239, 68, 68, 0.12); border:1px solid #ef4444; border-radius:8px; padding:12px 18px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-size:16px;">🚨</span>
+            <span style="font-weight:bold; color:#f8fafc; font-size:14px;">最新路由變更 ({latest_time} 共 {len(same_time_logs)} 筆異動)：</span>
+        </div>
+        <div style="padding-left:24px;">
+            {items_html}
         </div>
     </div>
     """
 else:
     latest_switch_banner = f"""
-    <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:18px; display:flex; align-items:center; gap:8px;">
+    <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
         <span style="font-size:16px;">🟢</span>
         <span style="color:#34d399; font-weight:bold; font-size:14px;">各服務節點位置穩定：</span>
         <span style="color:#94a3b8; font-size:13px;">過去 1 小時內無跨國漂移或節點跳變事件。</span>
@@ -442,17 +445,14 @@ else:
 # 第六部分：四頁專屬頂部大戰況卡 (Summary Cards) 運算
 # ==============================================================================
 
-# 1. HiNet 戰況計算
 hinet_good = 0
 hinet_warn = 0
 hinet_alert = 0
 
-# 2. Google 戰況計算
 google_good = 0
 google_warn = 0
 google_alert = 0
 
-# 3. PK 戰況計算
 pk_hinet_win = 0
 pk_google_win = 0
 pk_tie = 0
@@ -464,7 +464,6 @@ for s in TARGET_SERVICES:
     h = curr.get("hinet", {})
     g = curr.get("google", {})
 
-    # HiNet 統計
     h_ms = h.get("total_ms", 0)
     if h.get("status") == "OK" and h_ms < 150:
         hinet_good += 1
@@ -473,7 +472,6 @@ for s in TARGET_SERVICES:
     else:
         hinet_alert += 1
 
-    # Google 統計
     g_ms = g.get("total_ms", 0)
     if g.get("status") == "OK" and g_ms < 150:
         google_good += 1
@@ -482,7 +480,6 @@ for s in TARGET_SERVICES:
     else:
         google_alert += 1
 
-    # PK 統計
     if h.get("status") == "OK" and g.get("status") == "OK":
         if abs(h_ms - g_ms) <= 10:
             pk_tie += 1
@@ -625,7 +622,6 @@ def render_cards_by_view(view_mode):
             tcp_str = f"{tcp_val} ms" if target_data.get("status") == "OK" else "--"
             health_color = target_data.get('color', '#34d399')
 
-            # 徹底修復判定 Bug：若連線失敗或逾時，絕不能顯示「稍微延遲」
             if target_data.get("status") != "OK" or total_val <= 0:
                 status_text = "連線逾時"
                 chip_class = "retest-chip-alert"
@@ -743,7 +739,7 @@ html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 html_sla_cards = render_sla_view()
 
-# 節點切換紀錄表格 (以時間倒序排列，最新的在第 1 列)
+# 節點切換紀錄表格 (以時間倒序排列，平鋪展示)
 log_rows = ""
 unique_services = sorted(list(set([s["name"] for s in TARGET_SERVICES])))
 service_options = "".join([f'<option value="{svc}">{svc}</option>' for svc in unique_services])
@@ -939,21 +935,19 @@ html_content = f"""<!DOCTYPE html>
         .view-panel {{ display: none; }}
         .view-active {{ display: block; }}
 
-        /* 折疊式節點切換紀錄抽屜 */
-        .drawer-toggle {{
-            background: #0f172a;
+        /* 平鋪式日誌容器樣式 (取消點擊折疊) */
+        .audit-box {{
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-left: 5px solid #38bdf8;
+            padding: 22px;
+            border-radius: 10px;
+            margin-top: 32px;
             border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 14px 18px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 28px;
-            transition: all 0.2s;
         }}
-        .drawer-toggle:hover {{ background: #1e293b; border-color: #38bdf8; }}
-        .drawer-content {{ display: none; background: #0f172a; border: 1px solid #334155; border-top: none; border-radius: 0 0 8px 8px; padding: 18px; }}
+        .custom-scrollbar::-webkit-scrollbar {{ width: 8px; height: 8px; }}
+        .custom-scrollbar::-webkit-scrollbar-track {{ background: #090d16; border-radius: 6px; }}
+        .custom-scrollbar::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 6px; }}
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {{ background: #475569; }}
 
         /* 篩選列排版 */
         .filter-bar {{ display:flex; gap:12px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }}
@@ -1042,7 +1036,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 頂部最新異動警示飄帶 (第一屏一眼看見有無突發跳變) -->
+        <!-- 頂部最新異動警示飄帶 (合併同時間點所有切換紀錄，無滾動跳轉) -->
         {latest_switch_banner}
 
         <!-- 4 大分頁切換 -->
@@ -1074,15 +1068,13 @@ html_content = f"""<!DOCTYPE html>
             {html_sla_cards}
         </div>
 
-        <!-- 區塊一：24 小時節點切換紀錄 (折疊抽屜 + 下拉篩選 + 時間倒序) -->
-        <div id="drawer-toggle" class="drawer-toggle" onclick="toggleDrawer()">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:16px; font-weight:bold; color:#f8fafc;">📋 近 24 小時節點切換紀錄</span>
-                <span style="font-size:13px; color:#94a3b8;">(共 {len(node_switch_logs)} 筆異動，依發生時間倒序排列)</span>
+        <!-- 區塊一：24 小時節點切換紀錄 (平鋪展示，對齊 index 視覺) -->
+        <div class="audit-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0; font-size:18px; color:#38bdf8;">
+                    📋 近 24 小時節點切換紀錄 <span style="font-size:13px; color:#94a3b8; font-weight:normal;">(共 {len(node_switch_logs)} 筆異動，依發生時間倒序排列)</span>
+                </h3>
             </div>
-            <div id="drawer-arrow" style="color:#38bdf8; font-weight:bold;">▼ 點擊展開</div>
-        </div>
-        <div id="drawer-content" class="drawer-content">
             <div class="filter-bar">
                 <span style="color:#94a3b8; font-size:13px;">條件過濾：</span>
                 <select id="filter-dns" class="filter-select" onchange="applyLogFilters()">
@@ -1096,20 +1088,22 @@ html_content = f"""<!DOCTYPE html>
                 </select>
                 <span id="filter-count" style="color:#64748b; font-size:13px;">顯示 {len(node_switch_logs)} 筆</span>
             </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width:120px;">時間</th>
-                        <th style="width:200px;">服務標的</th>
-                        <th style="width:130px;">DNS 來源</th>
-                        <th>節點切換軌跡</th>
-                        <th style="width:190px;">當前落地點</th>
-                    </tr>
-                </thead>
-                <tbody id="log-table-body">
-                    {log_rows}
-                </tbody>
-            </table>
+            <div class="custom-scrollbar" style="max-height:360px; overflow-y:auto; border-radius:8px; border:1px solid #334155;">
+                <table class="data-table" style="box-shadow:none;">
+                    <thead>
+                        <tr>
+                            <th style="background:#090d16; width:120px;">時間</th>
+                            <th style="background:#090d16; width:200px;">服務標的</th>
+                            <th style="background:#090d16; width:130px;">DNS 來源</th>
+                            <th style="background:#090d16;">節點切換軌跡</th>
+                            <th style="background:#090d16; width:190px;">當前落地點</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body">
+                        {log_rows}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- 區塊二：國際海纜受損公告 -->
@@ -1209,25 +1203,6 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('view-' + viewName).classList.add('view-active');
         }}
 
-        function toggleDrawer() {{
-            const content = document.getElementById('drawer-content');
-            const arrow = document.getElementById('drawer-arrow');
-            if (content.style.display === 'block') {{
-                content.style.display = 'none';
-                arrow.innerText = '▼ 點擊展開';
-            }} else {{
-                content.style.display = 'block';
-                arrow.innerText = '▲ 點擊收合';
-            }}
-        }}
-
-        function openDrawerIfClosed() {{
-            const content = document.getElementById('drawer-content');
-            const arrow = document.getElementById('drawer-arrow');
-            content.style.display = 'block';
-            arrow.innerText = '▲ 點擊收合';
-        }}
-
         function applyLogFilters() {{
             const dnsFilter = document.getElementById('filter-dns').value;
             const serviceFilter = document.getElementById('filter-service').value;
@@ -1255,7 +1230,6 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        // 前端即時單點複測 (Live Probe)
         function closeProbeModal() {{
             document.getElementById('live-probe-modal').style.display = 'none';
         }}
@@ -1377,4 +1351,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：對齊 index 頂部導航、加入四大戰況卡、最新異動飄帶、倒序切換日誌與抗 429 探測機制。")
+print(f"[{now_str}] 成功更新：頂部飄帶多筆合併、移除錨點跳轉、底層日誌平鋪展開。")

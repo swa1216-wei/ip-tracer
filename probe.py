@@ -1333,7 +1333,7 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 頂部固定系統導航 Tab 切換列 -->
+        <!-- 頂部固定系統導航 Tab 切換列 (加入第三個海外出口分頁) -->
         <div class="system-tabs">
             <button id="tab-v4" onclick="switchSystemTab('v4')" class="tab-btn tab-active">
                 🌐 IPv4 核心巡檢
@@ -1341,6 +1341,9 @@ html_content = f"""<!DOCTYPE html>
             <button id="tab-v6" onclick="switchSystemTab('v6')" class="tab-btn tab-inactive">
                 🚀 IPv6 核心巡檢
             </button>
+            <a href="egress.html" class="tab-btn tab-inactive">
+                ⚡ 海外出口監測
+            </a>
         </div>
 
         <!-- 視窗容器 1：IPv4 原有完整儀表板 -->

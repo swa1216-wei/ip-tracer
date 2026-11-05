@@ -101,6 +101,15 @@ KNOWN_GEO_NAMES = {
     "US_WEST": "美國西岸 (SJC/LAX)"
 }
 
+SHORT_GEO_NAMES = {
+    "TPE": "台北本地",
+    "TYO": "日本東京",
+    "OSA": "日本大阪",
+    "HKG": "香港",
+    "SIN": "新加坡",
+    "US_WEST": "美國西岸"
+}
+
 def get_latency_color(ms, status):
     if status != "OK" or ms <= 0:
         return "#f87171"
@@ -153,7 +162,6 @@ def execute_single_probe(host, dns_resolver=None):
         "limit": 1
     }).encode("utf-8")
 
-    # 模擬真實瀏覽器標頭，防止被 Fastly / Cloudflare 當惡意 Bot 限流
     req = urllib.request.Request(
         api_url, data=payload,
         headers={
@@ -184,7 +192,6 @@ def execute_single_probe(host, dns_resolver=None):
         return None
 
     poll_url = f"{api_url}/{measurement_id}"
-    # 延長寬限期至 20 秒，確保排隊佇列能完成交握
     for _ in range(20):
         time.sleep(1)
         try:
@@ -218,7 +225,6 @@ def execute_single_probe(host, dns_resolver=None):
 def probe_single_stream(service, dns_resolver=None):
     res = execute_single_probe(service["host"], dns_resolver)
     
-    # 只有在拿到異常數字 (>=150ms) 或明確失敗時才冷卻重試，避免造成探針重試風暴
     is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 150)
     if is_abnormal:
         time.sleep(2)
@@ -250,7 +256,7 @@ def probe_single_stream(service, dns_resolver=None):
         }
 
 # ==============================================================================
-# 第三部分：循序分批巡檢 (每次 1 項目，間隔 0.8 秒，保證探針不塞車)
+# 第三部分：循序分批巡檢 (間隔 0.8 秒，保證探針不塞車)
 # ==============================================================================
 
 print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢 (循序防塞佇列排程)...")
@@ -260,7 +266,6 @@ for idx, s in enumerate(TARGET_SERVICES):
     sid = s["id"]
     print(f"[{idx+1}/{len(TARGET_SERVICES)}] 探測 {s['name']} (HiNet & Google)...")
     
-    # 依序執行，不發起大量並發，讓 HiNet 探針乾淨消化
     hinet_res = probe_single_stream(s, None)
     time.sleep(0.8)
     google_res = probe_single_stream(s, "8.8.8.8")
@@ -326,7 +331,7 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：歷史事件、節點切換紀錄與頂部最新動態運算
+# 第五部分：歷史事件與 24 小時落地節點特徵運算 (判斷是否雙向輪替)
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -335,6 +340,7 @@ chart_labels_json = json.dumps(chart_labels)
 
 chart_datasets = {}
 node_switch_logs = []
+geo_distribution = {}  # 統計過去 24h 每個 App 在各 DNS 出現過哪些節點
 
 for s in TARGET_SERVICES:
     sid = s["id"]
@@ -342,6 +348,9 @@ for s in TARGET_SERVICES:
     h_tcps = []
     g_totals = []
     g_tcps = []
+
+    h_geos_seen = set()
+    g_geos_seen = set()
 
     prev_h_geo = None
     prev_g_geo = None
@@ -359,8 +368,16 @@ for s in TARGET_SERVICES:
         g_totals.append(g_info.get("total_ms", 0))
         g_tcps.append(g_info.get("tcp_ms", 0))
 
-        # HiNet 節點切換紀錄
+        # 收集 24h 節點歷史
         curr_h_geo = h_info.get("geo_key")
+        if curr_h_geo:
+            h_geos_seen.add(curr_h_geo)
+
+        curr_g_geo = g_info.get("geo_key")
+        if curr_g_geo:
+            g_geos_seen.add(curr_g_geo)
+
+        # HiNet 節點切換紀錄
         if prev_h_geo and curr_h_geo and prev_h_geo != curr_h_geo:
             prev_name = KNOWN_GEO_NAMES.get(prev_h_geo, prev_h_geo)
             curr_name = KNOWN_GEO_NAMES.get(curr_h_geo, curr_h_geo)
@@ -376,7 +393,6 @@ for s in TARGET_SERVICES:
             prev_h_geo = curr_h_geo
 
         # Google 節點切換紀錄
-        curr_g_geo = g_info.get("geo_key")
         if prev_g_geo and curr_g_geo and prev_g_geo != curr_g_geo:
             prev_name = KNOWN_GEO_NAMES.get(prev_g_geo, prev_g_geo)
             curr_name = KNOWN_GEO_NAMES.get(curr_g_geo, curr_g_geo)
@@ -397,55 +413,24 @@ for s in TARGET_SERVICES:
         "google_total": g_totals,
         "google_tcp": g_tcps
     }
-
-# 頂部最新異動橫條：合併最新時間點發生的「所有」異動，且移除錨點跳轉
-latest_switch_banner = ""
-one_hour_ago = now_dt - timedelta(hours=1)
-recent_logs = []
-
-for log in node_switch_logs:
-    try:
-        log_dt = datetime.strptime(log.get("timestamp", ""), '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
-        if log_dt >= one_hour_ago:
-            recent_logs.append(log)
-    except Exception:
-        pass
-
-if recent_logs:
-    latest_time = recent_logs[-1]["time"]
-    same_time_logs = [l for l in recent_logs if l["time"] == latest_time]
     
-    items_html = ""
-    for idx, l in enumerate(same_time_logs):
-        dns_col = "#38bdf8" if "HiNet" in l["dns"] else "#c084fc"
-        items_html += f"""
-        <div style="font-size:13px; line-height:1.7; display:flex; align-items:center; gap:8px;">
-            <span style="color:#f87171; font-weight:bold;">•</span>
-            <span style="font-weight:bold; color:#f8fafc;">{l['service']}</span>
-            <span style="color:{dns_col}; font-size:12px; font-weight:bold;">[{l['dns']}]</span>
-            <span style="color:#fca5a5;">{l['trajectory']}</span>
-        </div>
-        """
+    geo_distribution[sid] = {
+        "hinet": h_geos_seen,
+        "google": g_geos_seen
+    }
 
-    latest_switch_banner = f"""
-    <div style="background:rgba(239, 68, 68, 0.12); border:1px solid #ef4444; border-radius:8px; padding:12px 18px; margin-bottom:20px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="font-size:16px;">🚨</span>
-            <span style="font-weight:bold; color:#f8fafc; font-size:14px;">最新路由變更 ({latest_time} 共 {len(same_time_logs)} 筆異動)：</span>
-        </div>
-        <div style="padding-left:24px;">
-            {items_html}
-        </div>
-    </div>
-    """
-else:
-    latest_switch_banner = f"""
-    <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
-        <span style="font-size:16px;">🟢</span>
-        <span style="color:#34d399; font-weight:bold; font-size:14px;">各服務節點位置穩定：</span>
-        <span style="color:#94a3b8; font-size:13px;">過去 1 小時內無跨國漂移或節點跳變事件。</span>
-    </div>
-    """
+# 格式化客觀落地標籤 (例如：台北本地 ⇄ 日本東京)
+def format_geo_badge(curr_geo_key, geos_seen):
+    curr_name = KNOWN_GEO_NAMES.get(curr_geo_key, "海外節點")
+    other_geos = [SHORT_GEO_NAMES.get(g, g) for g in geos_seen if g != curr_geo_key]
+    
+    if other_geos:
+        # 有雙向輪替
+        alt_str = " / ".join(other_geos)
+        return f"{curr_name} <span style='color:#38bdf8; font-size:11px;' title='過去24小時在此兩地輪替運行'>⇄ {alt_str} (雙向輪替)</span>"
+    else:
+        # 穩定單一節點
+        return f"{curr_name} <span style='color:#64748b; font-size:11px;'>[穩定]</span>"
 
 # ==============================================================================
 # 第六部分：四頁專屬頂部大戰況卡 (Summary Cards) 運算
@@ -567,7 +552,7 @@ summary_cards_pk = f"""
 """
 
 # ==============================================================================
-# 第七部分：HTML 畫面渲染 (卡片統一「⚡ 重測」，修復逾時顯示矛盾)
+# 第七部分：HTML 畫面渲染 (卡片標記雙向輪替，重測後即時回填)
 # ==============================================================================
 
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
@@ -591,25 +576,28 @@ def render_cards_by_view(view_mode):
             h_stamp = stamp_html if h.get("win") else ""
             g_stamp = stamp_html if g.get("win") else ""
 
+            h_badge = format_geo_badge(h.get('geo_key', 'TYO'), geo_distribution[sid]['hinet'])
+            g_badge = format_geo_badge(g.get('geo_key', 'TYO'), geo_distribution[sid]['google'])
+
             card_content = f"""
             <div class="pk-container">
                 <div class="pk-row {'pk-row-win' if h.get('win') else ''}">
                     <div class="pk-dns-name" style="color:#38bdf8;">HiNet DNS</div>
                     <div class="pk-ms" style="color:{h.get('color')};">
-                        <span style="min-width:65px;">{h_total_str}</span> {h_stamp}
+                        <span id="val-pk-hinet-{sid}" style="min-width:65px;">{h_total_str}</span> {h_stamp}
                     </div>
                     <div class="pk-node-info">
-                        <span>{h.get('geo_name','--')}</span>
+                        <span id="geo-pk-hinet-{sid}">{h_badge}</span>
                         <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
                 <div class="pk-row {'pk-row-win' if g.get('win') else ''}">
                     <div class="pk-dns-name" style="color:#c084fc;">Google DNS</div>
                     <div class="pk-ms" style="color:{g.get('color')};">
-                        <span style="min-width:65px;">{g_total_str}</span> {g_stamp}
+                        <span id="val-pk-google-{sid}" style="min-width:65px;">{g_total_str}</span> {g_stamp}
                     </div>
                     <div class="pk-node-info">
-                        <span>{g.get('geo_name','--')}</span>
+                        <span id="geo-pk-google-{sid}">{g_badge}</span>
                         <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
@@ -622,6 +610,8 @@ def render_cards_by_view(view_mode):
             """
         else:
             target_data = h if view_mode == "hinet" else g
+            geos_seen = geo_distribution[sid]['hinet'] if view_mode == "hinet" else geo_distribution[sid]['google']
+            
             total_val = target_data.get('total_ms', 0)
             tcp_val = target_data.get('tcp_ms', 0)
             total_str = f"{total_val} ms" if target_data.get("status") == "OK" else "逾時"
@@ -648,19 +638,21 @@ def render_cards_by_view(view_mode):
             </button>
             """
 
+            geo_badge_html = format_geo_badge(target_data.get('geo_key', 'TYO'), geos_seen)
+
             card_content = f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="color:{health_color}; font-size:12px; font-weight:bold;">● {status_text}</span>
-                <span style="color:#94a3b8; font-size:11px;">{target_data.get('geo_name','--')}</span>
+                <span id="status-{view_mode}-{sid}" style="color:{health_color}; font-size:12px; font-weight:bold;">● {status_text}</span>
+                <span id="geo-{view_mode}-{sid}" style="color:#94a3b8; font-size:11px;">{geo_badge_html}</span>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#070d18; padding:8px 10px; border-radius:6px; margin-bottom:12px;">
                 <div>
                     <div style="font-size:11px; color:#94a3b8;">總體感 (Total)</div>
-                    <div style="font-size:18px; font-weight:800; color:{health_color};">{total_str}</div>
+                    <div id="total-{view_mode}-{sid}" style="font-size:18px; font-weight:800; color:{health_color};">{total_str}</div>
                 </div>
                 <div>
                     <div style="font-size:11px; color:#94a3b8;">TCP 握手</div>
-                    <div style="font-size:18px; font-weight:800; color:#a855f7;">{tcp_str}</div>
+                    <div id="tcp-{view_mode}-{sid}" style="font-size:18px; font-weight:800; color:#a855f7;">{tcp_str}</div>
                 </div>
             </div>
             """
@@ -750,6 +742,7 @@ log_rows = ""
 unique_services = sorted(list(set([s["name"] for s in TARGET_SERVICES])))
 service_options = "".join([f'<option value="{svc}">{svc}</option>' for svc in unique_services])
 
+one_hour_ago = now_dt - timedelta(hours=1)
 if node_switch_logs:
     for log in reversed(node_switch_logs):
         is_recent = False
@@ -1012,7 +1005,7 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 頂部固定系統導航 Tab 切換列 (對齊 index.html) -->
+        <!-- 頂部固定系統導航 Tab 切換列 (完全對齊 index.html) -->
         <div class="system-tabs">
             <a href="index.html" class="tab-btn tab-inactive">
                 🌐 IPv4 核心巡檢
@@ -1042,9 +1035,6 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 頂部最新異動警示飄帶 (合併同時間點所有切換紀錄，無滾動跳轉) -->
-        {latest_switch_banner}
-
         <!-- 4 大分頁切換 -->
         <div class="mode-tabs">
             <button class="mode-btn mode-active" onclick="switchView('hinet', this)">HiNet 預設 DNS</button>
@@ -1053,7 +1043,7 @@ html_content = f"""<!DOCTYPE html>
             <button class="mode-btn" onclick="switchView('sla', this)">SLA 忙時與警戒分析</button>
         </div>
 
-        <!-- 四大獨立視圖面板 (含各分頁專屬頂部大戰況卡) -->
+        <!-- 四大獨立視圖面板 (頂部直接展示四大戰況卡，視野開闊不被壓縮) -->
         <div id="view-hinet" class="view-panel view-active">
             {summary_cards_hinet}
             {html_hinet_cards}
@@ -1236,7 +1226,6 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        // 前端即時單點複測 (Live Probe)
         function closeProbeModal() {{
             document.getElementById('live-probe-modal').style.display = 'none';
         }}
@@ -1305,12 +1294,12 @@ html_content = f"""<!DOCTYPE html>
 
             const tasks = [];
             if (dnsMode === 'both') {{
-                tasks.push({{ label: 'HiNet DNS (預設)', resolver: null, color: '#38bdf8' }});
-                tasks.push({{ label: 'Google DNS (8.8.8.8)', resolver: '8.8.8.8', color: '#c084fc' }});
+                tasks.push({{ label: 'HiNet DNS (預設)', mode: 'hinet', resolver: null, color: '#38bdf8' }});
+                tasks.push({{ label: 'Google DNS (8.8.8.8)', mode: 'google', resolver: '8.8.8.8', color: '#c084fc' }});
             }} else if (dnsMode === 'hinet') {{
-                tasks.push({{ label: 'HiNet DNS (預設)', resolver: null, color: '#38bdf8' }});
+                tasks.push({{ label: 'HiNet DNS (預設)', mode: 'hinet', resolver: null, color: '#38bdf8' }});
             }} else {{
-                tasks.push({{ label: 'Google DNS (8.8.8.8)', resolver: '8.8.8.8', color: '#c084fc' }});
+                tasks.push({{ label: 'Google DNS (8.8.8.8)', mode: 'google', resolver: '8.8.8.8', color: '#c084fc' }});
             }}
 
             let outHtml = '';
@@ -1321,6 +1310,32 @@ html_content = f"""<!DOCTYPE html>
                         const geoName = determineClientGeo(r.headers, r.tcp);
                         const statusColor = r.total < 150 ? '#34d399' : (r.total < 350 ? '#fde047' : '#f87171');
                         const statusText = r.total < 150 ? '✔ 順暢良好' : (r.total < 350 ? '⚠️ 輕微延遲' : '🚨 嚴重卡頓');
+
+                        // 即時回填更新背景卡片數據，消除不一致感
+                        const totalEl = document.getElementById(`total-${{t.mode}}-${{sid}}`);
+                        const tcpEl = document.getElementById(`tcp-${{t.mode}}-${{sid}}`);
+                        const statusEl = document.getElementById(`status-${{t.mode}}-${{sid}}`);
+                        const geoEl = document.getElementById(`geo-${{t.mode}}-${{sid}}`);
+                        
+                        if (totalEl) {{
+                            totalEl.innerText = `${{r.total}} ms`;
+                            totalEl.style.color = statusColor;
+                        }}
+                        if (tcpEl) tcpEl.innerText = `${{r.tcp}} ms`;
+                        if (statusEl) {{
+                            statusEl.innerText = `● ${{statusText.replace('✔ ', '').replace('⚠️ ', '').replace('🚨 ', '')}}`;
+                            statusEl.style.color = statusColor;
+                        }}
+                        if (geoEl) geoEl.innerHTML = `${{geoName}} <span style='color:#38bdf8; font-size:11px;'>(即時校正)</span>`;
+
+                        // PK 頁面即時回填
+                        const pkValEl = document.getElementById(`val-pk-${{t.mode}}-${{sid}}`);
+                        const pkGeoEl = document.getElementById(`geo-pk-${{t.mode}}-${{sid}}`);
+                        if (pkValEl) {{
+                            pkValEl.innerText = `${{r.total}} ms`;
+                            pkValEl.style.color = statusColor;
+                        }}
+                        if (pkGeoEl) pkGeoEl.innerHTML = `${{geoName}} <span style='color:#38bdf8; font-size:11px;'>(即時校正)</span>`;
 
                         outHtml += `
                         <div style="margin-bottom:16px;background:#090d16;padding:14px;border-radius:8px;border:1px solid #334155;">
@@ -1358,4 +1373,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：循序防塞探測、擬真瀏覽器請求、頂部飄帶多筆合併、平鋪式切換日誌。")
+print(f"[{now_str}] 成功更新：移除頂部飄帶還原視野、卡片標記雙向輪替、重測即時回填校正、循序防塞探測。")

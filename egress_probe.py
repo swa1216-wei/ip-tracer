@@ -7,88 +7,83 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的 (清楚分流：台灣本地快取 vs 國際出口)
+# 第一部分：監控標的 (涵蓋 FB 直播與短影音，依真實業務屬性分組)
 # ==============================================================================
 
 TARGET_SERVICES = [
-    # --- 台灣本地快取直連組 (CDN Edge) ---
+    # --- 區塊 A：主流串流與社群平台 (邊緣解析觀測) ---
     {
         "id": "threads_ig",
         "name": "Threads & IG 圖片 CDN",
         "host": "scontent.cdninstagram.com",
-        "category": "Meta 核心",
-        "scope": "local"
+        "group": "edge_services"
     },
     {
         "id": "meta_reels",
-        "name": "Instagram Reels",
+        "name": "Instagram Reels 短影音",
         "host": "video.xx.fbcdn.net",
-        "category": "Meta 核心",
-        "scope": "local"
+        "group": "edge_services"
     },
     {
         "id": "fb_static",
-        "name": "Facebook 動態圖文",
+        "name": "Facebook 塗鴉牆圖文",
         "host": "static.xx.fbcdn.net",
-        "category": "Meta 核心",
-        "scope": "local"
+        "group": "edge_services"
+    },
+    {
+        "id": "fb_live",
+        "name": "Facebook 直播串流 (Live)",
+        "host": "live-video.xx.fbcdn.net",
+        "group": "edge_services"
     },
     {
         "id": "youtube_stream",
-        "name": "YouTube Shorts / 串流",
+        "name": "YouTube 影音串流 / Shorts",
         "host": "googlevideo.com",
-        "category": "Google 直連",
-        "scope": "local"
+        "group": "edge_services"
     },
     {
         "id": "line_obs",
         "name": "LINE 圖片與貼圖",
         "host": "obs.line-scdn.net",
-        "category": "通訊社群",
-        "scope": "local"
+        "group": "edge_services"
     },
     {
         "id": "netflix_fast",
         "name": "Netflix 邊緣節點",
         "host": "api.fast.com",
-        "category": "串流影音",
-        "scope": "local"
+        "group": "edge_services"
     },
-    # --- 國際海纜出口直連組 (Overseas POP) ---
+    # --- 區塊 B：跨境平台與海外骨幹 ---
     {
         "id": "hongguo_drama",
         "name": "紅果短劇",
         "host": "lf-cdn-tos.bytescm.com",
-        "category": "爆款短劇",
-        "scope": "global"
+        "group": "cross_border"
     },
     {
         "id": "tiktok_gateway",
         "name": "TikTok 資訊流入口",
         "host": "www.tiktok.com",
-        "category": "熱門短影音",
-        "scope": "global"
+        "group": "cross_border"
     },
     {
         "id": "x_media",
         "name": "X (Twitter) 圖片",
         "host": "pbs.twimg.com",
-        "category": "Fastly CDN",
-        "scope": "global"
+        "group": "cross_border"
     },
     {
         "id": "github_fastly",
         "name": "GitHub 檔案下載",
         "host": "objects.githubusercontent.com",
-        "category": "Fastly 骨幹",
-        "scope": "global"
+        "group": "cross_border"
     },
     {
         "id": "discord_media",
         "name": "Discord 媒體傳輸",
         "host": "cdn.discordapp.com",
-        "category": "Cloudflare",
-        "scope": "global"
+        "group": "cross_border"
     }
 ]
 
@@ -98,7 +93,6 @@ now_dt = datetime.now(tz)
 now_str = now_dt.strftime('%Y-%m-%d %H:%M:%S')
 time_short = now_dt.strftime('%H:%M')
 
-# 實體地理經緯度資料庫 (美西向東經度校正為 238.1137，保證向東穿過太平洋直達美西)
 KNOWN_GEO_COORDS = {
     "TW": {"name": "台灣台中 (探針起點)", "lat": 24.1477, "lng": 120.6736},
     "TPE": {"name": "台北本地節點 (CDN Edge)", "lat": 25.0330, "lng": 121.5654},
@@ -110,14 +104,13 @@ KNOWN_GEO_COORDS = {
 }
 
 def get_latency_color(ms, status):
-    """延遲健康度燈號"""
     if status != "OK" or ms <= 0:
         return "#f87171"
     if ms < 150:
-        return "#34d399"  # 綠色：順暢秒開
+        return "#34d399"
     if ms < 350:
-        return "#fde047"  # 黃色：稍微延遲
-    return "#f87171"      # 紅色：轉圈卡頓
+        return "#fde047"
+    return "#f87171"
 
 def determine_geo(resolved_ip, headers_str, tcp_ms):
     h_lower = headers_str.lower()
@@ -143,7 +136,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     return "TYO"
 
 # ==============================================================================
-# 第二部分：Globalping 雙軌探測 (HiNet 原生 vs Google DNS)
+# 第二部分：Globalping 雙軌探測
 # ==============================================================================
 
 def execute_single_probe(host, dns_resolver=None):
@@ -241,7 +234,7 @@ def probe_service_both_dns(service):
 # 第三部分：平行發起巡檢
 # ==============================================================================
 
-print(f"[{now_str}] 啟動 HiNet 出口體感巡檢 (雙軌 DNS 完整版)...")
+print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢...")
 
 results = {}
 with ThreadPoolExecutor(max_workers=3) as executor:
@@ -251,7 +244,7 @@ with ThreadPoolExecutor(max_workers=3) as executor:
         results[svc_id] = res_data
 
 # ==============================================================================
-# 第四部分：狀態處理與 24 小時歷史保存
+# 第四部分：狀態處理、基準繞徑追溯與 24 小時歷史保存
 # ==============================================================================
 
 history_state = []
@@ -261,6 +254,20 @@ if os.path.exists(STATE_FILE):
             history_state = json.load(f)
     except Exception:
         history_state = []
+
+def find_drift_start_time(sid, dns_type, current_geo_key, current_time_str):
+    """追溯非 TPE 境外繞徑的最早起始時間 (基準點告警機制)"""
+    if current_geo_key == "TPE":
+        return None
+    earliest_time = current_time_str
+    for snapshot in history_state:
+        svc_data = snapshot.get("data", {}).get(sid, {}).get(dns_type, {})
+        geo = svc_data.get("geo_key")
+        if geo and geo != "TPE":
+            earliest_time = snapshot.get("time_short", earliest_time)
+        else:
+            break
+    return earliest_time
 
 current_snapshot = {
     "timestamp": now_str,
@@ -301,12 +308,17 @@ for s in TARGET_SERVICES:
     elif g_data["status"] == "OK":
         g_win = True
 
+    h_drift_since = None
+    g_drift_since = None
+    if s["group"] == "edge_services":
+        h_drift_since = find_drift_start_time(sid, "hinet", h_data.get("geo_key"), time_short)
+        g_drift_since = find_drift_start_time(sid, "google", g_data.get("geo_key"), time_short)
+
     current_snapshot["data"][sid] = {
         "name": s["name"],
-        "category": s["category"],
-        "scope": s["scope"],
-        "hinet": {**h_data, "win": h_win},
-        "google": {**g_data, "win": g_win}
+        "group": s["group"],
+        "hinet": {**h_data, "win": h_win, "drift_since": h_drift_since},
+        "google": {**g_data, "win": g_win, "drift_since": g_drift_since}
     }
 
 history_state.insert(0, current_snapshot)
@@ -316,7 +328,7 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：前端 HTML 組裝 (乾淨分層導航 + 順暢度燈號 + 全島放大鏡)
+# 第五部分：前端 HTML 組裝
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -335,8 +347,8 @@ for s in TARGET_SERVICES:
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
 
 def render_cards_by_view(view_mode):
-    local_cards = ""
-    global_cards = ""
+    edge_cards = ""
+    cross_cards = ""
 
     for s in TARGET_SERVICES:
         sid = s["id"]
@@ -352,10 +364,13 @@ def render_cards_by_view(view_mode):
             h_stamp = stamp_html if h.get("win") else ""
             g_stamp = stamp_html if g.get("win") else ""
 
+            h_drift_badge = f'<div class="drift-badge">⚠️ 繞徑至 {h.get("geo_name")} (自 {h.get("drift_since")} 至今)</div>' if h.get("drift_since") else ""
+            g_drift_badge = f'<div class="drift-badge">⚠️ 繞徑至 {g.get("geo_name")} (自 {g.get("drift_since")} 至今)</div>' if g.get("drift_since") else ""
+
             card_content = f"""
             <div class="pk-container">
                 <div class="pk-row {'pk-row-win' if h.get('win') else ''}">
-                    <div class="pk-dns-name">HiNet DNS</div>
+                    <div class="pk-dns-name" style="color:#38bdf8;">HiNet DNS</div>
                     <div class="pk-ms" style="color:{h.get('color')};">
                         {h_total_str} {h_stamp}
                     </div>
@@ -364,8 +379,9 @@ def render_cards_by_view(view_mode):
                         <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
+                {h_drift_badge}
                 <div class="pk-row {'pk-row-win' if g.get('win') else ''}">
-                    <div class="pk-dns-name">Google DNS</div>
+                    <div class="pk-dns-name" style="color:#fb923c;">Google DNS</div>
                     <div class="pk-ms" style="color:{g.get('color')};">
                         {g_total_str} {g_stamp}
                     </div>
@@ -374,6 +390,7 @@ def render_cards_by_view(view_mode):
                         <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
+                {g_drift_badge}
             </div>
             """
         else:
@@ -385,12 +402,14 @@ def render_cards_by_view(view_mode):
             health_color = target_data.get('color', '#34d399')
 
             status_text = "順暢良好" if target_data.get("status") == "OK" and total_val < 150 else ("稍微延遲" if total_val < 350 else "轉圈卡頓")
+            drift_badge = f'<div class="drift-badge">⚠️ 境外繞徑：持續於 {target_data.get("geo_name")} (自 {target_data.get("drift_since")} 至今)</div>' if target_data.get("drift_since") else ""
 
             card_content = f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="color:{health_color}; font-size:12px; font-weight:bold;">● {status_text}</span>
                 <span style="color:#94a3b8; font-size:11px;">{target_data.get('geo_name','--')}</span>
             </div>
+            {drift_badge}
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#070d18; padding:8px 10px; border-radius:6px; margin-bottom:12px;">
                 <div>
                     <div style="font-size:11px; color:#94a3b8;">總體感 (Total)</div>
@@ -407,7 +426,6 @@ def render_cards_by_view(view_mode):
         <div class="service-card" id="card-{view_mode}-{sid}" onmouseenter="highlightMapArc('{sid}')" onmouseleave="resetMapArc()">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:15px; font-weight:800; color:#f8fafc;">{curr['name']}</span>
-                <span class="badge">{curr['category']}</span>
             </div>
             {card_content}
             <div style="background:#070d18; padding:6px; border-radius:6px; height:110px;">
@@ -416,23 +434,23 @@ def render_cards_by_view(view_mode):
         </div>
         """
 
-        if s["scope"] == "local":
-            local_cards += card_html
+        if s["group"] == "edge_services":
+            edge_cards += card_html
         else:
-            global_cards += card_html
+            cross_cards += card_html
 
     return f"""
-    <div class="section-title">🟢 台灣本地快取直連組 (CDN Edge 直連)</div>
-    <div class="cards-grid">{local_cards}</div>
-    <div class="section-title" style="margin-top:24px;">🌐 國際海纜出口直連組 (Overseas POP 直連)</div>
-    <div class="cards-grid">{global_cards}</div>
+    <div class="section-title">⚡ 主流串流與社群平台 (邊緣解析觀測)</div>
+    <div class="cards-grid">{edge_cards}</div>
+    <div class="section-title" style="margin-top:24px;">🌐 跨境平台與海外骨幹</div>
+    <div class="cards-grid">{cross_cards}</div>
     """
 
 html_hinet_cards = render_cards_by_view("hinet")
 html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 
-# 圖表線條顏色依照各自分類的延遲健康度繪製
+# 圖表渲染配置 (PK 視圖採用專屬藍橘對決配色)
 chart_init_js = ""
 for s in TARGET_SERVICES:
     sid = s["id"]
@@ -471,15 +489,15 @@ for s in TARGET_SERVICES:
     }});
     """
 
-    # 3. 綜合對照圖 (HiNet 實線 vs Google 虛線)
+    # 3. 綜合對照圖 (HiNet 藍色實線 vs Google 橘色虛線，分明對決)
     chart_init_js += f"""
     new Chart(document.getElementById('chart-pk-{sid}'), {{
         type: 'line',
         data: {{
             labels: {chart_labels},
             datasets: [
-                {{ label: 'HiNet Total', data: {json.dumps(ds['hinet_total'])}, borderColor: '{h_col}', borderWidth: 2, tension: 0.3, pointRadius: 1.2 }},
-                {{ label: 'Google Total', data: {json.dumps(ds['google_total'])}, borderColor: '{g_col}', borderWidth: 2, borderDash: [2, 2], tension: 0.3, pointRadius: 1 }}
+                {{ label: 'HiNet Total', data: {json.dumps(ds['hinet_total'])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3, pointRadius: 1.2 }},
+                {{ label: 'Google Total', data: {json.dumps(ds['google_total'])}, borderColor: '#fb923c', borderWidth: 2, borderDash: [3, 3], tension: 0.3, pointRadius: 1 }}
             ]
         }},
         options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }} }}
@@ -496,7 +514,7 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HiNet AS3462 國際出口體感戰情室</title>
+    <title>HiNet AS3462 國際出口與 CDN 路由動態拓撲</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -505,26 +523,20 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#070d18; color:#e2e8f0; margin:0; padding:20px 24px; font-size:14px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
 
-        /* 頂部第 1 層：系統導航 */
+        /* 頂部第 1 層：系統主導航 */
         .system-nav {{ display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }}
         .nav-btn {{ padding: 8px 18px; font-size: 13px; font-weight: bold; border-radius: 6px; text-decoration: none; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b; }}
         .nav-btn:hover {{ background: #1e293b; color: #f8fafc; }}
         .nav-active {{ background: #0284c7; color: #ffffff; border: none; }}
 
-        /* 標題區 */
+        /* 標題區 (去戰情室中二化) */
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }}
 
-        /* 標題正下方第 2 層：DNS 模式分頁切換 */
-        .mode-tabs {{ display: flex; gap: 8px; margin-bottom: 16px; }}
-        .mode-btn {{ padding: 6px 16px; font-size: 13px; font-weight: bold; border-radius: 6px; color: #94a3b8; background: #0b1324; border: 1px solid #1e293b; cursor: pointer; transition: all 0.2s; }}
-        .mode-btn:hover {{ background: #1e293b; color: #f8fafc; }}
-        .mode-active {{ background: #1e293b; color: #38bdf8; border-color: #38bdf8; }}
-
         /* 子母地圖視窗容器 */
-        .map-wrapper {{ position:relative; background:#070d18; border:1px solid #1e293b; border-radius:12px; height:480px; margin-bottom:24px; overflow:hidden; }}
+        .map-wrapper {{ position:relative; background:#070d18; border:1px solid #1e293b; border-radius:12px; height:480px; margin-bottom:16px; overflow:hidden; }}
         #map-global {{ width:100%; height:100%; background:#070d18; }}
 
-        /* 右上角畫中畫：全台灣完整放大鏡 (擴大尺寸、全島入鏡、無註記條) */
+        /* 右上角畫中畫：全台灣完整放大鏡 (280x360px、全島入鏡、無任何白字條) */
         #taiwan-submap-wrapper {{
             position: absolute;
             top: 14px;
@@ -544,6 +556,12 @@ html_content = f"""<!DOCTYPE html>
         /* 懸浮 HUD 資訊卡 */
         #hud-card {{ position:absolute; bottom:20px; left:20px; width:280px; background:rgba(15, 23, 42, 0.95); border:1px solid #38bdf8; border-radius:8px; padding:12px; backdrop-filter:blur(8px); display:none; z-index:1000; pointer-events:none; }}
 
+        /* 地圖正下方：DNS 模式分頁切換 */
+        .mode-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; }}
+        .mode-btn {{ padding: 7px 18px; font-size: 13px; font-weight: bold; border-radius: 6px; color: #94a3b8; background: #0b1324; border: 1px solid #1e293b; cursor: pointer; transition: all 0.2s; }}
+        .mode-btn:hover {{ background: #1e293b; color: #f8fafc; }}
+        .mode-active {{ background: #1e293b; color: #38bdf8; border-color: #38bdf8; }}
+
         /* 分類標題 */
         .section-title {{ font-size: 15px; font-weight: 800; color: #f8fafc; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }}
 
@@ -551,13 +569,25 @@ html_content = f"""<!DOCTYPE html>
         .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }}
         .service-card {{ background:linear-gradient(145deg, #0f172a, #131d31); border-radius:10px; padding:14px; border:1px solid #1e293b; transition:all 0.2s; }}
         .service-card:hover {{ border-color:#38bdf8; transform:translateY(-2px); }}
-        .badge {{ background:#1e293b; color:#94a3b8; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:bold; }}
+
+        /* 境外繞徑持久告警標籤 */
+        .drift-badge {{
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid #f59e0b;
+            color: #fbbf24;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }}
 
         /* PK 對照表排版 */
         .pk-container {{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }}
         .pk-row {{ display: flex; justify-content: space-between; align-items: center; background: #070d18; padding: 7px 9px; border-radius: 6px; border: 1px solid #1e293b; }}
         .pk-row-win {{ border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.06); }}
-        .pk-dns-name {{ font-weight: bold; font-size: 12px; width: 85px; color: #e2e8f0; }}
+        .pk-dns-name {{ font-weight: bold; font-size: 12px; width: 85px; }}
         .pk-ms {{ font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; flex: 1; }}
         .pk-node-info {{ text-align: right; font-size: 11px; color: #cbd5e1; display: flex; flex-direction: column; }}
 
@@ -581,16 +611,24 @@ html_content = f"""<!DOCTYPE html>
         .view-panel {{ display: none; }}
         .view-active {{ display: block; }}
 
-        /* 海纜公告區塊 */
-        .cable-notice-panel {{ background:#0f172a; border:1px solid #334155; border-left:4px solid #f59e0b; border-radius:8px; padding:16px 20px; margin-top:24px; }}
-        .notice-row {{ display:grid; grid-template-columns:120px 180px 180px 1fr; gap:12px; font-size:13px; padding:8px 0; border-bottom:1px solid #1e293b; }}
-        .notice-row:last-child {{ border-bottom:none; }}
+        /* 海纜公告區塊 (真實數發部 + HiNet 維運格式) */
+        .cable-notice-panel {{ background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:16px 20px; margin-top:28px; }}
+        .cable-item {{ display:flex; gap:16px; align-items:flex-start; padding:14px 0; border-bottom:1px solid #1e293b; }}
+        .cable-item:last-child {{ border-bottom:none; }}
+        .cable-days {{ font-size:26px; font-weight:900; color:#f8fafc; min-width:65px; line-height:1; }}
+        .cable-days span {{ display:block; font-size:11px; color:#94a3b8; font-weight:normal; margin-top:4px; }}
+        .cable-body {{ flex:1; }}
+        .cable-title-row {{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }}
+        .cable-badge-down {{ background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-size:11px; font-weight:bold; padding:1px 6px; border-radius:4px; }}
+        .cable-badge-warn {{ background:rgba(251, 146, 60, 0.2); color:#fb923c; border:1px solid #fb923c; font-size:11px; font-weight:bold; padding:1px 6px; border-radius:4px; }}
+        .cable-desc {{ font-size:12px; color:#94a3b8; line-height:1.6; margin-bottom:4px; }}
+        .cable-desc strong {{ color:#cbd5e1; }}
+        .cable-etr {{ font-size:11px; color:#38bdf8; }}
 
         @media (max-width: 768px) {{
             body {{ padding:12px; }}
             .map-wrapper {{ height:380px; }}
             #taiwan-submap-wrapper {{ width: 150px; height: 190px; top: 10px; right: 10px; }}
-            .notice-row {{ grid-template-columns: 1fr; }}
         }}
     </style>
 </head>
@@ -600,14 +638,14 @@ html_content = f"""<!DOCTYPE html>
         <div class="system-nav">
             <a href="index.html" class="nav-btn">🌐 IPv4 核心巡檢</a>
             <a href="index.html" class="nav-btn">🚀 IPv6 核心巡檢</a>
-            <a href="egress.html" class="nav-btn nav-active">⚡ 海外出口動態拓撲戰情室</a>
+            <a href="egress.html" class="nav-btn nav-active">⚡ 海外出口動態拓撲</a>
         </div>
 
         <!-- 標題資訊區 -->
         <div class="header">
             <div>
                 <h1 style="margin:0 0 6px 0; font-size:22px; color:#f8fafc; font-weight:800;">
-                    ⚡ 中華電信 (HiNet AS3462) 國際出口動態拓撲戰情室
+                    HiNet (AS3462) 國際出口與 CDN 路由動態拓撲
                 </h1>
                 <div style="color:#94a3b8; font-size:13px;">
                     📍 <strong>探針來源：</strong>台灣本地 HiNet 寬頻節點 (AS3462 台中實體用戶端)<br>
@@ -621,28 +659,26 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 標題正下方第 2 層：DNS 模式分頁切換 -->
-        <div class="mode-tabs">
-            <button class="mode-btn mode-active" onclick="switchView('hinet', this)">HiNet 預設 DNS</button>
-            <button class="mode-btn" onclick="switchView('google', this)">Google DNS (8.8.8.8)</button>
-            <button class="mode-btn" onclick="switchView('pk', this)">綜合效能對照</button>
-        </div>
-
-        <!-- 第一屏核心：子母地圖 (環太平洋全景 + 右上角全台灣島內放大鏡) -->
+        <!-- 第一屏核心：子母地圖 (環太平洋全景 + 右上角全台灣放大鏡，全面鎖定滾輪縮放) -->
         <div class="map-wrapper">
             <div id="map-global"></div>
 
-            <!-- 右上角台灣島內放大鏡 (無文字條、完整入鏡) -->
             <div id="taiwan-submap-wrapper">
                 <div id="map-local"></div>
             </div>
 
-            <!-- 懸浮 HUD 資訊卡 -->
             <div id="hud-card">
                 <div id="hud-title" style="font-size:14px; font-weight:bold; color:#f8fafc; margin-bottom:6px;">--</div>
                 <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">HiNet DNS: <strong id="hud-h-total">--</strong> (<span id="hud-h-geo">--</span>)</div>
                 <div style="font-size:12px; color:#cbd5e1;">Google DNS: <strong id="hud-g-total">--</strong> (<span id="hud-g-geo">--</span>)</div>
             </div>
+        </div>
+
+        <!-- 地圖正下方：DNS 模式分頁切換 -->
+        <div class="mode-tabs">
+            <button class="mode-btn mode-active" onclick="switchView('hinet', this)">HiNet 預設 DNS</button>
+            <button class="mode-btn" onclick="switchView('google', this)">Google DNS (8.8.8.8)</button>
+            <button class="mode-btn" onclick="switchView('pk', this)">綜合效能對照</button>
         </div>
 
         <!-- 第二屏主體：三大獨立視圖 -->
@@ -658,44 +694,80 @@ html_content = f"""<!DOCTYPE html>
             {html_pk_cards}
         </div>
 
-        <!-- 最底部：HiNet 官方海纜障礙與維修公告 -->
+        <!-- 最底部：真實國際海纜障礙與維修公告專區 (融合數發部與 HiNet 公告) -->
         <div class="cable-notice-panel">
-            <div style="font-size:15px; font-weight:bold; color:#f59e0b; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                ⚠️ HiNet 國際海纜即時狀況與重點維修公告
+            <div style="font-size:16px; font-weight:bold; color:#f8fafc; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                ⚠️ 台灣周邊國際海纜即時障礙通報 (資料來源：數位發展部海纜通報 & 中華電信網路維運公告)
             </div>
-            <div class="notice-row" style="color:#94a3b8; font-weight:bold; border-bottom:1px solid #334155;">
-                <div>海纜系統</div>
-                <div>障礙/維護時間</div>
-                <div>預計修復時間</div>
-                <div>影響方向與調度應變</div>
+
+            <div class="cable-item">
+                <div class="cable-days">21<span>天障礙</span></div>
+                <div class="cable-body">
+                    <div class="cable-title-row">
+                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">SJC2 香港方向斷線</span>
+                        <span class="cable-badge-down">斷線</span>
+                    </div>
+                    <div class="cable-desc">
+                        <strong>中華電信公告：</strong>10 月 16 日發生芯線障礙，訊務已於第一時間疏轉至其他國際海纜；往香港連線尖峰時段可能有輕微延遲。<br>
+                        <strong>數位發展部通報：</strong>距香港春坎角約 109 公里處斷纜。
+                    </div>
+                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/12/30 (海纜船排程中)</div>
+                </div>
             </div>
-            <div class="notice-row">
-                <div style="color:#f8fafc; font-weight:bold;">APCN-2</div>
-                <div>2026-10-28 04:00</div>
-                <div style="color:#34d399;">修復中 (預計 11/15)</div>
-                <div>台灣至日本段光纖異常，已調度 SJC2 與 FASTER 海纜分散流量。</div>
+
+            <div class="cable-item">
+                <div class="cable-days">31<span>天障礙</span></div>
+                <div class="cable-body">
+                    <div class="cable-title-row">
+                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">台馬二號東引方向斷線</span>
+                        <span class="cable-badge-down">斷線</span>
+                    </div>
+                    <div class="cable-desc">
+                        <strong>中華電信公告：</strong>10 月 6 日發生芯線障礙，訊務已於第一時間疏轉至台馬第三海纜與微波備援。<br>
+                        <strong>數位發展部通報：</strong>距馬祖東引約 45.3 公里處斷纜。
+                    </div>
+                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/11/30</div>
+                </div>
             </div>
-            <div class="notice-row">
-                <div style="color:#f8fafc; font-weight:bold;">SJC (東南亞)</div>
-                <div>2026-11-01 10:30</div>
-                <div style="color:#38bdf8;">預防性排修 (今日)</div>
-                <div>新加坡段備援路由切換，尖峰時段東南亞短影音微幅增加 15ms。</div>
+
+            <div class="cable-item">
+                <div class="cable-days">34<span>天障礙</span></div>
+                <div class="cable-body">
+                    <div class="cable-title-row">
+                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">TPE 淡水沙崙出海段斷線</span>
+                        <span class="cable-badge-down">斷線</span>
+                    </div>
+                    <div class="cable-desc">
+                        <strong>數位發展部通報：</strong>距淡水沙崙約 1.6 公里處斷纜。<br>
+                        <strong>中華電信公告：</strong>芯線障礙，訊務已疏轉至其他國際海纜；往美西與海外部分骨幹由其他系統承載調度。
+                    </div>
+                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/11/30</div>
+                </div>
             </div>
-            <div class="notice-row">
-                <div style="color:#f8fafc; font-weight:bold;">TPE</div>
-                <div>正常運作</div>
-                <div style="color:#34d399;">正常運作</div>
-                <div>跨太平洋直達美西海纜容量充裕，負擔北美與開發者骨幹分流。</div>
+
+            <div class="cable-item">
+                <div class="cable-days">71<span>天障礙</span></div>
+                <div class="cable-body">
+                    <div class="cable-title-row">
+                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">EAC1 香港方向部分斷線</span>
+                        <span class="cable-badge-warn">部分斷線</span>
+                    </div>
+                    <div class="cable-desc">
+                        <strong>數位發展部通報：</strong>距新北八里約 567 公里處發生部分芯線受損障礙，已切換至備援路由運行。
+                    </div>
+                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/11/15</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 初始化國際海纜主地圖 (環太平洋中心 175°E)
+        // 1. 初始化國際海纜主地圖 (關閉 scrollWheelZoom，防止滾輪誤觸縮放)
         const mapGlobal = L.map('map-global', {{
             center: [28.0, 175.0],
             zoom: 3,
             zoomControl: false,
+            scrollWheelZoom: false,
             attributionControl: false
         }});
 
@@ -704,7 +776,7 @@ html_content = f"""<!DOCTYPE html>
             minZoom: 2
         }}).addTo(mapGlobal);
 
-        // 2. 初始化台灣島內放大鏡 (中心 23.7°N, 120.95°E，完整覆蓋基隆到屏東)
+        // 2. 初始化台灣全島放大鏡 (23.7°N, 120.95°E，完整覆蓋基隆到屏東，鎖定縮放與拖曳)
         const mapLocal = L.map('map-local', {{
             center: [23.7, 120.95],
             zoom: 6.8,
@@ -878,4 +950,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功產出子母戰情地圖、乾淨分層導航與體感燈號儀表板。")
+print(f"[{now_str}] 成功更新：FB 直播納入、持久型基準繞徑告警、地圖滾輪防誤觸與藍橘 PK 配色。")

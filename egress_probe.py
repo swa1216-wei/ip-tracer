@@ -868,25 +868,25 @@ html_content = f"""<!DOCTYPE html>
     </div>
 
     <script>
-        function switchView(viewName, btn) {
+        function switchView(viewName, btn) {{
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('mode-active'));
             btn.classList.add('mode-active');
 
             document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('view-active'));
             document.getElementById('view-' + viewName).classList.add('view-active');
-        }
+        }}
 
-        function toggleDrawer() {
+        function toggleDrawer() {{
             const content = document.getElementById('drawer-content');
             const arrow = document.getElementById('drawer-arrow');
-            if (content.style.display === 'block') {
+            if (content.style.display === 'block') {{
                 content.style.display = 'none';
                 arrow.innerText = '▼ 點擊展開';
-            } else {
+            }} else {{
                 content.style.display = 'block';
                 arrow.innerText = '▲ 點擊收合';
-            }
-        }
+            }}
+        }}
 
         {chart_init_js}
     </script>

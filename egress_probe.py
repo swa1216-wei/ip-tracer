@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：擴充監控標的 (涵蓋熱門短影音、短劇、社群與圖文)
+# 第一部分：擴充監控標的 (修正 Netflix 為官方 API，確保全部通暢)
 # ==============================================================================
 
 TARGET_SERVICES = [
@@ -23,7 +23,7 @@ TARGET_SERVICES = [
         "name": "Instagram Reels",
         "host": "video.xx.fbcdn.net",
         "category": "Meta 核心",
-        "desc": "短影音分段載入、看2秒卡住緩衝"
+        "desc": "短影音分段載入、看 2 秒卡住緩衝"
     },
     {
         "id": "fb_static",
@@ -37,7 +37,7 @@ TARGET_SERVICES = [
         "name": "紅果短劇 (字節跳動骨幹)",
         "host": "lf-cdn-tos.bytescm.com",
         "category": "爆款短劇",
-        "desc": "字節短劇串流骨幹起播延遲"
+        "desc": "字節跳動媒體骨幹起播與分段載入"
     },
     {
         "id": "tiktok_gateway",
@@ -82,11 +82,11 @@ TARGET_SERVICES = [
         "desc": "海外圖床與語音連線品質"
     },
     {
-        "id": "netflix_edge",
-        "name": "Netflix 邊緣節點",
-        "host": "ipv4-c001-tpe001-ix.1.oca.nflxvideo.net",
+        "id": "netflix_fast",
+        "name": "Netflix 邊緣節點 (Fast API)",
+        "host": "api.fast.com",
         "category": "串流影音",
-        "desc": "追劇起播與本地快取對照"
+        "desc": "Netflix 官方邊緣測速節點體感延遲"
     }
 ]
 
@@ -96,9 +96,9 @@ now_dt = datetime.now(tz)
 now_str = now_dt.strftime('%Y-%m-%d %H:%M:%S')
 time_short = now_dt.strftime('%H:%M')
 
-# 實體地理經緯度資料庫 (供 Leaflet 地圖繪製真實弧線)
+# 實體地理經緯度 (真實世界地圖錨點)
 KNOWN_GEO_COORDS = {
-    "TW": {"name": "台灣 (台中起點)", "lat": 24.1477, "lng": 120.6736},
+    "TW": {"name": "台灣台中 (探針起點)", "lat": 24.1477, "lng": 120.6736},
     "TPE": {"name": "台北本地節點", "lat": 25.0330, "lng": 121.5654},
     "TYO": {"name": "日本 (東京 NRT/HND)", "lat": 35.6762, "lng": 139.6503},
     "OSA": {"name": "日本 (大阪 KIX)", "lat": 34.6937, "lng": 135.5023},
@@ -111,7 +111,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     """依據 Header、IP 與延遲綜合判定落地節點"""
     h_lower = headers_str.lower()
     
-    # 延遲如果超過 130ms，極高機率走美西
+    # 延遲超過 130ms，極高機率走美西
     if tcp_ms > 130:
         return "US_WEST"
 
@@ -128,7 +128,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     if "tpe" in h_lower or "taiwan" in h_lower or tcp_ms < 10:
         return "TPE"
     
-    # 預設依服務屬性推估
+    # 預設推估
     if resolved_ip.startswith("199.232.") or resolved_ip.startswith("151.101."):
         return "TYO"
     if resolved_ip.startswith("157.240.") or resolved_ip.startswith("31.13."):
@@ -195,7 +195,7 @@ def probe_service_with_retry(service):
     sid = service["id"]
     res = execute_single_probe(service["host"])
     
-    # 若回傳 0 或逾時，2 秒內重測一次
+    # 若為 0 或逾時，在 2 秒內原地重試一次
     if not res or res["total_ms"] <= 0:
         time.sleep(2)
         res = execute_single_probe(service["host"])
@@ -260,7 +260,7 @@ for s in TARGET_SERVICES:
     res = results.get(sid, {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "geo_key": "TYO"})
     total_ms = res.get("total_ms", 0)
 
-    # 體感門檻標準
+    # 體感標準：<150ms 綠 (秒開), 150-350ms 黃 (稍等), >=350ms 紅 (轉圈卡頓)
     if res.get("status") != "OK":
         status_text = "🚨 連線逾時"
         status_color = "#f87171"
@@ -299,7 +299,7 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：前端 HTML 組裝 (包含 Leaflet 暗黑地圖 + 大卡片 + 海纜公告)
+# 第五部分：前端 HTML 組裝 (Leaflet ESRI 暗黑底圖 + 雙向流光粒子 + 24hr 大圖)
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -313,7 +313,7 @@ for s in TARGET_SERVICES:
         "tcp": [item.get("data", {}).get(sid, {}).get("tcp_ms", 0) for item in chronological_data]
     }
 
-# 組裝下方 11 張獨立 24 小時歷史大卡片
+# 產出 11 張獨立 24 小時歷史大卡片
 cards_html = ""
 chart_init_js = ""
 
@@ -388,7 +388,6 @@ for s in TARGET_SERVICES:
     }});
     """
 
-# 傳入地圖繪製所需之資料
 map_payload = {
     "nodes": active_geo_nodes,
     "services": current_snapshot["data"]
@@ -408,21 +407,21 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#070d18; color:#e2e8f0; margin:0; padding:20px 24px; font-size:14px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
 
-        /* 頂部系統切換 */
+        /* 頂部切換導航 */
         .system-tabs {{ display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }}
         .tab-btn {{ padding: 8px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; text-decoration: none; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b; transition: all 0.2s; }}
         .tab-active {{ background: #0284c7; color: #ffffff; border: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4); }}
         .tab-btn:hover:not(.tab-active) {{ background: #1e293b; color: #f8fafc; }}
 
-        /* 標題與更新資訊 */
+        /* 標題與更新時間 */
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #1e293b; }}
         
         /* 地圖戰情面板 */
-        .map-wrapper {{ position:relative; background:#0b1324; border:1px solid #1e293b; border-radius:12px; height:460px; margin-bottom:24px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.4); }}
+        .map-wrapper {{ position:relative; background:#070d18; border:1px solid #1e293b; border-radius:12px; height:480px; margin-bottom:24px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.5); }}
         #map {{ width:100%; height:100%; background:#070d18; }}
 
-        /* 地圖懸浮 HUD 卡片 */
-        #hud-card {{ position:absolute; top:20px; right:20px; width:280px; background:rgba(15, 23, 42, 0.92); border:1px solid #38bdf8; border-radius:8px; padding:12px; backdrop-filter:blur(8px); display:none; z-index:1000; pointer-events:none; box-shadow:0 6px 20px rgba(0,0,0,0.6); }}
+        /* HUD 懸浮窗 */
+        #hud-card {{ position:absolute; top:20px; right:20px; width:280px; background:rgba(15, 23, 42, 0.94); border:1px solid #38bdf8; border-radius:8px; padding:12px; backdrop-filter:blur(8px); display:none; z-index:1000; pointer-events:none; box-shadow:0 6px 20px rgba(0,0,0,0.6); }}
 
         /* 下方卡片網格 */
         .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; margin-bottom: 30px; }}
@@ -444,14 +443,14 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 系統標籤 -->
+        <!-- 導航列 -->
         <div class="system-tabs">
             <a href="index.html" class="tab-btn">🌐 IPv4 核心巡檢</a>
             <a href="index.html" class="tab-btn">🚀 IPv6 核心巡檢</a>
             <a href="egress.html" class="tab-btn tab-active">⚡ 海外出口動態拓撲戰情室</a>
         </div>
 
-        <!-- 頂部資訊區 (恢復詳細時間與環境介紹) -->
+        <!-- 頂部資訊區 -->
         <div class="header">
             <div>
                 <h1 style="margin:0 0 6px 0; font-size:22px; color:#f8fafc; font-weight:800;">
@@ -473,7 +472,7 @@ html_content = f"""<!DOCTYPE html>
         <!-- 第一屏核心：全幅暗黑世界地圖拓撲 -->
         <div class="map-wrapper">
             <div id="map"></div>
-            <!-- 地圖 HUD 懸浮視窗 -->
+            <!-- HUD 懸浮窗 -->
             <div id="hud-card">
                 <div id="hud-title" style="font-size:14px; font-weight:bold; color:#f8fafc;">--</div>
                 <div id="hud-desc" style="font-size:11px; color:#94a3b8; margin-bottom:8px;">--</div>
@@ -488,7 +487,7 @@ html_content = f"""<!DOCTYPE html>
         <!-- 第二屏主體：所有 App 完整 24 小時歷史走勢大卡片 -->
         <div style="margin-bottom:12px; font-size:16px; font-weight:bold; color:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
             <span>📊 輿情焦點服務體感指標 (24 小時連續監控)</span>
-            <span style="font-size:12px; color:#64748b;">滑鼠懸停卡片可高亮地圖路徑</span>
+            <span style="font-size:12px; color:#64748b;">滑鼠懸停卡片或地圖光線即可突顯路徑</span>
         </div>
         <div class="cards-grid">
             {cards_html}
@@ -527,15 +526,15 @@ html_content = f"""<!DOCTYPE html>
     </div>
 
     <script>
-        // 初始化 Leaflet 暗黑地圖底圖
+        // 初始化 Leaflet 暗黑戰情地圖底圖 (ESRI Dark Gray Canvas，無浮水印、免 API Key)
         const map = L.map('map', {{
-            center: [26.0, 130.0],
+            center: [25.0, 128.0],
             zoom: 4,
             zoomControl: false,
             attributionControl: false
         }});
 
-        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
             maxZoom: 8,
             minZoom: 3
         }}).addTo(map);
@@ -543,40 +542,36 @@ html_content = f"""<!DOCTYPE html>
         const mapData = {json.dumps(map_payload)};
         const twCoord = [mapData.nodes.TW.lat, mapData.nodes.TW.lng];
 
-        // 標記台灣台中起點 (中心脈衝節點)
+        // 標記台灣台中起點 (核心光點)
         L.circleMarker(twCoord, {{
-            radius: 8,
+            radius: 7,
             fillColor: '#f43f5e',
             color: '#ffffff',
             weight: 2,
             fillOpacity: 1
-        }}).addTo(map).bindTooltip("🇹🇼 台中 (HiNet 探針起點)", {{ permanent: true, direction: 'bottom' }});
+        }}).addTo(map);
 
-        // 繪製海外連通節點與弧線
-        const arcLayers = {{}};
-        const nodeMarkers = {{}};
-
+        // 繪製海外目標節點 (無醜白貼標，僅顯示科技光點)
         for (const [key, node] of Object.entries(mapData.nodes)) {{
             if (key !== "TW") {{
-                const marker = L.circleMarker([node.lat, node.lng], {{
+                L.circleMarker([node.lat, node.lng], {{
                     radius: 5,
                     fillColor: '#38bdf8',
                     color: '#070d18',
                     weight: 1.5,
                     fillOpacity: 0.9
-                }}).addTo(map).bindTooltip(node.name, {{ permanent: true, direction: 'top' }});
-                nodeMarkers[key] = marker;
+                }}).addTo(map);
             }}
         }}
 
-        // 產生二次貝茲曲線坐標點 (用於平滑弧線)
-        function getCurvedCoords(start, end, curvature = 0.25) {{
+        // 正負雙向發散曲率計算 (上下展開弧線，解決同一地點重疊黏在一起的問題)
+        function getCurvedCoords(start, end, curvature) {{
             const lat1 = start[0], lng1 = start[1];
             const lat2 = end[0], lng2 = end[1];
             const midLat = (lat1 + lat2) / 2 + (lng2 - lng1) * curvature;
             const midLng = (lng1 + lng2) / 2 - (lat2 - lat1) * curvature;
             const points = [];
-            for (let t = 0; t <= 1; t += 0.04) {{
+            for (let t = 0; t <= 1; t += 0.03) {{
                 const lat = (1 - t) * (1 - t) * lat1 + 2 * (1 - t) * t * midLat + t * t * lat2;
                 const lng = (1 - t) * (1 - t) * lng1 + 2 * (1 - t) * t * midLng + t * t * lng2;
                 points.push([lat, lng]);
@@ -584,23 +579,63 @@ html_content = f"""<!DOCTYPE html>
             return points;
         }}
 
-        // 為所有 App 繪製連線光束
+        const arcLayers = {{}};
+        const activePulses = [];
+        const destCounts = {{}};
+
+        // 依目的地分派上下發散曲率，並生成雙向流光粒子
         for (const [sid, svc] of Object.entries(mapData.services)) {{
             const geo = mapData.nodes[svc.geo_key];
             if (!geo) continue;
 
-            const curveCoords = getCurvedCoords(twCoord, [geo.lat, geo.lng], (sid.length % 5) * 0.05 + 0.1);
+            // 計算發散曲率：第一個正向(+), 第二個反向(-), 第三個加大(+) ...
+            if (!destCounts[svc.geo_key]) destCounts[svc.geo_key] = 0;
+            destCounts[svc.geo_key]++;
+            const count = destCounts[svc.geo_key];
+            const sign = (count % 2 === 1) ? 1 : -1;
+            const magnitude = 0.12 + Math.floor((count - 1) / 2) * 0.14;
+            const curvature = sign * magnitude;
+
+            const curveCoords = getCurvedCoords(twCoord, [geo.lat, geo.lng], curvature);
+
+            // 底層連線
             const polyline = L.polyline(curveCoords, {{
                 color: svc.status_color,
-                weight: 2.2,
-                opacity: 0.75,
+                weight: 3,
+                opacity: 0.7,
                 smoothFactor: 1
             }}).addTo(map);
+
+            // 雙向流光粒子：
+            // 1. 去程白光粒子 (上傳)
+            const fMarker = L.circleMarker(curveCoords[0], {{
+                radius: 3.5,
+                fillColor: '#ffffff',
+                color: '#38bdf8',
+                weight: 1,
+                fillOpacity: 1
+            }}).addTo(map);
+
+            // 2. 回程彩色粒子 (下載體感)
+            const bMarker = L.circleMarker(curveCoords[curveCoords.length - 1], {{
+                radius: 4,
+                fillColor: svc.status_color,
+                color: '#ffffff',
+                weight: 1,
+                fillOpacity: 1
+            }}).addTo(map);
+
+            activePulses.push({{
+                coords: curveCoords,
+                fMarker: fMarker,
+                bMarker: bMarker,
+                offset: (count * 5) % curveCoords.length
+            }});
 
             // 滑鼠移到線條高亮並彈出 HUD
             polyline.on('mouseover', function (e) {{
                 highlightMapArc(sid);
-                showHud(svc, e.containerPoint);
+                showHud(svc);
             }});
             polyline.on('mouseout', function () {{
                 resetMapArc();
@@ -610,13 +645,29 @@ html_content = f"""<!DOCTYPE html>
             arcLayers[sid] = polyline;
         }}
 
+        // 雙向流光動畫循環 (每 60 毫秒推動一次光點前進/後退)
+        let animStep = 0;
+        setInterval(() => {{
+            animStep++;
+            activePulses.forEach(p => {{
+                const len = p.coords.length;
+                // 去程粒子前進
+                const fIdx = (animStep + p.offset) % len;
+                p.fMarker.setLatLng(p.coords[fIdx]);
+
+                // 回程粒子倒退
+                const bIdx = (len - 1) - ((animStep + p.offset) % len);
+                p.bMarker.setLatLng(p.coords[bIdx]);
+            }});
+        }}, 60);
+
         function highlightMapArc(sid) {{
             for (const [id, line] of Object.entries(arcLayers)) {{
                 if (id === sid) {{
-                    line.setStyle({{ weight: 5, opacity: 1 }});
+                    line.setStyle({{ weight: 6, opacity: 1 }});
                     line.bringToFront();
                 }} else {{
-                    line.setStyle({{ opacity: 0.15 }});
+                    line.setStyle({{ opacity: 0.12 }});
                 }}
             }}
             const card = document.getElementById('card-' + sid);
@@ -625,13 +676,12 @@ html_content = f"""<!DOCTYPE html>
 
         function resetMapArc() {{
             for (const [sid, line] of Object.entries(arcLayers)) {{
-                const svc = mapData.services[sid];
-                line.setStyle({{ weight: 2.2, opacity: 0.75 }});
+                line.setStyle({{ weight: 3, opacity: 0.7 }});
             }}
             document.querySelectorAll('.service-card').forEach(c => c.style.borderColor = '#1e293b');
         }}
 
-        function showHud(svc, point) {{
+        function showHud(svc) {{
             const hud = document.getElementById('hud-card');
             document.getElementById('hud-title').innerText = svc.name;
             document.getElementById('hud-desc').innerText = svc.desc;
@@ -655,4 +705,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功產出 Leaflet 暗黑拓撲戰情室與完整 24 小時體感儀表板。")
+print(f"[{now_str}] 成功產出 Leaflet 暗黑雙向流光戰情室與完整 24 小時體感儀表板。")

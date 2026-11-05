@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的 (修正 FB 影音端點，依真實業務屬性分組)
+# 第一部分：監控標的 (12 款核心 App，修正 FB 影音端點，分組清楚)
 # ==============================================================================
 
 TARGET_SERVICES = [
@@ -135,7 +135,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     return "TYO"
 
 # ==============================================================================
-# 第二部分：Globalping 探測 (防抖動連續 3 次複測驗證)
+# 第二部分：Globalping 探測 (抗 429 退避 + 探針排隊防護 + 連續 3 次複測驗證)
 # ==============================================================================
 
 def execute_single_probe(host, dns_resolver=None):
@@ -158,21 +158,33 @@ def execute_single_probe(host, dns_resolver=None):
     )
 
     measurement_id = None
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
-    except Exception:
-        return None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                measurement_id = json.loads(resp.read().decode("utf-8")).get("id")
+                if measurement_id:
+                    break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 2:
+                time.sleep(3 + attempt * 2)
+                continue
+            return None
+        except Exception:
+            if attempt < 2:
+                time.sleep(2)
+                continue
+            return None
 
     if not measurement_id:
         return None
 
     poll_url = f"{api_url}/{measurement_id}"
-    for _ in range(10):
+    # 增加至 15 秒等待，避免台灣探針忙碌排隊時誤判逾時
+    for _ in range(15):
         time.sleep(1)
         try:
             req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "HiNet-Egress-Probe"})
-            with urllib.request.urlopen(req_poll, timeout=8) as resp:
+            with urllib.request.urlopen(req_poll, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 if data.get("status") == "finished":
                     results = data.get("results", [])
@@ -190,20 +202,26 @@ def execute_single_probe(host, dns_resolver=None):
                                 "resolved_ip": resolved_ip,
                                 "headers": raw_headers
                             }
+                        return None
         except Exception:
             pass
     return None
 
 def probe_single_stream(service, dns_resolver=None):
+    # 第一次正常探測
     res = execute_single_probe(service["host"], dns_resolver)
     
+    # 判斷是否需要啟動防抖動連續測試 (逾時、失敗或 >= 150ms 警戒值)
     is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 150)
+    
     if is_abnormal:
+        # 有狀況時連續複測最多 2 次 (加首次共 3 次)
         for attempt in range(2):
-            time.sleep(2)
+            time.sleep(2.5)
             retry_res = execute_single_probe(service["host"], dns_resolver)
             if retry_res and retry_res.get("total_ms", 0) > 0:
                 res = retry_res
+                # 若複測回到綠燈區 (<150ms)，代表為瞬間假性抖動，立即採納正常值中斷重測
                 if res["total_ms"] < 150:
                     break
 
@@ -233,17 +251,18 @@ def probe_single_stream(service, dns_resolver=None):
 def probe_service_both_dns(service):
     sid = service["id"]
     hinet_res = probe_single_stream(service, None)
+    time.sleep(0.5)
     google_res = probe_single_stream(service, "8.8.8.8")
     return sid, {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
-# 第三部分：平行發起巡檢
+# 第三部分：平行發起巡檢 (降低為 2 條平行產線，徹底防禦 429 限流)
 # ==============================================================================
 
 print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢 (含 3 次異常複測防抖機制)...")
 
 results = {}
-with ThreadPoolExecutor(max_workers=3) as executor:
+with ThreadPoolExecutor(max_workers=2) as executor:
     future_to_svc = {executor.submit(probe_service_both_dns, s): s["id"] for s in TARGET_SERVICES}
     for future in as_completed(future_to_svc):
         svc_id, res_data = future.result()
@@ -307,7 +326,7 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：歷史事件與節點切換紀錄運算
+# 第五部分：歷史事件、節點切換紀錄與頂部最新動態運算
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -329,6 +348,7 @@ for s in TARGET_SERVICES:
 
     for snap in chronological_data:
         t_label = snap.get("time_short", "")
+        t_full = snap.get("timestamp", "")
         s_data = snap.get("data", {}).get(sid, {})
         h_info = s_data.get("hinet", {})
         g_info = s_data.get("google", {})
@@ -346,6 +366,7 @@ for s in TARGET_SERVICES:
             curr_name = KNOWN_GEO_NAMES.get(curr_h_geo, curr_h_geo)
             node_switch_logs.append({
                 "time": t_label,
+                "timestamp": t_full,
                 "service": s["name"],
                 "dns": "HiNet DNS",
                 "trajectory": f"{prev_name} ➔ {curr_name}",
@@ -361,6 +382,7 @@ for s in TARGET_SERVICES:
             curr_name = KNOWN_GEO_NAMES.get(curr_g_geo, curr_g_geo)
             node_switch_logs.append({
                 "time": t_label,
+                "timestamp": t_full,
                 "service": s["name"],
                 "dns": "Google DNS",
                 "trajectory": f"{prev_name} ➔ {curr_name}",
@@ -376,8 +398,173 @@ for s in TARGET_SERVICES:
         "google_tcp": g_tcps
     }
 
+# 頂部最新異動橫條 (判定 1 小時內是否有節點漂移)
+latest_switch_banner = ""
+one_hour_ago = now_dt - timedelta(hours=1)
+recent_logs = []
+
+for log in node_switch_logs:
+    try:
+        log_dt = datetime.strptime(log.get("timestamp", ""), '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
+        if log_dt >= one_hour_ago:
+            recent_logs.append(log)
+    except Exception:
+        pass
+
+if recent_logs:
+    latest = recent_logs[-1]
+    latest_switch_banner = f"""
+    <div style="background:rgba(239, 68, 68, 0.15); border:1px solid #ef4444; border-radius:8px; padding:12px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:16px;">🚨</span>
+            <span style="font-weight:bold; color:#f8fafc; font-size:14px;">最新路由變更 ({latest['time']})：</span>
+            <span style="color:#38bdf8; font-weight:bold;">{latest['service']}</span>
+            <span style="color:#94a3b8; font-size:13px;">({latest['dns']})</span>
+            <span style="color:#fca5a5;">➔ {latest['trajectory']}</span>
+        </div>
+        <div>
+            <a href="#drawer-toggle" onclick="openDrawerIfClosed()" style="color:#38bdf8; text-decoration:none; font-size:13px; font-weight:bold;">
+                📋 點此查看異動日誌 ▼
+            </a>
+        </div>
+    </div>
+    """
+else:
+    latest_switch_banner = f"""
+    <div style="background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:8px; padding:12px 18px; margin-bottom:18px; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">🟢</span>
+        <span style="color:#34d399; font-weight:bold; font-size:14px;">各服務節點位置穩定：</span>
+        <span style="color:#94a3b8; font-size:13px;">過去 1 小時內無跨國漂移或節點跳變事件。</span>
+    </div>
+    """
+
 # ==============================================================================
-# 第六部分：HTML 畫面渲染 (含即時單點複測按鈕)
+# 第六部分：四頁專屬頂部大戰況卡 (Summary Cards) 運算
+# ==============================================================================
+
+# 1. HiNet 戰況計算
+hinet_good = 0
+hinet_warn = 0
+hinet_alert = 0
+
+# 2. Google 戰況計算
+google_good = 0
+google_warn = 0
+google_alert = 0
+
+# 3. PK 戰況計算
+pk_hinet_win = 0
+pk_google_win = 0
+pk_tie = 0
+pk_split_node = 0
+
+for s in TARGET_SERVICES:
+    sid = s["id"]
+    curr = current_snapshot["data"].get(sid, {})
+    h = curr.get("hinet", {})
+    g = curr.get("google", {})
+
+    # HiNet 統計
+    h_ms = h.get("total_ms", 0)
+    if h.get("status") == "OK" and h_ms < 150:
+        hinet_good += 1
+    elif h.get("status") == "OK" and h_ms < 350:
+        hinet_warn += 1
+    else:
+        hinet_alert += 1
+
+    # Google 統計
+    g_ms = g.get("total_ms", 0)
+    if g.get("status") == "OK" and g_ms < 150:
+        google_good += 1
+    elif g.get("status") == "OK" and g_ms < 350:
+        google_warn += 1
+    else:
+        google_alert += 1
+
+    # PK 統計
+    if h.get("status") == "OK" and g.get("status") == "OK":
+        if abs(h_ms - g_ms) <= 10:
+            pk_tie += 1
+        elif h_ms < g_ms:
+            pk_hinet_win += 1
+        else:
+            pk_google_win += 1
+    elif h.get("status") == "OK":
+        pk_hinet_win += 1
+    elif g.get("status") == "OK":
+        pk_google_win += 1
+
+    if h.get("geo_key") != g.get("geo_key"):
+        pk_split_node += 1
+
+total_apps = len(TARGET_SERVICES)
+
+summary_cards_hinet = f"""
+<div class="summary-cards">
+    <div class="summary-card" style="border-top:4px solid #38bdf8;">
+        <div class="summary-title">監控標的總數</div>
+        <div class="summary-val" style="color:#ffffff;">{total_apps} <span class="summary-unit">款 App</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid #10b981;">
+        <div class="summary-title" style="color:#a7f3d0;">🟢 順暢良好 (&lt;150ms)</div>
+        <div class="summary-val" style="color:#34d399;">{hinet_good} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid {'#f59e0b' if hinet_warn > 0 else '#334155'};">
+        <div class="summary-title" style="color:#fde047;">🟡 輕微延遲 (150~350ms)</div>
+        <div class="summary-val" style="color:{'#fde047' if hinet_warn > 0 else '#94a3b8'};">{hinet_warn} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid {'#ef4444' if hinet_alert > 0 else '#334155'};">
+        <div class="summary-title" style="color:#fecdd3;">🔴 嚴重卡頓 / 逾時</div>
+        <div class="summary-val" style="color:{'#fb7185' if hinet_alert > 0 else '#94a3b8'};">{hinet_alert} <span class="summary-unit">款</span></div>
+    </div>
+</div>
+"""
+
+summary_cards_google = f"""
+<div class="summary-cards">
+    <div class="summary-card" style="border-top:4px solid #c084fc;">
+        <div class="summary-title">監控標的總數</div>
+        <div class="summary-val" style="color:#ffffff;">{total_apps} <span class="summary-unit">款 App</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid #10b981;">
+        <div class="summary-title" style="color:#a7f3d0;">🟢 順暢良好 (&lt;150ms)</div>
+        <div class="summary-val" style="color:#34d399;">{google_good} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid {'#f59e0b' if google_warn > 0 else '#334155'};">
+        <div class="summary-title" style="color:#fde047;">🟡 輕微延遲 (150~350ms)</div>
+        <div class="summary-val" style="color:{'#fde047' if google_warn > 0 else '#94a3b8'};">{google_warn} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid {'#ef4444' if google_alert > 0 else '#334155'};">
+        <div class="summary-title" style="color:#fecdd3;">🔴 嚴重卡頓 / 逾時</div>
+        <div class="summary-val" style="color:{'#fb7185' if google_alert > 0 else '#94a3b8'};">{google_alert} <span class="summary-unit">款</span></div>
+    </div>
+</div>
+"""
+
+summary_cards_pk = f"""
+<div class="summary-cards">
+    <div class="summary-card" style="border-top:4px solid #38bdf8;">
+        <div class="summary-title" style="color:#7dd3fc;">🏆 HiNet DNS 勝出</div>
+        <div class="summary-val" style="color:#38bdf8;">{pk_hinet_win} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid #c084fc;">
+        <div class="summary-title" style="color:#e9d5ff;">🏆 Google DNS 勝出</div>
+        <div class="summary-val" style="color:#c084fc;">{pk_google_win} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid #64748b;">
+        <div class="summary-title">⚖️ 表現相當 (差距&le;10ms)</div>
+        <div class="summary-val" style="color:#cbd5e1;">{pk_tie} <span class="summary-unit">款</span></div>
+    </div>
+    <div class="summary-card" style="border-top:4px solid {'#fb923c' if pk_split_node > 0 else '#334155'};">
+        <div class="summary-title" style="color:#fdba74;">🌐 落地節點分歧</div>
+        <div class="summary-val" style="color:{'#fb923c' if pk_split_node > 0 else '#94a3b8'};">{pk_split_node} <span class="summary-unit">款</span></div>
+    </div>
+</div>
+"""
+
+# ==============================================================================
+# 第七部分：HTML 畫面渲染 (卡片統一「⚡ 重測」，修復逾時顯示矛盾)
 # ==============================================================================
 
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
@@ -427,7 +614,7 @@ def render_cards_by_view(view_mode):
             """
             retest_btn = f"""
             <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{host_domain}', 'both', this)" class="retest-chip retest-chip-neutral">
-                ⚡ 雙向複測
+                ⚡ 重測
             </button>
             """
         else:
@@ -438,16 +625,24 @@ def render_cards_by_view(view_mode):
             tcp_str = f"{tcp_val} ms" if target_data.get("status") == "OK" else "--"
             health_color = target_data.get('color', '#34d399')
 
-            status_text = "順暢良好" if target_data.get("status") == "OK" and total_val < 150 else ("稍微延遲" if total_val < 350 else "轉圈卡頓")
+            # 徹底修復判定 Bug：若連線失敗或逾時，絕不能顯示「稍微延遲」
+            if target_data.get("status") != "OK" or total_val <= 0:
+                status_text = "連線逾時"
+                chip_class = "retest-chip-alert"
+            elif total_val < 150:
+                status_text = "順暢良好"
+                chip_class = "retest-chip-neutral"
+            elif total_val < 350:
+                status_text = "稍微延遲"
+                chip_class = "retest-chip-warn"
+            else:
+                status_text = "轉圈卡頓"
+                chip_class = "retest-chip-alert"
 
-            # 依延遲快慢給予不同顏色的複測晶片按鈕
             dns_param = "hinet" if view_mode == "hinet" else "google"
-            chip_class = "retest-chip-alert" if total_val >= 350 or target_data.get("status") != "OK" else ("retest-chip-warn" if total_val >= 150 else "retest-chip-neutral")
-            chip_label = "⚡ 立即重測" if total_val >= 150 or target_data.get("status") != "OK" else "🔄 抽查"
-
             retest_btn = f"""
             <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{host_domain}', '{dns_param}', this)" class="retest-chip {chip_class}">
-                {chip_label}
+                ⚡ 重測
             </button>
             """
 
@@ -548,17 +743,27 @@ html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 html_sla_cards = render_sla_view()
 
-# 節點切換紀錄表格
+# 節點切換紀錄表格 (以時間倒序排列，最新的在第 1 列)
 log_rows = ""
 unique_services = sorted(list(set([s["name"] for s in TARGET_SERVICES])))
 service_options = "".join([f'<option value="{svc}">{svc}</option>' for svc in unique_services])
 
 if node_switch_logs:
     for log in reversed(node_switch_logs):
+        is_recent = False
+        try:
+            log_dt = datetime.strptime(log.get("timestamp", ""), '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
+            if log_dt >= one_hour_ago:
+                is_recent = True
+        except Exception:
+            pass
+
+        time_badge = f'<span style="background:#ef4444; color:#fff; font-size:10px; padding:2px 5px; border-radius:3px; margin-right:4px;">NEW</span>' if is_recent else ""
+
         log_rows += f"""
-        <tr class="log-row" data-dns="{log['dns']}" data-service="{log['service']}">
-            <td style="color:#f8fafc; font-weight:bold;">{log['time']}</td>
-            <td style="color:#38bdf8;">{log['service']}</td>
+        <tr class="log-row" data-dns="{log['dns']}" data-service="{log['service']}" style="{'background:rgba(239,68,68,0.06);' if is_recent else ''}">
+            <td style="color:#f8fafc; font-weight:bold;">{time_badge}{log['time']}</td>
+            <td style="color:#38bdf8; font-weight:bold;">{log['service']}</td>
             <td>{log['dns']}</td>
             <td style="color:#e2e8f0;">{log['trajectory']}</td>
             <td style="color:#cbd5e1;">{log['current_node']}</td>
@@ -662,7 +867,7 @@ html_content = f"""<!DOCTYPE html>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {{ box-sizing: border-box; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#070d18; color:#e2e8f0; margin:0; padding:20px 24px; font-size:14px; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#0b1120; color:#e2e8f0; margin:0; padding:28px; font-size:15px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
 
         /* 頂部固定系統導航 Tab 列 (完全對齊 index.html 樣式) */
@@ -672,23 +877,30 @@ html_content = f"""<!DOCTYPE html>
         .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
         .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
 
-        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }}
+        .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid #334155; }}
 
-        /* 分頁切換列 (釘選頂部) */
+        /* 頂部四大戰況卡樣式 (對齊 index.html) */
+        .summary-cards {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }}
+        .summary-card {{ background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 10px; padding: 18px 20px; border: 1px solid #334155; box-shadow: 0 6px 16px rgba(0,0,0,0.25); }}
+        .summary-title {{ font-size: 18px; font-weight: bold; color: #94a3b8; margin-bottom: 6px; }}
+        .summary-val {{ font-size: 34px; font-weight: 900; }}
+        .summary-unit {{ font-size: 14px; color: #94a3b8; font-weight: normal; }}
+
+        /* 分頁切換列 */
         .mode-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; }}
-        .mode-btn {{ padding: 8px 20px; font-size: 13px; font-weight: bold; border-radius: 6px; color: #94a3b8; background: #0b1324; border: 1px solid #1e293b; cursor: pointer; transition: all 0.2s; }}
+        .mode-btn {{ padding: 9px 22px; font-size: 14px; font-weight: bold; border-radius: 6px; color: #94a3b8; background: #0f172a; border: 1px solid #334155; cursor: pointer; transition: all 0.2s; }}
         .mode-btn:hover {{ background: #1e293b; color: #f8fafc; }}
-        .mode-active {{ background: #1e293b; color: #38bdf8; border-color: #38bdf8; }}
+        .mode-active {{ background: #1e293b; color: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }}
 
-        .section-title {{ font-size: 15px; font-weight: 800; color: #f8fafc; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }}
+        .section-title {{ font-size: 16px; font-weight: 800; color: #f8fafc; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }}
 
         .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }}
-        .service-card {{ background:linear-gradient(145deg, #0f172a, #131d31); border-radius:10px; padding:14px; border:1px solid #1e293b; }}
+        .service-card {{ background:linear-gradient(145deg, #1e293b, #0f172a); border-radius:10px; padding:14px; border:1px solid #334155; }}
 
-        /* 複測微型按鈕 */
-        .retest-chip {{ font-size:11px; font-weight:bold; border-radius:4px; padding:3px 8px; border:none; cursor:pointer; transition:all 0.2s; }}
-        .retest-chip-neutral {{ background:#1e293b; color:#94a3b8; border:1px solid #334155; }}
-        .retest-chip-neutral:hover {{ background:#334155; color:#fff; }}
+        /* 統一重測按鈕樣式 */
+        .retest-chip {{ font-size:12px; font-weight:bold; border-radius:6px; padding:4px 10px; border:none; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; }}
+        .retest-chip-neutral {{ background:#334155; color:#cbd5e1; }}
+        .retest-chip-neutral:hover {{ background:#475569; color:#fff; }}
         .retest-chip-warn {{ background:#ea580c; color:#fff; }}
         .retest-chip-alert {{ background:#dc2626; color:#fff; }}
 
@@ -720,7 +932,7 @@ html_content = f"""<!DOCTYPE html>
 
         /* 第 4 頁 SLA 大圖版面 */
         .sla-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(650px, 1fr)); gap: 16px; }}
-        .sla-card {{ background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:16px; }}
+        .sla-card {{ background:#1e293b; border:1px solid #334155; border-radius:10px; padding:16px; }}
         .verdict-badge {{ font-size:11px; font-weight:bold; padding:3px 8px; border-radius:4px; }}
 
         /* 頁面切換控制 */
@@ -729,28 +941,28 @@ html_content = f"""<!DOCTYPE html>
 
         /* 折疊式節點切換紀錄抽屜 */
         .drawer-toggle {{
-            background: #0b1324;
-            border: 1px solid #1e293b;
+            background: #0f172a;
+            border: 1px solid #334155;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 14px 18px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 24px;
+            margin-top: 28px;
             transition: all 0.2s;
         }}
-        .drawer-toggle:hover {{ background: #131d31; border-color: #38bdf8; }}
-        .drawer-content {{ display: none; background: #0f172a; border: 1px solid #1e293b; border-top: none; border-radius: 0 0 8px 8px; padding: 16px; }}
+        .drawer-toggle:hover {{ background: #1e293b; border-color: #38bdf8; }}
+        .drawer-content {{ display: none; background: #0f172a; border: 1px solid #334155; border-top: none; border-radius: 0 0 8px 8px; padding: 18px; }}
 
         /* 篩選列排版 */
         .filter-bar {{ display:flex; gap:12px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }}
-        .filter-select {{ background:#070d18; border:1px solid #334155; color:#f8fafc; font-size:12px; padding:6px 12px; border-radius:6px; outline:none; }}
+        .filter-select {{ background:#070d18; border:1px solid #334155; color:#f8fafc; font-size:13px; padding:6px 12px; border-radius:6px; outline:none; }}
 
         /* 表格共用樣式 */
         .data-table {{ width:100%; border-collapse:collapse; }}
-        .data-table th {{ text-align:left; color:#94a3b8; font-size:12px; padding:8px 10px; border-bottom:1px solid #1e293b; }}
-        .data-table td {{ padding:10px; border-bottom:1px solid #1e293b; font-size:13px; vertical-align:top; }}
+        .data-table th {{ text-align:left; color:#94a3b8; font-size:13px; padding:10px; border-bottom:1px solid #334155; }}
+        .data-table td {{ padding:12px 10px; border-bottom:1px solid #334155; font-size:14px; vertical-align:top; }}
         .cable-badge-down {{ background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
         .cable-badge-warn {{ background:rgba(251, 146, 60, 0.2); color:#fb923c; border:1px solid #fb923c; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
 
@@ -793,6 +1005,7 @@ html_content = f"""<!DOCTYPE html>
 
         @media (max-width: 768px) {{
             body {{ padding:12px; }}
+            .summary-cards {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
             .sla-grid {{ grid-template-columns: 1fr; }}
         }}
     </style>
@@ -814,22 +1027,25 @@ html_content = f"""<!DOCTYPE html>
 
         <div class="header">
             <div>
-                <h1 style="margin:0 0 6px 0; font-size:22px; color:#f8fafc; font-weight:800;">
+                <h1 style="margin:0 0 8px 0; font-size:24px; color:#f8fafc; font-weight:800;">
                     HiNet (AS3462) 國際出口與 CDN 路由監測
                 </h1>
-                <div style="color:#94a3b8; font-size:13px;">
+                <div style="color:#94a3b8; font-size:14px; line-height:1.6;">
                     📍 <strong>探針來源：</strong>台灣本地 HiNet 寬頻節點 (AS3462 台中實體用戶端)<br>
                     ⏱ <strong>最後量測時間：</strong><span style="color:#38bdf8; font-weight:bold;">{now_str} (UTC+8)</span>
                 </div>
             </div>
             <div>
-                <button onclick="window.location.reload()" title="重整取得 GitHub 最新排程數據" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:8px 16px; cursor:pointer; font-weight:bold; font-size:13px;">
+                <button onclick="window.location.reload()" title="重整取得 GitHub 最新排程數據" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:10px 18px; cursor:pointer; font-weight:bold; font-size:14px;">
                     🔄 畫面更新 (排程運作中)
                 </button>
             </div>
         </div>
 
-        <!-- 4 大分頁切換 (釘選頂部) -->
+        <!-- 頂部最新異動警示飄帶 (第一屏一眼看見有無突發跳變) -->
+        {latest_switch_banner}
+
+        <!-- 4 大分頁切換 -->
         <div class="mode-tabs">
             <button class="mode-btn mode-active" onclick="switchView('hinet', this)">HiNet 預設 DNS</button>
             <button class="mode-btn" onclick="switchView('google', this)">Google DNS (8.8.8.8)</button>
@@ -837,50 +1053,54 @@ html_content = f"""<!DOCTYPE html>
             <button class="mode-btn" onclick="switchView('sla', this)">SLA 忙時與警戒分析</button>
         </div>
 
-        <!-- 四大獨立視圖面板 -->
+        <!-- 四大獨立視圖面板 (含各分頁專屬頂部大戰況卡) -->
         <div id="view-hinet" class="view-panel view-active">
+            {summary_cards_hinet}
             {html_hinet_cards}
         </div>
 
         <div id="view-google" class="view-panel">
+            {summary_cards_google}
             {html_google_cards}
         </div>
 
         <div id="view-pk" class="view-panel">
+            {summary_cards_pk}
             {html_pk_cards}
         </div>
 
         <div id="view-sla" class="view-panel">
+            {summary_cards_pk}
             {html_sla_cards}
         </div>
 
-        <!-- 區塊一：24 小時節點切換紀錄 (折疊抽屜 + 下拉篩選) -->
-        <div class="drawer-toggle" onclick="toggleDrawer()">
+        <!-- 區塊一：24 小時節點切換紀錄 (折疊抽屜 + 下拉篩選 + 時間倒序) -->
+        <div id="drawer-toggle" class="drawer-toggle" onclick="toggleDrawer()">
             <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:15px; font-weight:bold; color:#f8fafc;">📋 近 24 小時節點切換紀錄</span>
-                <span style="font-size:12px; color:#94a3b8;">(共 {len(node_switch_logs)} 筆異動)</span>
+                <span style="font-size:16px; font-weight:bold; color:#f8fafc;">📋 近 24 小時節點切換紀錄</span>
+                <span style="font-size:13px; color:#94a3b8;">(共 {len(node_switch_logs)} 筆異動，依發生時間倒序排列)</span>
             </div>
             <div id="drawer-arrow" style="color:#38bdf8; font-weight:bold;">▼ 點擊展開</div>
         </div>
         <div id="drawer-content" class="drawer-content">
             <div class="filter-bar">
-                <span style="color:#94a3b8; font-size:12px;">條件過濾：</span>
+                <span style="color:#94a3b8; font-size:13px;">條件過濾：</span>
                 <select id="filter-dns" class="filter-select" onchange="applyLogFilters()">
                     <option value="ALL">全部 DNS 來源</option>
                     <option value="HiNet DNS">僅看 HiNet DNS</option>
                     <option value="Google DNS">僅看 Google DNS</option>
                 </select>
                 <select id="filter-service" class="filter-select" onchange="applyLogFilters()">
-                    <option value="ALL">全部服務標的 (11款)</option>
+                    <option value="ALL">全部服務標的 (12款)</option>
                     {service_options}
                 </select>
-                <span id="filter-count" style="color:#64748b; font-size:12px;">顯示 {len(node_switch_logs)} 筆</span>
+                <span id="filter-count" style="color:#64748b; font-size:13px;">顯示 {len(node_switch_logs)} 筆</span>
             </div>
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th style="width:110px;">時間</th>
-                        <th style="width:190px;">服務標的</th>
+                        <th style="width:120px;">時間</th>
+                        <th style="width:200px;">服務標的</th>
                         <th style="width:130px;">DNS 來源</th>
                         <th>節點切換軌跡</th>
                         <th style="width:190px;">當前落地點</th>
@@ -893,8 +1113,8 @@ html_content = f"""<!DOCTYPE html>
         </div>
 
         <!-- 區塊二：國際海纜受損公告 -->
-        <div style="background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:16px 20px; margin-top:20px;">
-            <div style="font-size:16px; font-weight:bold; color:#f8fafc; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:18px 22px; margin-top:24px;">
+            <div style="font-size:16px; font-weight:bold; color:#f8fafc; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
                 ⚠️ 台灣周邊國際海纜即時障礙通報 (資料來源：數位發展部海纜通報 & 中華電信網路維運公告)
             </div>
             <table class="data-table">
@@ -1001,6 +1221,13 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
+        function openDrawerIfClosed() {{
+            const content = document.getElementById('drawer-content');
+            const arrow = document.getElementById('drawer-arrow');
+            content.style.display = 'block';
+            arrow.innerText = '▲ 點擊收合';
+        }}
+
         function applyLogFilters() {{
             const dnsFilter = document.getElementById('filter-dns').value;
             const serviceFilter = document.getElementById('filter-service').value;
@@ -1062,7 +1289,7 @@ html_content = f"""<!DOCTYPE html>
             const data = await res.json();
             const mId = data.id;
 
-            for (let i = 0; i < 12; i++) {{
+            for (let i = 0; i < 15; i++) {{
                 await new Promise(r => setTimeout(r, 1000));
                 const pollRes = await fetch("https://api.globalping.io/v1/measurements/" + mId);
                 const pollData = await pollRes.json();
@@ -1150,4 +1377,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：對齊 index 頂部導航、加入卡片即時單點複測 Modal、修正重新整理按鈕說明。")
+print(f"[{now_str}] 成功更新：對齊 index 頂部導航、加入四大戰況卡、最新異動飄帶、倒序切換日誌與抗 429 探測機制。")

@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的 (涵蓋 FB 直播與短影音，依真實業務屬性分組)
+# 第一部分：監控標的 (修正 FB 影音端點，依真實業務屬性分組)
 # ==============================================================================
 
 TARGET_SERVICES = [
@@ -32,8 +32,8 @@ TARGET_SERVICES = [
     },
     {
         "id": "fb_live",
-        "name": "Facebook 直播串流 (Live)",
-        "host": "live-video.xx.fbcdn.net",
+        "name": "Facebook 直播與動態影音",
+        "host": "scontent.xx.fbcdn.net",  # 修正：改用開放 Edge 探測之 Meta 影音節點
         "group": "edge_services"
     },
     {
@@ -244,7 +244,7 @@ with ThreadPoolExecutor(max_workers=3) as executor:
         results[svc_id] = res_data
 
 # ==============================================================================
-# 第四部分：狀態處理、基準繞徑追溯與 24 小時歷史保存
+# 第四部分：狀態處理、真・路由異動偵測與 24 小時歷史保存
 # ==============================================================================
 
 history_state = []
@@ -255,19 +255,30 @@ if os.path.exists(STATE_FILE):
     except Exception:
         history_state = []
 
-def find_drift_start_time(sid, dns_type, current_geo_key, current_time_str):
-    """追溯非 TPE 境外繞徑的最早起始時間 (基準點告警機制)"""
-    if current_geo_key == "TPE":
+def detect_route_drift(sid, dns_type, current_geo_key, current_time_str):
+    """
+    真・路由異動判定：
+    只有當該服務在歷史紀錄中曾穩定落地於 TPE (台北本地)，而當前卻漂移至海外 (非 TPE) 時，才判定為漂移異動。
+    若該服務原本即常態在境外 (如 Netflix 始終在 US_WEST)，則不觸發異動告警。
+    """
+    if current_geo_key == "TPE" or current_geo_key == "FAIL":
         return None
-    earliest_time = current_time_str
+
+    had_tpe_baseline = False
+    earliest_drift_time = current_time_str
+
     for snapshot in history_state:
         svc_data = snapshot.get("data", {}).get(sid, {}).get(dns_type, {})
         geo = svc_data.get("geo_key")
-        if geo and geo != "TPE":
-            earliest_time = snapshot.get("time_short", earliest_time)
-        else:
+        if geo == "TPE":
+            had_tpe_baseline = True
             break
-    return earliest_time
+        elif geo and geo != "TPE":
+            earliest_drift_time = snapshot.get("time_short", earliest_drift_time)
+
+    if had_tpe_baseline:
+        return earliest_drift_time
+    return None
 
 current_snapshot = {
     "timestamp": now_str,
@@ -308,17 +319,14 @@ for s in TARGET_SERVICES:
     elif g_data["status"] == "OK":
         g_win = True
 
-    h_drift_since = None
-    g_drift_since = None
-    if s["group"] == "edge_services":
-        h_drift_since = find_drift_start_time(sid, "hinet", h_data.get("geo_key"), time_short)
-        g_drift_since = find_drift_start_time(sid, "google", g_data.get("geo_key"), time_short)
+    h_drift = detect_route_drift(sid, "hinet", h_data.get("geo_key"), time_short)
+    g_drift = detect_route_drift(sid, "google", g_data.get("geo_key"), time_short)
 
     current_snapshot["data"][sid] = {
         "name": s["name"],
         "group": s["group"],
-        "hinet": {**h_data, "win": h_win, "drift_since": h_drift_since},
-        "google": {**g_data, "win": g_win, "drift_since": g_drift_since}
+        "hinet": {**h_data, "win": h_win, "drift_since": h_drift},
+        "google": {**g_data, "win": g_win, "drift_since": g_drift}
     }
 
 history_state.insert(0, current_snapshot)
@@ -364,8 +372,8 @@ def render_cards_by_view(view_mode):
             h_stamp = stamp_html if h.get("win") else ""
             g_stamp = stamp_html if g.get("win") else ""
 
-            h_drift_badge = f'<div class="drift-badge">⚠️ 繞徑至 {h.get("geo_name")} (自 {h.get("drift_since")} 至今)</div>' if h.get("drift_since") else ""
-            g_drift_badge = f'<div class="drift-badge">⚠️ 繞徑至 {g.get("geo_name")} (自 {g.get("drift_since")} 至今)</div>' if g.get("drift_since") else ""
+            h_drift_badge = f'<div class="drift-badge">⚠️ 路由漂移：台北 ➔ {h.get("geo_name")} (自 {h.get("drift_since")} 至今)</div>' if h.get("drift_since") else ""
+            g_drift_badge = f'<div class="drift-badge">⚠️ 路由漂移：台北 ➔ {g.get("geo_name")} (自 {g.get("drift_since")} 至今)</div>' if g.get("drift_since") else ""
 
             card_content = f"""
             <div class="pk-container">
@@ -402,7 +410,7 @@ def render_cards_by_view(view_mode):
             health_color = target_data.get('color', '#34d399')
 
             status_text = "順暢良好" if target_data.get("status") == "OK" and total_val < 150 else ("稍微延遲" if total_val < 350 else "轉圈卡頓")
-            drift_badge = f'<div class="drift-badge">⚠️ 境外繞徑：持續於 {target_data.get("geo_name")} (自 {target_data.get("drift_since")} 至今)</div>' if target_data.get("drift_since") else ""
+            drift_badge = f'<div class="drift-badge">⚠️ 路由漂移：台北 ➔ {target_data.get("geo_name")} (自 {target_data.get("drift_since")} 至今)</div>' if target_data.get("drift_since") else ""
 
             card_content = f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -450,7 +458,7 @@ html_hinet_cards = render_cards_by_view("hinet")
 html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 
-# 圖表渲染配置 (PK 視圖採用專屬藍橘對決配色)
+# 圖表渲染配置 (曲線自適應延遲燈號顏色，PK 視圖維持經典藍橘)
 chart_init_js = ""
 for s in TARGET_SERVICES:
     sid = s["id"]
@@ -489,7 +497,7 @@ for s in TARGET_SERVICES:
     }});
     """
 
-    # 3. 綜合對照圖 (HiNet 藍色實線 vs Google 橘色虛線，分明對決)
+    # 3. 綜合對照圖 (HiNet 藍色實線 vs Google 橘色虛線)
     chart_init_js += f"""
     new Chart(document.getElementById('chart-pk-{sid}'), {{
         type: 'line',
@@ -570,7 +578,7 @@ html_content = f"""<!DOCTYPE html>
         .service-card {{ background:linear-gradient(145deg, #0f172a, #131d31); border-radius:10px; padding:14px; border:1px solid #1e293b; transition:all 0.2s; }}
         .service-card:hover {{ border-color:#38bdf8; transform:translateY(-2px); }}
 
-        /* 境外繞徑持久告警標籤 */
+        /* 真・路由漂移告警標籤 */
         .drift-badge {{
             background: rgba(245, 158, 11, 0.15);
             border: 1px solid #f59e0b;
@@ -611,24 +619,20 @@ html_content = f"""<!DOCTYPE html>
         .view-panel {{ display: none; }}
         .view-active {{ display: block; }}
 
-        /* 海纜公告區塊 (真實數發部 + HiNet 維運格式) */
+        /* 海纜公告區塊 (包含實際修復/排程進度) */
         .cable-notice-panel {{ background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:16px 20px; margin-top:28px; }}
-        .cable-item {{ display:flex; gap:16px; align-items:flex-start; padding:14px 0; border-bottom:1px solid #1e293b; }}
-        .cable-item:last-child {{ border-bottom:none; }}
-        .cable-days {{ font-size:26px; font-weight:900; color:#f8fafc; min-width:65px; line-height:1; }}
-        .cable-days span {{ display:block; font-size:11px; color:#94a3b8; font-weight:normal; margin-top:4px; }}
-        .cable-body {{ flex:1; }}
-        .cable-title-row {{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }}
-        .cable-badge-down {{ background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-size:11px; font-weight:bold; padding:1px 6px; border-radius:4px; }}
-        .cable-badge-warn {{ background:rgba(251, 146, 60, 0.2); color:#fb923c; border:1px solid #fb923c; font-size:11px; font-weight:bold; padding:1px 6px; border-radius:4px; }}
-        .cable-desc {{ font-size:12px; color:#94a3b8; line-height:1.6; margin-bottom:4px; }}
-        .cable-desc strong {{ color:#cbd5e1; }}
-        .cable-etr {{ font-size:11px; color:#38bdf8; }}
+        .cable-table {{ width:100%; border-collapse:collapse; margin-top:10px; }}
+        .cable-table th {{ text-align:left; color:#94a3b8; font-size:12px; padding:8px 10px; border-bottom:1px solid #1e293b; }}
+        .cable-table td {{ padding:12px 10px; border-bottom:1px solid #1e293b; font-size:13px; vertical-align:top; }}
+        .cable-badge-down {{ background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
+        .cable-badge-warn {{ background:rgba(251, 146, 60, 0.2); color:#fb923c; border:1px solid #fb923c; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
+        .cable-badge-fixed {{ background:rgba(52, 211, 153, 0.2); color:#34d399; border:1px solid #34d399; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
 
         @media (max-width: 768px) {{
             body {{ padding:12px; }}
             .map-wrapper {{ height:380px; }}
             #taiwan-submap-wrapper {{ width: 150px; height: 190px; top: 10px; right: 10px; }}
+            .cable-table {{ display:block; overflow-x:auto; }}
         }}
     </style>
 </head>
@@ -659,7 +663,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 第一屏核心：子母地圖 (環太平洋全景 + 右上角全台灣放大鏡，全面鎖定滾輪縮放) -->
+        <!-- 第一屏核心：子母地圖 (全面鎖定滾輪縮放) -->
         <div class="map-wrapper">
             <div id="map-global"></div>
 
@@ -694,75 +698,80 @@ html_content = f"""<!DOCTYPE html>
             {html_pk_cards}
         </div>
 
-        <!-- 最底部：真實國際海纜障礙與維修公告專區 (融合數發部與 HiNet 公告) -->
+        <!-- 最底部：真實國際海纜障礙與維修公告專區 (融合數發部通報與 HiNet 維運進度) -->
         <div class="cable-notice-panel">
-            <div style="font-size:16px; font-weight:bold; color:#f8fafc; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:16px; font-weight:bold; color:#f8fafc; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
                 ⚠️ 台灣周邊國際海纜即時障礙通報 (資料來源：數位發展部海纜通報 & 中華電信網路維運公告)
             </div>
-
-            <div class="cable-item">
-                <div class="cable-days">21<span>天障礙</span></div>
-                <div class="cable-body">
-                    <div class="cable-title-row">
-                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">SJC2 香港方向斷線</span>
-                        <span class="cable-badge-down">斷線</span>
-                    </div>
-                    <div class="cable-desc">
-                        <strong>中華電信公告：</strong>10 月 16 日發生芯線障礙，訊務已於第一時間疏轉至其他國際海纜；往香港連線尖峰時段可能有輕微延遲。<br>
-                        <strong>數位發展部通報：</strong>距香港春坎角約 109 公里處斷纜。
-                    </div>
-                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/12/30 (海纜船排程中)</div>
-                </div>
-            </div>
-
-            <div class="cable-item">
-                <div class="cable-days">31<span>天障礙</span></div>
-                <div class="cable-body">
-                    <div class="cable-title-row">
-                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">台馬二號東引方向斷線</span>
-                        <span class="cable-badge-down">斷線</span>
-                    </div>
-                    <div class="cable-desc">
-                        <strong>中華電信公告：</strong>10 月 6 日發生芯線障礙，訊務已於第一時間疏轉至台馬第三海纜與微波備援。<br>
-                        <strong>數位發展部通報：</strong>距馬祖東引約 45.3 公里處斷纜。
-                    </div>
-                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/11/30</div>
-                </div>
-            </div>
-
-            <div class="cable-item">
-                <div class="cable-days">34<span>天障礙</span></div>
-                <div class="cable-body">
-                    <div class="cable-title-row">
-                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">TPE 淡水沙崙出海段斷線</span>
-                        <span class="cable-badge-down">斷線</span>
-                    </div>
-                    <div class="cable-desc">
-                        <strong>數位發展部通報：</strong>距淡水沙崙約 1.6 公里處斷纜。<br>
-                        <strong>中華電信公告：</strong>芯線障礙，訊務已疏轉至其他國際海纜；往美西與海外部分骨幹由其他系統承載調度。
-                    </div>
-                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/11/30</div>
-                </div>
-            </div>
-
-            <div class="cable-item">
-                <div class="cable-days">71<span>天障礙</span></div>
-                <div class="cable-body">
-                    <div class="cable-title-row">
-                        <span style="font-size:15px; font-weight:bold; color:#f8fafc;">EAC1 香港方向部分斷線</span>
-                        <span class="cable-badge-warn">部分斷線</span>
-                    </div>
-                    <div class="cable-desc">
-                        <strong>數位發展部通報：</strong>距新北八里約 567 公里處發生部分芯線受損障礙，已切換至備援路由運行。
-                    </div>
-                    <div class="cable-etr">⏱ 預計修復時間 (ETR)：2026/11/15</div>
-                </div>
-            </div>
+            <table class="cable-table">
+                <thead>
+                    <tr>
+                        <th style="width:180px;">海纜系統 / 狀態</th>
+                        <th style="width:110px;">障礙天數</th>
+                        <th>受損情資與訊務疏轉說明</th>
+                        <th style="width:140px;">預計修復 (ETR)</th>
+                        <th style="width:160px;">實際修復 / 當前進度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong style="color:#f8fafc;">SJC2 香港方向</strong><br>
+                            <span class="cable-badge-down">斷線</span>
+                        </td>
+                        <td style="font-size:18px; font-weight:800; color:#f8fafc;">21 天</td>
+                        <td>
+                            <strong>中華電信公告：</strong>10 月 16 日芯線障礙，訊務已於第一時間疏轉至其他國際海纜；往香港尖峰時段可能有輕微延遲。<br>
+                            <span style="color:#94a3b8; font-size:12px;">數位發展部：距香港春坎角約 109 公里處斷纜。</span>
+                        </td>
+                        <td style="color:#cbd5e1;">2026/12/30</td>
+                        <td style="color:#38bdf8;">搶修中 (維修船排程)</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong style="color:#f8fafc;">台馬二號東引方向</strong><br>
+                            <span class="cable-badge-down">斷線</span>
+                        </td>
+                        <td style="font-size:18px; font-weight:800; color:#f8fafc;">31 天</td>
+                        <td>
+                            <strong>中華電信公告：</strong>10 月 6 日芯線障礙，訊務已第一時間疏轉至台馬第三海纜與微波備援。<br>
+                            <span style="color:#94a3b8; font-size:12px;">數位發展部：距馬祖東引約 45.3 公里處斷纜。</span>
+                        </td>
+                        <td style="color:#cbd5e1;">2026/11/30</td>
+                        <td style="color:#38bdf8;">搶修中 (備援微波運作)</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong style="color:#f8fafc;">TPE 淡水沙崙出海段</strong><br>
+                            <span class="cable-badge-down">斷線</span>
+                        </td>
+                        <td style="font-size:18px; font-weight:800; color:#f8fafc;">34 天</td>
+                        <td>
+                            <strong>數位發展部通報：</strong>距淡水沙崙約 1.6 公里處斷纜。<br>
+                            <span style="color:#94a3b8; font-size:12px;">中華電信公告：芯線障礙，訊務已疏轉至其他國際海纜，跨太平洋直達美西容量維持調度。</span>
+                        </td>
+                        <td style="color:#cbd5e1;">2026/11/30</td>
+                        <td style="color:#38bdf8;">搶修中 (近岸搶修)</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong style="color:#f8fafc;">EAC1 香港方向</strong><br>
+                            <span class="cable-badge-warn">部分斷線</span>
+                        </td>
+                        <td style="font-size:18px; font-weight:800; color:#f8fafc;">71 天</td>
+                        <td>
+                            <strong>數位發展部通報：</strong>距新北八里約 567 公里處發生部分芯線受損障礙，已切換至備援路由運行。
+                        </td>
+                        <td style="color:#cbd5e1;">2026/11/15</td>
+                        <td style="color:#fb923c;">調度運行中</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        // 1. 初始化國際海纜主地圖 (關閉 scrollWheelZoom，防止滾輪誤觸縮放)
+        // 1. 初始化國際海纜主地圖 (鎖定滾輪縮放)
         const mapGlobal = L.map('map-global', {{
             center: [28.0, 175.0],
             zoom: 3,
@@ -776,7 +785,7 @@ html_content = f"""<!DOCTYPE html>
             minZoom: 2
         }}).addTo(mapGlobal);
 
-        // 2. 初始化台灣全島放大鏡 (23.7°N, 120.95°E，完整覆蓋基隆到屏東，鎖定縮放與拖曳)
+        // 2. 初始化台灣全島放大鏡 (鎖定縮放與拖曳)
         const mapLocal = L.map('map-local', {{
             center: [23.7, 120.95],
             zoom: 6.8,
@@ -826,31 +835,28 @@ html_content = f"""<!DOCTYPE html>
             return points;
         }}
 
+        let currentActiveView = 'hinet';
         const arcLayers = {{}};
         const activePulses = [];
-        const destCounts = {{}};
+        let arcCount = 0;
 
-        for (const [sid, svc] of Object.entries(mapData.services)) {{
-            const h = svc.hinet;
-            const geo = mapData.nodes[h.geo_key];
-            if (!geo) continue;
+        function createArc(sid, dnsType, geoKey, color, isDashed) {{
+            const geo = mapData.nodes[geoKey];
+            if (!geo) return;
 
-            const isLocal = (h.geo_key === "TPE");
+            const isLocal = (geoKey === "TPE");
             const targetMap = isLocal ? mapLocal : mapGlobal;
 
-            if (!destCounts[h.geo_key]) destCounts[h.geo_key] = 0;
-            destCounts[h.geo_key]++;
-            const count = destCounts[h.geo_key];
-            const sign = (count % 2 === 1) ? 1 : -1;
-            const curvature = isLocal ? (sign * 0.15) : (sign * (0.08 + Math.floor((count - 1) / 2) * 0.12));
-
+            arcCount++;
+            const sign = (arcCount % 2 === 1) ? 1 : -1;
+            const curvature = isLocal ? (sign * 0.15) : (sign * (0.08 + Math.floor((arcCount - 1) / 2) * 0.12));
             const curveCoords = getCurvedCoords(twCoord, [geo.lat, geo.lng], curvature);
-            const color = h.color;
 
             const polyline = L.polyline(curveCoords, {{
                 color: color,
                 weight: isLocal ? 2.2 : 3,
                 opacity: 0.75,
+                dashArray: isDashed ? '4, 4' : null,
                 smoothFactor: 1
             }}).addTo(targetMap);
 
@@ -874,25 +880,58 @@ html_content = f"""<!DOCTYPE html>
                 coords: curveCoords,
                 fMarker: fMarker,
                 bMarker: bMarker,
-                offset: (count * 6) % curveCoords.length
+                offset: (arcCount * 6) % curveCoords.length,
+                dnsType: dnsType
             }});
 
             polyline.on('mouseover', function () {{
                 highlightMapArc(sid);
-                showHud(svc);
+                showHud(mapData.services[sid]);
             }});
             polyline.on('mouseout', function () {{
                 resetMapArc();
                 hideHud();
             }});
 
-            arcLayers[sid] = polyline;
+            if (!arcLayers[sid]) arcLayers[sid] = [];
+            arcLayers[sid].push({{ line: polyline, dnsType: dnsType }});
         }}
+
+        // 繪製 HiNet 與 Google 雙軌流光
+        for (const [sid, svc] of Object.entries(mapData.services)) {{
+            // HiNet 光束
+            createArc(sid, 'hinet', svc.hinet.geo_key, svc.hinet.color, false);
+            // Google 光束 (PK 視圖下為活力橘)
+            createArc(sid, 'google', svc.google.geo_key, '#fb923c', true);
+        }}
+
+        function updateArcVisibility() {{
+            for (const [sid, items] of Object.entries(arcLayers)) {{
+                items.forEach(item => {{
+                    if (currentActiveView === 'pk') {{
+                        item.line.setStyle({{ opacity: 0.75 }});
+                    }} else if (currentActiveView === 'hinet') {{
+                        item.line.setStyle({{ opacity: item.dnsType === 'hinet' ? 0.75 : 0 }});
+                    }} else if (currentActiveView === 'google') {{
+                        item.line.setStyle({{ opacity: item.dnsType === 'google' ? 0.75 : 0 }});
+                    }}
+                }});
+            }}
+        }}
+        updateArcVisibility();
 
         let animStep = 0;
         setInterval(() => {{
             animStep++;
             activePulses.forEach(p => {{
+                if (currentActiveView !== 'pk' && p.dnsType !== currentActiveView) {{
+                    p.fMarker.setStyle({{ opacity: 0, fillOpacity: 0 }});
+                    p.bMarker.setStyle({{ opacity: 0, fillOpacity: 0 }});
+                    return;
+                }}
+                p.fMarker.setStyle({{ opacity: 1, fillOpacity: 1 }});
+                p.bMarker.setStyle({{ opacity: 1, fillOpacity: 1 }});
+
                 const len = p.coords.length;
                 const fIdx = (animStep + p.offset) % len;
                 p.fMarker.setLatLng(p.coords[fIdx]);
@@ -903,19 +942,26 @@ html_content = f"""<!DOCTYPE html>
         }}, 60);
 
         function highlightMapArc(sid) {{
-            for (const [id, line] of Object.entries(arcLayers)) {{
-                if (id === sid) {{
-                    line.setStyle({{ weight: 6, opacity: 1 }});
-                    line.bringToFront();
-                }} else {{
-                    line.setStyle({{ opacity: 0.12 }});
-                }}
+            for (const [id, items] of Object.entries(arcLayers)) {{
+                items.forEach(item => {{
+                    if (id === sid) {{
+                        if (currentActiveView === 'pk' || item.dnsType === currentActiveView) {{
+                            item.line.setStyle({{ weight: 6, opacity: 1 }});
+                            item.line.bringToFront();
+                        }}
+                    }} else {{
+                        item.line.setStyle({{ opacity: 0.1 }});
+                    }}
+                }});
             }}
         }}
 
         function resetMapArc() {{
-            for (const [sid, line] of Object.entries(arcLayers)) {{
-                line.setStyle({{ weight: 2.8, opacity: 0.75 }});
+            updateArcVisibility();
+            for (const [sid, items] of Object.entries(arcLayers)) {{
+                items.forEach(item => {{
+                    item.line.setStyle({{ weight: 2.8 }});
+                }});
             }}
         }}
 
@@ -934,11 +980,14 @@ html_content = f"""<!DOCTYPE html>
         }}
 
         function switchView(viewName, btn) {{
+            currentActiveView = viewName;
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('mode-active'));
             btn.classList.add('mode-active');
 
             document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('view-active'));
             document.getElementById('view-' + viewName).classList.add('view-active');
+
+            updateArcVisibility();
         }}
 
         {chart_init_js}
@@ -950,4 +999,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：FB 直播納入、持久型基準繞徑告警、地圖滾輪防誤觸與藍橘 PK 配色。")
+print(f"[{now_str}] 成功更新：真・路由異動偵測、FB 探針修復、PK 地圖雙軌光束連動與修復進度擴充。")

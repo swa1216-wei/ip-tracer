@@ -135,7 +135,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     return "TYO"
 
 # ==============================================================================
-# 第二部分：Globalping 探測
+# 第二部分：Globalping 探測 (防抖動連續 3 次複測驗證)
 # ==============================================================================
 
 def execute_single_probe(host, dns_resolver=None):
@@ -195,10 +195,22 @@ def execute_single_probe(host, dns_resolver=None):
     return None
 
 def probe_single_stream(service, dns_resolver=None):
+    # 第一次正常量測
     res = execute_single_probe(service["host"], dns_resolver)
-    if not res or res["total_ms"] <= 0:
-        time.sleep(2)
-        res = execute_single_probe(service["host"], dns_resolver)
+    
+    # 判斷是否需要啟動防抖動連續測試 (數值無效、逾時或 >= 150ms 警戒值)
+    is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 150)
+    
+    if is_abnormal:
+        # 有狀況時連續複測最多 2 次 (加首次共 3 次)
+        for attempt in range(2):
+            time.sleep(2)
+            retry_res = execute_single_probe(service["host"], dns_resolver)
+            if retry_res and retry_res.get("total_ms", 0) > 0:
+                res = retry_res
+                # 若複測回到綠燈區 (<150ms)，代表為瞬間假性抖動，立即採納正常值中斷重測
+                if res["total_ms"] < 150:
+                    break
 
     if res and res["total_ms"] > 0:
         geo_key = determine_geo(res["resolved_ip"], res["headers"], res["tcp_ms"])
@@ -230,10 +242,10 @@ def probe_service_both_dns(service):
     return sid, {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
-# 第三部分：執行多執行緒巡檢
+# 第三部分：平行發起巡檢
 # ==============================================================================
 
-print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢...")
+print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢 (含 3 次異常複測防抖機制)...")
 
 results = {}
 with ThreadPoolExecutor(max_workers=3) as executor:
@@ -522,12 +534,15 @@ html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 html_sla_cards = render_sla_view()
 
-# 節點切換紀錄表格
+# 節點切換紀錄表格 (加上 data-dns 與 data-service 供即時前端篩選)
 log_rows = ""
+unique_services = sorted(list(set([s["name"] for s in TARGET_SERVICES])))
+service_options = "".join([f'<option value="{svc}">{svc}</option>' for svc in unique_services])
+
 if node_switch_logs:
     for log in reversed(node_switch_logs):
         log_rows += f"""
-        <tr>
+        <tr class="log-row" data-dns="{log['dns']}" data-service="{log['service']}">
             <td style="color:#f8fafc; font-weight:bold;">{log['time']}</td>
             <td style="color:#38bdf8;">{log['service']}</td>
             <td>{log['dns']}</td>
@@ -537,7 +552,7 @@ if node_switch_logs:
         """
 else:
     log_rows = """
-    <tr>
+    <tr id="empty-log-row">
         <td colspan="5" style="text-align:center; color:#94a3b8; padding:16px;">
             過去 24 小時節點位置穩定，未發生跨節點變更
         </td>
@@ -706,6 +721,10 @@ html_content = f"""<!DOCTYPE html>
         .drawer-toggle:hover {{ background: #131d31; border-color: #38bdf8; }}
         .drawer-content {{ display: none; background: #0f172a; border: 1px solid #1e293b; border-top: none; border-radius: 0 0 8px 8px; padding: 16px; }}
 
+        /* 篩選列排版 */
+        .filter-bar {{ display:flex; gap:12px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }}
+        .filter-select {{ background:#070d18; border:1px solid #334155; color:#f8fafc; font-size:12px; padding:6px 12px; border-radius:6px; outline:none; }}
+
         /* 表格共用樣式 */
         .data-table {{ width:100%; border-collapse:collapse; }}
         .data-table th {{ text-align:left; color:#94a3b8; font-size:12px; padding:8px 10px; border-bottom:1px solid #1e293b; }}
@@ -745,7 +764,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 4 大分頁切換 (釘選在標題正下方，不隨地圖位移) -->
+        <!-- 4 大分頁切換 (釘選頂部) -->
         <div class="mode-tabs">
             <button class="mode-btn mode-active" onclick="switchView('hinet', this)">HiNet 預設 DNS</button>
             <button class="mode-btn" onclick="switchView('google', this)">Google DNS (8.8.8.8)</button>
@@ -770,7 +789,7 @@ html_content = f"""<!DOCTYPE html>
             {html_sla_cards}
         </div>
 
-        <!-- 區塊一：24 小時節點切換紀錄 (折疊抽屜) -->
+        <!-- 區塊一：24 小時節點切換紀錄 (折疊抽屜 + 下拉篩選) -->
         <div class="drawer-toggle" onclick="toggleDrawer()">
             <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:15px; font-weight:bold; color:#f8fafc;">📋 近 24 小時節點切換紀錄</span>
@@ -779,6 +798,19 @@ html_content = f"""<!DOCTYPE html>
             <div id="drawer-arrow" style="color:#38bdf8; font-weight:bold;">▼ 點擊展開</div>
         </div>
         <div id="drawer-content" class="drawer-content">
+            <div class="filter-bar">
+                <span style="color:#94a3b8; font-size:12px;">條件過濾：</span>
+                <select id="filter-dns" class="filter-select" onchange="applyLogFilters()">
+                    <option value="ALL">全部 DNS 來源</option>
+                    <option value="HiNet DNS">僅看 HiNet DNS</option>
+                    <option value="Google DNS">僅看 Google DNS</option>
+                </select>
+                <select id="filter-service" class="filter-select" onchange="applyLogFilters()">
+                    <option value="ALL">全部服務標的 (11款)</option>
+                    {service_options}
+                </select>
+                <span id="filter-count" style="color:#64748b; font-size:12px;">顯示 {len(node_switch_logs)} 筆</span>
+            </div>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -789,7 +821,7 @@ html_content = f"""<!DOCTYPE html>
                         <th style="width:190px;">當前落地點</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="log-table-body">
                     {log_rows}
                 </tbody>
             </table>
@@ -888,6 +920,33 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
+        function applyLogFilters() {{
+            const dnsFilter = document.getElementById('filter-dns').value;
+            const serviceFilter = document.getElementById('filter-service').value;
+            const rows = document.querySelectorAll('.log-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {{
+                const rDns = row.getAttribute('data-dns');
+                const rService = row.getAttribute('data-service');
+
+                const matchDns = (dnsFilter === 'ALL' || rDns === dnsFilter);
+                const matchService = (serviceFilter === 'ALL' || rService === serviceFilter);
+
+                if (matchDns && matchService) {{
+                    row.style.display = '';
+                    visibleCount++;
+                }} else {{
+                    row.style.display = 'none';
+                }}
+            }});
+
+            const countEl = document.getElementById('filter-count');
+            if (countEl) {{
+                countEl.innerText = `顯示 ${{visibleCount}} 筆`;
+            }}
+        }}
+
         {chart_init_js}
     </script>
 </body>
@@ -897,4 +956,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：移除地圖、純數據分頁固定頂部、無符號 SLA 頁面、客觀節點切換紀錄。")
+print(f"[{now_str}] 成功更新：拔除地圖、分頁釘頂、SLA 滿版大圖、節點切換雙下拉選單與 3 次防抖動複測。")

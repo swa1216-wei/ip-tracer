@@ -1,5 +1,311 @@
 [
   {
+    "timestamp": "2026-11-05 17:23:42",
+    "time_short": "17:23",
+    "data": {
+      "threads_ig": {
+        "name": "Threads & IG 圖片 CDN",
+        "host": "scontent.cdninstagram.com",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 33,
+          "tcp_ms": 7,
+          "resolved_ip": "31.13.87.52",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": false
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 22,
+          "tcp_ms": 4,
+          "resolved_ip": "31.13.87.52",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        }
+      },
+      "meta_reels": {
+        "name": "Instagram Reels 短影音",
+        "host": "video.xx.fbcdn.net",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 20,
+          "tcp_ms": 4,
+          "resolved_ip": "31.13.87.15",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 35,
+          "tcp_ms": 3,
+          "resolved_ip": "31.13.87.15",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": false
+        }
+      },
+      "fb_static": {
+        "name": "Facebook 塗鴉牆圖文",
+        "host": "static.xx.fbcdn.net",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 136,
+          "tcp_ms": 3,
+          "resolved_ip": "31.13.87.5",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 140,
+          "tcp_ms": 4,
+          "resolved_ip": "31.13.87.5",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": false
+        }
+      },
+      "fb_live": {
+        "name": "Facebook 直播與動態影音",
+        "host": "scontent.xx.fbcdn.net",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 57,
+          "tcp_ms": 8,
+          "resolved_ip": "31.13.87.5",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": false
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 25,
+          "tcp_ms": 3,
+          "resolved_ip": "31.13.87.5",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        }
+      },
+      "youtube_stream": {
+        "name": "YouTube 影音串流 / Shorts",
+        "host": "googlevideo.com",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 62,
+          "tcp_ms": 10,
+          "resolved_ip": "142.250.204.36",
+          "geo_key": "TYO",
+          "geo_name": "日本 (東京 NRT/HND)",
+          "color": "#34d399",
+          "win": false
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 34,
+          "tcp_ms": 4,
+          "resolved_ip": "142.250.77.196",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        }
+      },
+      "line_obs": {
+        "name": "LINE 圖片與貼圖",
+        "host": "obs.line-scdn.net",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 44,
+          "tcp_ms": 5,
+          "resolved_ip": "23.46.88.181",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 61,
+          "tcp_ms": 9,
+          "resolved_ip": "184.25.120.178",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": false
+        }
+      },
+      "netflix_fast": {
+        "name": "Netflix 邊緣節點",
+        "host": "api.fast.com",
+        "group": "edge_services",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 456,
+          "tcp_ms": 150,
+          "resolved_ip": "44.236.74.109",
+          "geo_key": "US_WEST",
+          "geo_name": "美國西岸 (SJC/LAX)",
+          "color": "#f87171",
+          "win": true
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 502,
+          "tcp_ms": 164,
+          "resolved_ip": "35.161.104.116",
+          "geo_key": "US_WEST",
+          "geo_name": "美國西岸 (SJC/LAX)",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "hongguo_drama": {
+        "name": "紅果短劇",
+        "host": "lf-cdn-tos.bytescm.com",
+        "group": "cross_border",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 1083,
+          "tcp_ms": 29,
+          "resolved_ip": "43.109.171.102",
+          "geo_key": "TYO",
+          "geo_name": "日本 (東京 NRT/HND)",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 520,
+          "tcp_ms": 55,
+          "resolved_ip": "43.109.171.99",
+          "geo_key": "TYO",
+          "geo_name": "日本 (東京 NRT/HND)",
+          "color": "#f87171",
+          "win": true
+        }
+      },
+      "tiktok_gateway": {
+        "name": "TikTok 資訊流入口",
+        "host": "www.tiktok.com",
+        "group": "cross_border",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 1338,
+          "tcp_ms": 245,
+          "resolved_ip": "2.16.10.99",
+          "geo_key": "US_WEST",
+          "geo_name": "美國西岸 (SJC/LAX)",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 416,
+          "tcp_ms": 36,
+          "resolved_ip": "23.52.128.142",
+          "geo_key": "SIN",
+          "geo_name": "新加坡 (SIN POP)",
+          "color": "#f87171",
+          "win": true
+        }
+      },
+      "x_media": {
+        "name": "X (Twitter) 圖片",
+        "host": "pbs.twimg.com",
+        "group": "cross_border",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 379,
+          "tcp_ms": 45,
+          "resolved_ip": "146.75.44.159",
+          "geo_key": "TYO",
+          "geo_name": "日本 (東京 NRT/HND)",
+          "color": "#f87171",
+          "win": true
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 553,
+          "tcp_ms": 50,
+          "resolved_ip": "199.232.148.159",
+          "geo_key": "TYO",
+          "geo_name": "日本 (東京 NRT/HND)",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "github_fastly": {
+        "name": "GitHub 檔案下載",
+        "host": "objects.githubusercontent.com",
+        "group": "cross_border",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 166,
+          "tcp_ms": 53,
+          "resolved_ip": "185.199.109.133",
+          "geo_key": "SIN",
+          "geo_name": "新加坡 (SIN POP)",
+          "color": "#fde047",
+          "win": true
+        },
+        "google": {
+          "status": "FAIL",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "連線逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "discord_media": {
+        "name": "Discord 媒體傳輸",
+        "host": "cdn.discordapp.com",
+        "group": "cross_border",
+        "hinet": {
+          "status": "OK",
+          "total_ms": 82,
+          "tcp_ms": 24,
+          "resolved_ip": "162.159.133.233",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": false
+        },
+        "google": {
+          "status": "OK",
+          "total_ms": 34,
+          "tcp_ms": 4,
+          "resolved_ip": "162.159.129.233",
+          "geo_key": "TPE",
+          "geo_name": "台北本地節點 (CDN Edge)",
+          "color": "#34d399",
+          "win": true
+        }
+      }
+    }
+  },
+  {
     "timestamp": "2026-11-05 16:55:33",
     "time_short": "16:55",
     "data": {

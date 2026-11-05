@@ -3,11 +3,10 @@ import time
 import os
 import urllib.request
 import urllib.error
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的 (12 款核心 App，修正 FB 影音端點，分組清楚)
+# 第一部分：監控標的 (12 款核心 App，分組清楚)
 # ==============================================================================
 
 TARGET_SERVICES = [
@@ -135,12 +134,14 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     return "TYO"
 
 # ==============================================================================
-# 第二部分：Globalping 探測 (抗 429 退避 + 探針排隊防護 + 連續 3 次複測驗證)
+# 第二部分：Globalping 探測 (防堵塞車排隊 + 擬真請求 + 20 秒等待)
 # ==============================================================================
 
 def execute_single_probe(host, dns_resolver=None):
     api_url = "https://api.globalping.io/v1/measurements"
-    measurement_options = {"protocol": "HTTPS"}
+    measurement_options = {
+        "protocol": "HTTPS"
+    }
     if dns_resolver:
         measurement_options["resolver"] = dns_resolver
 
@@ -152,9 +153,13 @@ def execute_single_probe(host, dns_resolver=None):
         "limit": 1
     }).encode("utf-8")
 
+    # 模擬真實瀏覽器標頭，防止被 Fastly / Cloudflare 當惡意 Bot 限流
     req = urllib.request.Request(
         api_url, data=payload,
-        headers={"Content-Type": "application/json", "User-Agent": "HiNet-Egress-Probe"}
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 HiNet-NOC-Probe"
+        }
     )
 
     measurement_id = None
@@ -179,10 +184,14 @@ def execute_single_probe(host, dns_resolver=None):
         return None
 
     poll_url = f"{api_url}/{measurement_id}"
-    for _ in range(15):
+    # 延長寬限期至 20 秒，確保排隊佇列能完成交握
+    for _ in range(20):
         time.sleep(1)
         try:
-            req_poll = urllib.request.Request(poll_url, headers={"User-Agent": "HiNet-Egress-Probe"})
+            req_poll = urllib.request.Request(
+                poll_url, 
+                headers={"User-Agent": "Mozilla/5.0 HiNet-NOC-Probe"}
+            )
             with urllib.request.urlopen(req_poll, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 if data.get("status") == "finished":
@@ -209,15 +218,13 @@ def execute_single_probe(host, dns_resolver=None):
 def probe_single_stream(service, dns_resolver=None):
     res = execute_single_probe(service["host"], dns_resolver)
     
+    # 只有在拿到異常數字 (>=150ms) 或明確失敗時才冷卻重試，避免造成探針重試風暴
     is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 150)
     if is_abnormal:
-        for attempt in range(2):
-            time.sleep(2.5)
-            retry_res = execute_single_probe(service["host"], dns_resolver)
-            if retry_res and retry_res.get("total_ms", 0) > 0:
-                res = retry_res
-                if res["total_ms"] < 150:
-                    break
+        time.sleep(2)
+        retry_res = execute_single_probe(service["host"], dns_resolver)
+        if retry_res and retry_res.get("total_ms", 0) > 0:
+            res = retry_res
 
     if res and res["total_ms"] > 0:
         geo_key = determine_geo(res["resolved_ip"], res["headers"], res["tcp_ms"])
@@ -242,25 +249,24 @@ def probe_single_stream(service, dns_resolver=None):
             "color": "#f87171"
         }
 
-def probe_service_both_dns(service):
-    sid = service["id"]
-    hinet_res = probe_single_stream(service, None)
-    time.sleep(0.5)
-    google_res = probe_single_stream(service, "8.8.8.8")
-    return sid, {"hinet": hinet_res, "google": google_res}
-
 # ==============================================================================
-# 第三部分：平行發起巡檢
+# 第三部分：循序分批巡檢 (每次 1 項目，間隔 0.8 秒，保證探針不塞車)
 # ==============================================================================
 
-print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢 (含 3 次異常複測防抖機制)...")
+print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由巡檢 (循序防塞佇列排程)...")
 
 results = {}
-with ThreadPoolExecutor(max_workers=2) as executor:
-    future_to_svc = {executor.submit(probe_service_both_dns, s): s["id"] for s in TARGET_SERVICES}
-    for future in as_completed(future_to_svc):
-        svc_id, res_data = future.result()
-        results[svc_id] = res_data
+for idx, s in enumerate(TARGET_SERVICES):
+    sid = s["id"]
+    print(f"[{idx+1}/{len(TARGET_SERVICES)}] 探測 {s['name']} (HiNet & Google)...")
+    
+    # 依序執行，不發起大量並發，讓 HiNet 探針乾淨消化
+    hinet_res = probe_single_stream(s, None)
+    time.sleep(0.8)
+    google_res = probe_single_stream(s, "8.8.8.8")
+    time.sleep(0.8)
+    
+    results[sid] = {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
 # 第四部分：狀態處理與 24 小時歷史保存
@@ -935,7 +941,7 @@ html_content = f"""<!DOCTYPE html>
         .view-panel {{ display: none; }}
         .view-active {{ display: block; }}
 
-        /* 平鋪式日誌容器樣式 (取消點擊折疊) */
+        /* 平鋪式日誌容器樣式 */
         .audit-box {{
             background: linear-gradient(145deg, #1e293b, #0f172a);
             border-left: 5px solid #38bdf8;
@@ -1230,6 +1236,7 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
+        // 前端即時單點複測 (Live Probe)
         function closeProbeModal() {{
             document.getElementById('live-probe-modal').style.display = 'none';
         }}
@@ -1263,7 +1270,7 @@ html_content = f"""<!DOCTYPE html>
             const data = await res.json();
             const mId = data.id;
 
-            for (let i = 0; i < 15; i++) {{
+            for (let i = 0; i < 20; i++) {{
                 await new Promise(r => setTimeout(r, 1000));
                 const pollRes = await fetch("https://api.globalping.io/v1/measurements/" + mId);
                 const pollData = await pollRes.json();
@@ -1351,4 +1358,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：頂部飄帶多筆合併、移除錨點跳轉、底層日誌平鋪展開。")
+print(f"[{now_str}] 成功更新：循序防塞探測、擬真瀏覽器請求、頂部飄帶多筆合併、平鋪式切換日誌。")

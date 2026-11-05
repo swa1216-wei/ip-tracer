@@ -195,20 +195,15 @@ def execute_single_probe(host, dns_resolver=None):
     return None
 
 def probe_single_stream(service, dns_resolver=None):
-    # 第一次正常量測
     res = execute_single_probe(service["host"], dns_resolver)
     
-    # 判斷是否需要啟動防抖動連續測試 (數值無效、逾時或 >= 150ms 警戒值)
     is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 150)
-    
     if is_abnormal:
-        # 有狀況時連續複測最多 2 次 (加首次共 3 次)
         for attempt in range(2):
             time.sleep(2)
             retry_res = execute_single_probe(service["host"], dns_resolver)
             if retry_res and retry_res.get("total_ms", 0) > 0:
                 res = retry_res
-                # 若複測回到綠燈區 (<150ms)，代表為瞬間假性抖動，立即採納正常值中斷重測
                 if res["total_ms"] < 150:
                     break
 
@@ -299,6 +294,7 @@ for s in TARGET_SERVICES:
 
     current_snapshot["data"][sid] = {
         "name": s["name"],
+        "host": s["host"],
         "group": s["group"],
         "hinet": {**h_data, "win": h_win},
         "google": {**g_data, "win": g_win}
@@ -381,7 +377,7 @@ for s in TARGET_SERVICES:
     }
 
 # ==============================================================================
-# 第六部分：HTML 畫面渲染
+# 第六部分：HTML 畫面渲染 (含即時單點複測按鈕)
 # ==============================================================================
 
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
@@ -395,6 +391,7 @@ def render_cards_by_view(view_mode):
         curr = current_snapshot["data"].get(sid, {})
         h = curr.get("hinet", {})
         g = curr.get("google", {})
+        host_domain = s["host"]
 
         card_content = ""
 
@@ -428,6 +425,11 @@ def render_cards_by_view(view_mode):
                 </div>
             </div>
             """
+            retest_btn = f"""
+            <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{host_domain}', 'both', this)" class="retest-chip retest-chip-neutral">
+                ⚡ 雙向複測
+            </button>
+            """
         else:
             target_data = h if view_mode == "hinet" else g
             total_val = target_data.get('total_ms', 0)
@@ -437,6 +439,17 @@ def render_cards_by_view(view_mode):
             health_color = target_data.get('color', '#34d399')
 
             status_text = "順暢良好" if target_data.get("status") == "OK" and total_val < 150 else ("稍微延遲" if total_val < 350 else "轉圈卡頓")
+
+            # 依延遲快慢給予不同顏色的複測晶片按鈕
+            dns_param = "hinet" if view_mode == "hinet" else "google"
+            chip_class = "retest-chip-alert" if total_val >= 350 or target_data.get("status") != "OK" else ("retest-chip-warn" if total_val >= 150 else "retest-chip-neutral")
+            chip_label = "⚡ 立即重測" if total_val >= 150 or target_data.get("status") != "OK" else "🔄 抽查"
+
+            retest_btn = f"""
+            <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{host_domain}', '{dns_param}', this)" class="retest-chip {chip_class}">
+                {chip_label}
+            </button>
+            """
 
             card_content = f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -459,6 +472,7 @@ def render_cards_by_view(view_mode):
         <div class="service-card" id="card-{view_mode}-{sid}">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:15px; font-weight:800; color:#f8fafc;">{curr['name']}</span>
+                <div>{retest_btn}</div>
             </div>
             {card_content}
             <div style="background:#070d18; padding:6px; border-radius:6px; height:110px;">
@@ -534,7 +548,7 @@ html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 html_sla_cards = render_sla_view()
 
-# 節點切換紀錄表格 (加上 data-dns 與 data-service 供即時前端篩選)
+# 節點切換紀錄表格
 log_rows = ""
 unique_services = sorted(list(set([s["name"] for s in TARGET_SERVICES])))
 service_options = "".join([f'<option value="{svc}">{svc}</option>' for svc in unique_services])
@@ -613,7 +627,7 @@ for s in TARGET_SERVICES:
     }});
     """
 
-    # 4. SLA 專屬滿版大圖 (含 150/350ms 水平參考線)
+    # 4. SLA 專屬滿版大圖
     len_pts = len(chart_labels)
     chart_init_js += f"""
     new Chart(document.getElementById('chart-sla-{sid}'), {{
@@ -651,11 +665,12 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#070d18; color:#e2e8f0; margin:0; padding:20px 24px; font-size:14px; }}
         .container {{ max-width: 1440px; margin: 0 auto; }}
 
-        /* 系統導航 */
-        .system-nav {{ display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }}
-        .nav-btn {{ padding: 8px 18px; font-size: 13px; font-weight: bold; border-radius: 6px; text-decoration: none; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b; }}
-        .nav-btn:hover {{ background: #1e293b; color: #f8fafc; }}
-        .nav-active {{ background: #0284c7; color: #ffffff; border: none; }}
+        /* 頂部固定系統導航 Tab 列 (完全對齊 index.html 樣式) */
+        .system-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #334155; padding-bottom: 12px; }}
+        .tab-btn {{ padding: 10px 22px; font-size: 15px; font-weight: bold; border-radius: 8px 8px 0 0; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }}
+        .tab-active {{ background: #0284c7; color: #ffffff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); border: none; }}
+        .tab-inactive {{ background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-bottom: none; }}
+        .tab-inactive:hover {{ background: #334155; color: #f8fafc; }}
 
         .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }}
 
@@ -670,6 +685,13 @@ html_content = f"""<!DOCTYPE html>
         .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }}
         .service-card {{ background:linear-gradient(145deg, #0f172a, #131d31); border-radius:10px; padding:14px; border:1px solid #1e293b; }}
 
+        /* 複測微型按鈕 */
+        .retest-chip {{ font-size:11px; font-weight:bold; border-radius:4px; padding:3px 8px; border:none; cursor:pointer; transition:all 0.2s; }}
+        .retest-chip-neutral {{ background:#1e293b; color:#94a3b8; border:1px solid #334155; }}
+        .retest-chip-neutral:hover {{ background:#334155; color:#fff; }}
+        .retest-chip-warn {{ background:#ea580c; color:#fff; }}
+        .retest-chip-alert {{ background:#dc2626; color:#fff; }}
+
         /* PK 對照表排版 */
         .pk-container {{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }}
         .pk-row {{ display: flex; justify-content: space-between; align-items: center; background: #070d18; padding: 7px 9px; border-radius: 6px; border: 1px solid #1e293b; }}
@@ -678,7 +700,7 @@ html_content = f"""<!DOCTYPE html>
         .pk-ms {{ font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; flex: 1; }}
         .pk-node-info {{ text-align: right; font-size: 11px; color: #cbd5e1; display: flex; flex-direction: column; }}
 
-        /* 紅色大讚章樣式 (固定尺寸，防擠壓) */
+        /* 紅色大讚章樣式 */
         .pk-stamp {{
             flex-shrink: 0;
             width: 44px;
@@ -732,6 +754,43 @@ html_content = f"""<!DOCTYPE html>
         .cable-badge-down {{ background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
         .cable-badge-warn {{ background:rgba(251, 146, 60, 0.2); color:#fb923c; border:1px solid #fb923c; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:4px; }}
 
+        /* 複測彈窗 Modal 樣式 */
+        .modal-overlay {{
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }}
+        .modal-box {{
+            background: #0f172a;
+            border: 1px solid #38bdf8;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 780px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh;
+        }}
+        .modal-header {{
+            background: #1e293b;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }}
+        .modal-body {{
+            padding: 20px;
+            overflow-y: auto;
+            color: #e2e8f0;
+        }}
+
         @media (max-width: 768px) {{
             body {{ padding:12px; }}
             .sla-grid {{ grid-template-columns: 1fr; }}
@@ -740,11 +799,17 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <!-- 頂部導航 -->
-        <div class="system-nav">
-            <a href="index.html" class="nav-btn">🌐 IPv4 核心巡檢</a>
-            <a href="index.html" class="nav-btn">🚀 IPv6 核心巡檢</a>
-            <a href="egress.html" class="nav-btn nav-active">⚡ 海外出口監測</a>
+        <!-- 頂部固定系統導航 Tab 切換列 (對齊 index.html) -->
+        <div class="system-tabs">
+            <a href="index.html" class="tab-btn tab-inactive">
+                🌐 IPv4 核心巡檢
+            </a>
+            <a href="index.html#v6" class="tab-btn tab-inactive">
+                🚀 IPv6 核心巡檢
+            </a>
+            <a href="egress.html" class="tab-btn tab-active">
+                ⚡ 海外出口監測
+            </a>
         </div>
 
         <div class="header">
@@ -758,8 +823,8 @@ html_content = f"""<!DOCTYPE html>
                 </div>
             </div>
             <div>
-                <button onclick="window.location.reload()" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:8px 16px; cursor:pointer; font-weight:bold; font-size:13px;">
-                    🔄 重新整理資料
+                <button onclick="window.location.reload()" title="重整取得 GitHub 最新排程數據" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:8px 16px; cursor:pointer; font-weight:bold; font-size:13px;">
+                    🔄 畫面更新 (排程運作中)
                 </button>
             </div>
         </div>
@@ -899,6 +964,22 @@ html_content = f"""<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- 即時複測彈出視窗 (Modal) -->
+    <div id="live-probe-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span id="modal-probe-title" style="font-weight:bold;color:#38bdf8;font-size:16px;">⚡ 即時 CDN 路由複測診斷</span>
+                <button onclick="closeProbeModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;font-weight:bold;">&times;</button>
+            </div>
+            <div id="modal-probe-content" class="modal-body">
+                <!-- 動態注入複測結果 -->
+            </div>
+            <div style="background:#1e293b;padding:12px 20px;text-align:right;border-top:1px solid #334155;">
+                <button onclick="closeProbeModal()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-weight:bold;font-size:14px;">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function switchView(viewName, btn) {{
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('mode-active'));
@@ -947,6 +1028,119 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
+        // 前端即時單點複測 (Live Probe)
+        function closeProbeModal() {{
+            document.getElementById('live-probe-modal').style.display = 'none';
+        }}
+
+        function determineClientGeo(headers, tcpMs) {{
+            const h = (headers || '').toLowerCase();
+            if (tcpMs > 130) return '美國西岸 (SJC/LAX)';
+            if (h.includes('nrt') || h.includes('hnd') || h.includes('tyo') || h.includes('japan')) return '日本 (東京 NRT/HND)';
+            if (h.includes('kix') || h.includes('osa')) return '日本 (大阪 KIX)';
+            if (h.includes('hkg') || h.includes('hongkong')) return '香港 (HKG POP)';
+            if (h.includes('sin') || h.includes('singapore')) return '新加坡 (SIN POP)';
+            if (h.includes('tpe') || h.includes('taiwan') || tcpMs < 10) return '台北本地節點 (CDN Edge)';
+            return '海外節點';
+        }}
+
+        async function runSingleHttpProbe(host, resolver) {{
+            const mOptions = {{ protocol: "HTTPS" }};
+            if (resolver) mOptions.resolver = resolver;
+
+            const res = await fetch("https://api.globalping.io/v1/measurements", {{
+                method: "POST",
+                headers: {{ "Content-Type": "application/json" }},
+                body: JSON.stringify({{
+                    type: "http",
+                    target: host,
+                    locations: [{{ country: "TW", asn: 3462 }}],
+                    measurementOptions: mOptions,
+                    limit: 1
+                }})
+            }});
+            const data = await res.json();
+            const mId = data.id;
+
+            for (let i = 0; i < 12; i++) {{
+                await new Promise(r => setTimeout(r, 1000));
+                const pollRes = await fetch("https://api.globalping.io/v1/measurements/" + mId);
+                const pollData = await pollRes.json();
+                if (pollData.status === "finished") {{
+                    if (pollData.results && pollData.results.length > 0) {{
+                        const r = pollData.results[0].result;
+                        return {{
+                            total: r.timings?.total || 0,
+                            tcp: r.timings?.tcp || 0,
+                            ip: r.resolvedAddress || '--',
+                            headers: r.rawHeaders || ''
+                        }};
+                    }}
+                    break;
+                }}
+            }}
+            return null;
+        }}
+
+        async function triggerLiveProbe(sid, name, host, dnsMode, btn) {{
+            const originText = btn.innerText;
+            btn.innerText = "⏳ 測量中...";
+            btn.disabled = true;
+
+            const modal = document.getElementById('live-probe-modal');
+            const titleEl = document.getElementById('modal-probe-title');
+            const contentEl = document.getElementById('modal-probe-content');
+
+            titleEl.innerText = `⚡ 即時 CDN 路由複測：${{name}} (${{host}})`;
+            contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#38bdf8;font-size:15px;">🌐 正在向台灣 HiNet 實體節點發起即時 HTTPS 交握探測，請稍候約 3~8 秒...</div>';
+            modal.style.display = 'flex';
+
+            const tasks = [];
+            if (dnsMode === 'both') {{
+                tasks.push({{ label: 'HiNet DNS (預設)', resolver: null, color: '#38bdf8' }});
+                tasks.push({{ label: 'Google DNS (8.8.8.8)', resolver: '8.8.8.8', color: '#c084fc' }});
+            }} else if (dnsMode === 'hinet') {{
+                tasks.push({{ label: 'HiNet DNS (預設)', resolver: null, color: '#38bdf8' }});
+            }} else {{
+                tasks.push({{ label: 'Google DNS (8.8.8.8)', resolver: '8.8.8.8', color: '#c084fc' }});
+            }}
+
+            let outHtml = '';
+            for (const t of tasks) {{
+                try {{
+                    const r = await runSingleHttpProbe(host, t.resolver);
+                    if (r && r.total > 0) {{
+                        const geoName = determineClientGeo(r.headers, r.tcp);
+                        const statusColor = r.total < 150 ? '#34d399' : (r.total < 350 ? '#fde047' : '#f87171');
+                        const statusText = r.total < 150 ? '✔ 順暢良好' : (r.total < 350 ? '⚠️ 輕微延遲' : '🚨 嚴重卡頓');
+
+                        outHtml += `
+                        <div style="margin-bottom:16px;background:#090d16;padding:14px;border-radius:8px;border:1px solid #334155;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <strong style="color:${{t.color}};font-size:15px;">📡 ${{t.label}}</strong>
+                                <span style="color:${{statusColor}};font-weight:bold;font-size:14px;">${{statusText}} (總體感 ${{r.total}} ms)</span>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;color:#cbd5e1;margin-bottom:10px;">
+                                <div>落地節點：<strong style="color:#f8fafc;">${{geoName}}</strong></div>
+                                <div>TCP 握手：<strong style="color:#a855f7;">${{r.tcp}} ms</strong></div>
+                                <div>解析 IP：<span style="font-family:monospace;color:#38bdf8;">${{r.ip}}</span></div>
+                            </div>
+                            <pre style="margin:0;color:#94a3b8;font-size:12px;line-height:1.4;white-space:pre-wrap;word-break:break-all;background:#020617;padding:10px;border-radius:6px;max-height:160px;overflow-y:auto;">${{r.headers || '無標頭輸出'}}</pre>
+                        </div>
+                        `;
+                    }} else {{
+                        outHtml += `<div style="color:#fb7185;padding:12px;background:#090d16;border-radius:8px;margin-bottom:12px;">❌ [${{t.label}}] 探測逾時或連線失敗</div>`;
+                    }}
+                }} catch(err) {{
+                    outHtml += `<div style="color:#fb7185;padding:12px;background:#090d16;border-radius:8px;margin-bottom:12px;">❌ [${{t.label}}] 探測錯誤: ${{err.message}}</div>`;
+                }}
+            }}
+
+            contentEl.innerHTML = outHtml;
+            btn.innerText = originText;
+            btn.disabled = false;
+        }}
+
         {chart_init_js}
     </script>
 </body>
@@ -956,4 +1150,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：拔除地圖、分頁釘頂、SLA 滿版大圖、節點切換雙下拉選單與 3 次防抖動複測。")
+print(f"[{now_str}] 成功更新：對齊 index 頂部導航、加入卡片即時單點複測 Modal、修正重新整理按鈕說明。")

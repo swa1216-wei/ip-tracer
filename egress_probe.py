@@ -1131,7 +1131,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
             <div>
                 <button onclick="window.location.reload()" title="重整取得 GitHub 最新排程數據" style="background:#0284c7; color:#fff; border:none; border-radius:8px; padding:10px 18px; cursor:pointer; font-weight:bold; font-size:14px;">
-                    🔄 畫面更新 (排程運作中)
+                    🔄 畫面更新
                 </button>
             </div>
         </div>

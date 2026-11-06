@@ -206,14 +206,12 @@ def execute_single_probe(host, dns_resolver=None):
                         timings = res.get("timings", {})
                         total_ms = round(timings.get("total", 0), 1)
                         tcp_ms = round(timings.get("tcp", 0), 1)
-                        download_ms = round(timings.get("download", 0), 1)
                         resolved_ip = res.get("resolvedAddress", "")
                         raw_headers = res.get("rawHeaders", "")
                         if total_ms > 0:
                             return {
                                 "total_ms": total_ms,
                                 "tcp_ms": tcp_ms,
-                                "download_ms": download_ms,
                                 "resolved_ip": resolved_ip,
                                 "headers": raw_headers
                             }
@@ -241,7 +239,6 @@ def probe_single_stream(service, dns_resolver=None):
             "status": "OK",
             "total_ms": res["total_ms"],
             "tcp_ms": res["tcp_ms"],
-            "download_ms": res.get("download_ms", 0),
             "resolved_ip": res["resolved_ip"],
             "geo_key": geo_key,
             "geo_name": f"{flag} {name}",
@@ -252,7 +249,6 @@ def probe_single_stream(service, dns_resolver=None):
             "status": "FAIL",
             "total_ms": 0,
             "tcp_ms": 0,
-            "download_ms": 0,
             "resolved_ip": "--",
             "geo_key": "TYO",
             "geo_name": "連線逾時",
@@ -335,7 +331,7 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：雙軌分色數據與夜間忙時 (20:00~23:30) 統計運算
+# 第五部分：歷史數據統計與夜間忙時 (20:00~23:30) 運算
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -348,31 +344,27 @@ service_stats = {}
 
 for s in TARGET_SERVICES:
     sid = s["id"]
+    is_edge = (s["group"] == "edge_services")
     
-    # HiNet 雙軌數值：本地 vs 境外
-    h_local = []
-    h_offshore = []
+    h_totals = []
     h_tcps = []
     h_geos = []
     
-    # Google 雙軌數值：本地 vs 境外
-    g_local = []
-    g_offshore = []
+    g_totals = []
     g_tcps = []
     g_geos = []
 
     # 忙時統計 (20:00~23:30)
     h_peak_totals = []
     g_peak_totals = []
-    h_peak_tpe_count = 0
-    g_peak_tpe_count = 0
-    peak_count = 0
+    h_peak_geos = []
+    g_peak_geos = []
 
-    # 總留存率統計
-    h_total_count = 0
-    h_tpe_count = 0
-    g_total_count = 0
-    g_tpe_count = 0
+    # 全日落地城市分佈計數
+    h_geo_counts = {}
+    g_geo_counts = {}
+    h_total_valid = 0
+    g_total_valid = 0
 
     prev_h_geo = None
     prev_g_geo = None
@@ -384,66 +376,45 @@ for s in TARGET_SERVICES:
         h_info = s_data.get("hinet", {})
         g_info = s_data.get("google", {})
 
-        # 判定是否為夜間忙時 (20:00 ~ 23:30)
         is_peak = False
         try:
-            hour = int(t_label.split(":")[0])
-            minute = int(t_label.split(":")[1])
+            parts = t_label.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1])
             if (hour >= 20 and hour < 23) or (hour == 23 and minute <= 30):
                 is_peak = True
         except Exception:
             pass
 
-        # HiNet 數據處理
+        # HiNet 數據
         h_ms = h_info.get("total_ms", 0)
         h_geo = h_info.get("geo_key", "TYO")
+        h_totals.append(h_ms if h_info.get("status") == "OK" else 0)
         h_tcps.append(h_info.get("tcp_ms", 0))
-        h_geos.append(f"{GEO_FLAGS.get(h_geo, '')} {KNOWN_GEO_NAMES.get(h_geo, '海外')}")
+        h_geo_str = f"{GEO_FLAGS.get(h_geo, '')} {KNOWN_GEO_NAMES.get(h_geo, '海外')}"
+        h_geos.append(h_geo_str)
 
         if h_info.get("status") == "OK" and h_ms > 0:
-            h_total_count += 1
-            if h_geo == "TPE":
-                h_local.append(h_ms)
-                h_offshore.append(None)
-                h_tpe_count += 1
-            else:
-                h_local.append(None)
-                h_offshore.append(h_ms)
-
+            h_total_valid += 1
+            h_geo_counts[h_geo] = h_geo_counts.get(h_geo, 0) + 1
             if is_peak:
                 h_peak_totals.append(h_ms)
-                if h_geo == "TPE":
-                    h_peak_tpe_count += 1
-        else:
-            h_local.append(None)
-            h_offshore.append(None)
+                h_peak_geos.append(h_geo)
 
-        # Google 數據處理
+        # Google 數據
         g_ms = g_info.get("total_ms", 0)
         g_geo = g_info.get("geo_key", "TYO")
+        g_totals.append(g_ms if g_info.get("status") == "OK" else 0)
         g_tcps.append(g_info.get("tcp_ms", 0))
-        g_geos.append(f"{GEO_FLAGS.get(g_geo, '')} {KNOWN_GEO_NAMES.get(g_geo, '海外')}")
+        g_geo_str = f"{GEO_FLAGS.get(g_geo, '')} {KNOWN_GEO_NAMES.get(g_geo, '海外')}"
+        g_geos.append(g_geo_str)
 
         if g_info.get("status") == "OK" and g_ms > 0:
-            g_total_count += 1
-            if g_geo == "TPE":
-                g_local.append(g_ms)
-                g_offshore.append(None)
-                g_tpe_count += 1
-            else:
-                g_local.append(None)
-                g_offshore.append(g_ms)
-
+            g_total_valid += 1
+            g_geo_counts[g_geo] = g_geo_counts.get(g_geo, 0) + 1
             if is_peak:
                 g_peak_totals.append(g_ms)
-                if g_geo == "TPE":
-                    g_peak_tpe_count += 1
-        else:
-            g_local.append(None)
-            g_offshore.append(None)
-
-        if is_peak:
-            peak_count += 1
+                g_peak_geos.append(g_geo)
 
         # 審計日誌
         if prev_h_geo and h_geo and prev_h_geo != h_geo:
@@ -475,52 +446,53 @@ for s in TARGET_SERVICES:
             prev_g_geo = g_geo
 
     chart_datasets[sid] = {
-        "hinet_local": h_local,
-        "hinet_offshore": h_offshore,
+        "hinet_total": h_totals,
         "hinet_tcp": h_tcps,
         "hinet_geos": h_geos,
-        "google_local": g_local,
-        "google_offshore": g_offshore,
+        "google_total": g_totals,
         "google_tcp": g_tcps,
         "google_geos": g_geos
     }
 
-    # 計算統計比率
-    h_tpe_pct = round((h_tpe_count / h_total_count * 100), 1) if h_total_count else 0
-    g_tpe_pct = round((g_tpe_count / g_total_count * 100), 1) if g_total_count else 0
-    
-    h_peak_avg = round(sum(h_peak_totals) / len(h_peak_totals), 1) if h_peak_totals else 0
-    g_peak_avg = round(sum(g_peak_totals) / len(g_peak_totals), 1) if g_peak_totals else 0
-    
-    h_peak_tpe_pct = round((h_peak_tpe_count / len(h_peak_totals) * 100), 1) if h_peak_totals else 0
-    g_peak_tpe_pct = round((g_peak_tpe_count / len(g_peak_totals) * 100), 1) if g_peak_totals else 0
+    # 統計摘要運算
+    def get_summary_text(geo_counts, total_valid, is_edge_group):
+        if total_valid == 0:
+            return "無量測數據"
+        if is_edge_group:
+            tpe_c = geo_counts.get("TPE", 0)
+            tpe_pct = round(tpe_c / total_valid * 100, 1)
+            other_items = [(g, c) for g, c in geo_counts.items() if g != "TPE"]
+            if other_items:
+                top_other = sorted(other_items, key=lambda x: x[1], reverse=True)[0]
+                other_pct = round(top_other[1] / total_valid * 100, 1)
+                other_name = f"{GEO_FLAGS.get(top_other[0],'')} {KNOWN_GEO_NAMES.get(top_other[0],'')}"
+                return f"🇹🇼 台北留存率: <strong style='color:#34d399;'>{tpe_pct}%</strong> ｜ {other_name} 轉移: <strong style='color:#fb923c;'>{other_pct}%</strong>"
+            else:
+                return f"🇹🇼 台北留存率: <strong style='color:#34d399;'>100%</strong> (完全穩定)"
+        else:
+            top_geo = sorted(geo_counts.items(), key=lambda x: x[1], reverse=True)[0]
+            top_pct = round(top_geo[1] / total_valid * 100, 1)
+            top_name = f"{GEO_FLAGS.get(top_geo[0],'')} {KNOWN_GEO_NAMES.get(top_geo[0],'')}"
+            return f"{top_name} 主力路由: <strong style='color:#38bdf8;'>{top_pct}%</strong> (正常跨境)"
+
+    # 忙時代表城市判定
+    def get_dominant_geo(geos_list):
+        if not geos_list:
+            return "TPE"
+        return max(set(geos_list), key=geos_list.count)
 
     service_stats[sid] = {
-        "h_tpe_pct": h_tpe_pct,
-        "g_tpe_pct": g_tpe_pct,
-        "h_offshore_pct": round(100 - h_tpe_pct, 1),
-        "g_offshore_pct": round(100 - g_tpe_pct, 1),
-        "h_peak_avg": h_peak_avg,
-        "g_peak_avg": g_peak_avg,
-        "h_peak_tpe_pct": h_peak_tpe_pct,
-        "g_peak_tpe_pct": g_peak_tpe_pct,
+        "h_summary_html": get_summary_text(h_geo_counts, h_total_valid, is_edge),
+        "g_summary_html": get_summary_text(g_geo_counts, g_total_valid, is_edge),
+        "h_peak_avg": round(sum(h_peak_totals) / len(h_peak_totals), 1) if h_peak_totals else 0,
+        "g_peak_avg": round(sum(g_peak_totals) / len(g_peak_totals), 1) if g_peak_totals else 0,
+        "h_peak_geo": get_dominant_geo(h_peak_geos),
+        "g_peak_geo": get_dominant_geo(g_peak_geos),
         "has_peak_data": len(h_peak_totals) > 0
     }
 
-# 膠囊標籤產生器
-def format_geo_capsule(curr_geo_key, offshore_pct):
-    flag = GEO_FLAGS.get(curr_geo_key, "🌐")
-    name = KNOWN_GEO_NAMES.get(curr_geo_key, "海外")
-    
-    if offshore_pct > 0 and curr_geo_key == "TPE":
-        return f'<span class="geo-capsule">{flag} {name}</span><span class="geo-alt-hint">(境外轉移率 {offshore_pct}%)</span>'
-    elif curr_geo_key != "TPE":
-        return f'<span class="geo-capsule" style="border-color:#fb923c; color:#fb923c;">{flag} {name}</span><span class="geo-alt-hint" style="color:#fdba74;">(跨境訪問)</span>'
-    else:
-        return f'<span class="geo-capsule">{flag} {name}</span>'
-
 # ==============================================================================
-# 第六部分：四頁專屬頂部大戰況卡 (PK 頁面閉合統計)
+# 第六部分：四頁專屬頂部大戰況卡 (PK 頁面 12 款閉合統計)
 # ==============================================================================
 
 hinet_good = 0
@@ -635,7 +607,7 @@ summary_cards_pk = f"""
 """
 
 # ==============================================================================
-# 第七部分：HTML 畫面渲染 (長官戰情速報、雙軌分色圖表、SLA 忙時勝負)
+# 第七部分：HTML 畫面渲染 (PK 卡片俐落對齊、SLA 滿版降噪)
 # ==============================================================================
 
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
@@ -660,8 +632,8 @@ def render_cards_by_view(view_mode):
             h_stamp = stamp_html if h.get("win") else ""
             g_stamp = stamp_html if g.get("win") else ""
 
-            h_capsule = format_geo_capsule(h.get('geo_key', 'TYO'), st['h_offshore_pct'])
-            g_capsule = format_geo_capsule(g.get('geo_key', 'TYO'), st['g_offshore_pct'])
+            h_loc = f"{GEO_FLAGS.get(h.get('geo_key','TYO'),'')} {KNOWN_GEO_NAMES.get(h.get('geo_key','TYO'),'')}"
+            g_loc = f"{GEO_FLAGS.get(g.get('geo_key','TYO'),'')} {KNOWN_GEO_NAMES.get(g.get('geo_key','TYO'),'')}"
 
             card_content = f"""
             <div class="pk-container">
@@ -671,7 +643,7 @@ def render_cards_by_view(view_mode):
                         <span id="val-pk-hinet-{sid}" style="min-width:65px;">{h_total_str}</span> {h_stamp}
                     </div>
                     <div class="pk-node-info">
-                        <span id="geo-pk-hinet-{sid}">{h_capsule}</span>
+                        <span id="geo-pk-hinet-{sid}" class="geo-capsule">{h_loc}</span>
                         <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
@@ -681,7 +653,7 @@ def render_cards_by_view(view_mode):
                         <span id="val-pk-google-{sid}" style="min-width:65px;">{g_total_str}</span> {g_stamp}
                     </div>
                     <div class="pk-node-info">
-                        <span id="geo-pk-google-{sid}">{g_capsule}</span>
+                        <span id="geo-pk-google-{sid}" class="geo-capsule">{g_loc}</span>
                         <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
@@ -694,8 +666,7 @@ def render_cards_by_view(view_mode):
             """
         else:
             target_data = h if view_mode == "hinet" else g
-            offshore_pct = st['h_offshore_pct'] if view_mode == "hinet" else st['g_offshore_pct']
-            tpe_pct = st['h_tpe_pct'] if view_mode == "hinet" else st['g_tpe_pct']
+            summary_html = st['h_summary_html'] if view_mode == "hinet" else st['g_summary_html']
 
             total_val = target_data.get('total_ms', 0)
             tcp_val = target_data.get('tcp_ms', 0)
@@ -723,12 +694,14 @@ def render_cards_by_view(view_mode):
             </button>
             """
 
-            geo_capsule_html = format_geo_capsule(target_data.get('geo_key', 'TYO'), offshore_pct)
+            target_geo = target_data.get('geo_key', 'TYO')
+            capsule_flag = GEO_FLAGS.get(target_geo, '🌐')
+            capsule_name = KNOWN_GEO_NAMES.get(target_geo, '海外')
 
             card_content = f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span id="status-{view_mode}-{sid}" style="color:{health_color}; font-size:12px; font-weight:bold;">● {status_text}</span>
-                <span id="geo-{view_mode}-{sid}">{geo_capsule_html}</span>
+                <span id="geo-{view_mode}-{sid}" class="geo-capsule">{capsule_flag} {capsule_name}</span>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#070d18; padding:8px 10px; border-radius:6px; margin-bottom:8px;">
                 <div>
@@ -740,9 +713,8 @@ def render_cards_by_view(view_mode):
                     <div id="tcp-{view_mode}-{sid}" style="font-size:18px; font-weight:800; color:#a855f7;">{tcp_str}</div>
                 </div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; margin-bottom:8px; padding:0 4px;">
-                <span>🇹🇼 台北留存率: <strong style="color:#34d399;">{tpe_pct}%</strong></span>
-                <span>🇯🇵 境外轉移率: <strong style="color:{'#fb923c' if offshore_pct > 0 else '#64748b'};">{offshore_pct}%</strong></span>
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:8px; padding:0 2px;">
+                {summary_html}
             </div>
             """
 
@@ -771,44 +743,39 @@ def render_cards_by_view(view_mode):
     <div class="cards-grid">{cross_cards}</div>
     """
 
-# 渲染第 4 頁：SLA 忙時分析滿版大圖 (直接算出 20:00~23:30 忙時勝負)
+# 渲染第 4 頁：SLA 忙時分析滿版大圖 (去除雜訊，回歸藍紫雙線)
 def render_sla_view():
     cards = ""
     for s in TARGET_SERVICES:
         sid = s["id"]
         curr = current_snapshot["data"].get(sid, {})
-        ds = chart_datasets[sid]
         st = service_stats[sid]
 
-        # 忙時勝負定論
         if st["has_peak_data"]:
             diff = abs(st["h_peak_avg"] - st["g_peak_avg"])
             if diff <= 10:
-                peak_verdict = f'<span class="verdict-badge" style="background:#1e293b; color:#94a3b8;">⚖️ 忙時持平 (差距 {diff:.1f}ms)</span>'
+                badge = f'<span class="verdict-badge" style="background:#1e293b; color:#94a3b8;">⚖️ 忙時持平 (差 {diff:.1f}ms)</span>'
             elif st["h_peak_avg"] < st["g_peak_avg"]:
-                peak_verdict = f'<span class="verdict-badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid #38bdf8;">🏆 忙時 HiNet 快 {diff:.1f}ms</span>'
+                badge = f'<span class="verdict-badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid #38bdf8;">🏆 HiNet 快 {diff:.1f}ms</span>'
             else:
-                peak_verdict = f'<span class="verdict-badge" style="background:rgba(192,132,252,0.2); color:#c084fc; border:1px solid #c084fc;">🏆 忙時 Google 快 {diff:.1f}ms</span>'
-            
-            peak_summary = f"""
-            <div style="font-size:12px; color:#e2e8f0;">
-                📊 <strong>夜間忙時 (20:00~23:30)</strong>：
-                HiNet 均值 <strong style="color:#38bdf8;">{st['h_peak_avg']}ms</strong> (🇹🇼 留存 {st['h_peak_tpe_pct']}%) ｜ 
-                Google 均值 <strong style="color:#c084fc;">{st['g_peak_avg']}ms</strong> (🇹🇼 留存 {st['g_peak_tpe_pct']}%)
+                badge = f'<span class="verdict-badge" style="background:rgba(192,132,252,0.2); color:#c084fc; border:1px solid #c084fc;">🏆 Google 快 {diff:.1f}ms</span>'
+
+            h_loc = f"{GEO_FLAGS.get(st['h_peak_geo'],'')} {KNOWN_GEO_NAMES.get(st['h_peak_geo'],'')}"
+            g_loc = f"{GEO_FLAGS.get(st['g_peak_geo'],'')} {KNOWN_GEO_NAMES.get(st['g_peak_geo'],'')}"
+            peak_headline = f"""
+            <div style="font-size:13px; color:#e2e8f0; display:flex; align-items:center; gap:10px;">
+                <span>夜間忙時：HiNet <strong style="color:#38bdf8;">{st['h_peak_avg']}ms</strong> ({h_loc}) ｜ Google <strong style="color:#c084fc;">{st['g_peak_avg']}ms</strong> ({g_loc})</span>
+                {badge}
             </div>
             """
         else:
-            peak_verdict = '<span class="verdict-badge" style="background:#1e293b; color:#94a3b8;">⏳ 累積中 (尚無20:00~23:30數據)</span>'
-            peak_summary = '<div style="font-size:12px; color:#94a3b8;">夜間忙時監控區間：20:00 ~ 23:30</div>'
+            peak_headline = '<div style="font-size:12px; color:#94a3b8;">夜間忙時 (20:00~23:30) 數據累積中</div>'
 
         cards += f"""
         <div class="sla-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <div style="font-size:16px; font-weight:800; color:#f8fafc;">{curr['name']}</div>
-                <div style="display:flex; align-items:center; gap:12px;">
-                    {peak_summary}
-                    {peak_verdict}
-                </div>
+                {peak_headline}
             </div>
             <div style="height:220px; background:#070d18; border-radius:8px; padding:10px;">
                 <canvas id="chart-sla-{sid}"></canvas>
@@ -817,12 +784,11 @@ def render_sla_view():
         """
     return f"""
     <div style="margin-bottom:14px; color:#94a3b8; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
-        <span>📌 說明：折線分色區分「🇹🇼 本地連線 (貼地)」與「🇯🇵 境外轉移 (跳高)」，滑鼠觸碰圓點可查看實際落地點。</span>
+        <span>📌 說明：滑鼠觸碰曲線圓點可查看該時段實際落地的城市與延遲數據。</span>
         <div style="display:flex; gap:14px;">
-            <span style="color:#34d399; font-weight:bold;">── 🇹🇼 本地 Edge</span>
-            <span style="color:#fb923c; font-weight:bold;">── 🇯🇵 境外轉移</span>
-            <span style="color:#facc15; font-weight:bold;">┄┄ 150ms 警戒</span>
-            <span style="color:#f87171; font-weight:bold;">┄┄ 350ms 卡頓</span>
+            <span style="color:#38bdf8; font-weight:bold;">── HiNet DNS</span>
+            <span style="color:#c084fc; font-weight:bold;">── Google DNS</span>
+            <span style="color:#facc15; font-weight:bold;">┄┄ 150ms 警戒線</span>
         </div>
     </div>
     <div class="sla-grid">{cards}</div>
@@ -833,7 +799,7 @@ html_google_cards = render_cards_by_view("google")
 html_pk_cards = render_cards_by_view("pk")
 html_sla_cards = render_sla_view()
 
-# 節點切換紀錄表格 (以時間倒序排列，平鋪於抽屜內)
+# 節點切換紀錄表格
 log_rows = ""
 unique_services = sorted(list(set([s["name"] for s in TARGET_SERVICES])))
 service_options = "".join([f'<option value="{svc}">{svc}</option>' for svc in unique_services])
@@ -869,25 +835,27 @@ else:
     </tr>
     """
 
-# 圖表渲染 JS (雙軌分色：本地綠線 vs 境外橘線)
+# 圖表渲染 JS (清爽雙線，Tooltip 帶出城市)
 chart_init_js = ""
 for s in TARGET_SERVICES:
     sid = s["id"]
     ds = chart_datasets[sid]
+    curr = current_snapshot["data"].get(sid, {})
+    h_col = curr.get("hinet", {}).get("color", "#34d399")
+    g_col = curr.get("google", {}).get("color", "#34d399")
     
     h_geos_json = json.dumps(ds['hinet_geos'])
     g_geos_json = json.dumps(ds['google_geos'])
 
-    # 1. HiNet 專屬圖 (雙軌：本地綠 vs 境外橘)
+    # 1. HiNet 專屬圖
     chart_init_js += f"""
     new Chart(document.getElementById('chart-hinet-{sid}'), {{
         type: 'line',
         data: {{
             labels: {chart_labels_json},
             datasets: [
-                {{ label: '🇹🇼 台北本地', data: {json.dumps(ds['hinet_local'])}, borderColor: '#34d399', backgroundColor: '#34d399', borderWidth: 2, tension: 0.2, pointRadius: 2, spanGaps: true }},
-                {{ label: '🇯🇵 境外轉移', data: {json.dumps(ds['hinet_offshore'])}, borderColor: '#fb923c', backgroundColor: '#fb923c', borderWidth: 2, tension: 0.2, pointRadius: 3, pointStyle: 'rectRot', spanGaps: true }},
-                {{ label: 'TCP 握手', data: {json.dumps(ds['hinet_tcp'])}, borderColor: '#a855f7', borderWidth: 1.5, borderDash: [2, 2], tension: 0.2, pointRadius: 0 }}
+                {{ label: 'Total (ms)', data: {json.dumps(ds['hinet_total'])}, borderColor: '{h_col}', borderWidth: 2, tension: 0.3, pointRadius: 1 }},
+                {{ label: 'TCP (ms)', data: {json.dumps(ds['hinet_tcp'])}, borderColor: '#a855f7', borderWidth: 1.5, borderDash: [2, 2], tension: 0.3, pointRadius: 0 }}
             ]
         }},
         options: {{
@@ -915,9 +883,8 @@ for s in TARGET_SERVICES:
         data: {{
             labels: {chart_labels_json},
             datasets: [
-                {{ label: '🇹🇼 台北本地', data: {json.dumps(ds['google_local'])}, borderColor: '#34d399', backgroundColor: '#34d399', borderWidth: 2, tension: 0.2, pointRadius: 2, spanGaps: true }},
-                {{ label: '🇯🇵 境外轉移', data: {json.dumps(ds['google_offshore'])}, borderColor: '#fb923c', backgroundColor: '#fb923c', borderWidth: 2, tension: 0.2, pointRadius: 3, pointStyle: 'rectRot', spanGaps: true }},
-                {{ label: 'TCP 握手', data: {json.dumps(ds['google_tcp'])}, borderColor: '#a855f7', borderWidth: 1.5, borderDash: [2, 2], tension: 0.2, pointRadius: 0 }}
+                {{ label: 'Total (ms)', data: {json.dumps(ds['google_total'])}, borderColor: '{g_col}', borderWidth: 2, tension: 0.3, pointRadius: 1 }},
+                {{ label: 'TCP (ms)', data: {json.dumps(ds['google_tcp'])}, borderColor: '#a855f7', borderWidth: 1.5, borderDash: [2, 2], tension: 0.3, pointRadius: 0 }}
             ]
         }},
         options: {{
@@ -945,8 +912,8 @@ for s in TARGET_SERVICES:
         data: {{
             labels: {chart_labels_json},
             datasets: [
-                {{ label: 'HiNet Total', data: {json.dumps([v for v in ds['hinet_local'] if v is not None] or [0])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3, pointRadius: 1.2, spanGaps: true }},
-                {{ label: 'Google Total', data: {json.dumps([v for v in ds['google_local'] if v is not None] or [0])}, borderColor: '#c084fc', borderWidth: 2, tension: 0.3, pointRadius: 1, spanGaps: true }}
+                {{ label: 'HiNet Total', data: {json.dumps(ds['hinet_total'])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3, pointRadius: 1.2 }},
+                {{ label: 'Google Total', data: {json.dumps(ds['google_total'])}, borderColor: '#c084fc', borderWidth: 2, tension: 0.3, pointRadius: 1 }}
             ]
         }},
         options: {{
@@ -968,7 +935,7 @@ for s in TARGET_SERVICES:
     }});
     """
 
-    # 4. SLA 專屬滿版大圖
+    # 4. SLA 專屬滿版大圖 (純粹藍紫雙線對決)
     len_pts = len(chart_labels)
     chart_init_js += f"""
     new Chart(document.getElementById('chart-sla-{sid}'), {{
@@ -976,11 +943,9 @@ for s in TARGET_SERVICES:
         data: {{
             labels: {chart_labels_json},
             datasets: [
-                {{ label: 'HiNet 本地', data: {json.dumps(ds['hinet_local'])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.2, pointRadius: 2, spanGaps: true }},
-                {{ label: 'HiNet 境外轉移', data: {json.dumps(ds['hinet_offshore'])}, borderColor: '#fb923c', borderWidth: 2, pointRadius: 3, pointStyle: 'rectRot', spanGaps: true }},
-                {{ label: 'Google 本地', data: {json.dumps(ds['google_local'])}, borderColor: '#c084fc', borderWidth: 1.5, borderDash: [2, 2], pointRadius: 1.5, spanGaps: true }},
-                {{ label: '150ms 警戒線', data: Array({len_pts}).fill(150), borderColor: '#facc15', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, fill: false }},
-                {{ label: '350ms 卡頓線', data: Array({len_pts}).fill(350), borderColor: '#f87171', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, fill: false }}
+                {{ label: 'HiNet DNS', data: {json.dumps(ds['hinet_total'])}, borderColor: '#38bdf8', borderWidth: 2, tension: 0.3, pointRadius: 1.5 }},
+                {{ label: 'Google DNS', data: {json.dumps(ds['google_total'])}, borderColor: '#c084fc', borderWidth: 2, tension: 0.3, pointRadius: 1.5 }},
+                {{ label: '150ms 警戒線', data: Array({len_pts}).fill(150), borderColor: '#facc15', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, fill: false }}
             ]
         }},
         options: {{
@@ -993,7 +958,7 @@ for s in TARGET_SERVICES:
                         afterLabel: function(ctx) {{
                             const hGeos = {h_geos_json};
                             const gGeos = {g_geos_json};
-                            return (ctx.datasetIndex === 0 || ctx.datasetIndex === 1) ? 'HiNet: ' + hGeos[ctx.dataIndex] : 'Google: ' + gGeos[ctx.dataIndex];
+                            return ctx.datasetIndex === 0 ? 'HiNet: ' + hGeos[ctx.dataIndex] : 'Google: ' + gGeos[ctx.dataIndex];
                         }}
                     }}
                 }}
@@ -1084,11 +1049,6 @@ html_content = f"""<!DOCTYPE html>
             align-items: center;
             gap: 4px;
         }}
-        .geo-alt-hint {{
-            color: #94a3b8;
-            font-size: 11px;
-            margin-left: 6px;
-        }}
 
         /* PK 對照表排版 */
         .pk-container {{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }}
@@ -1125,7 +1085,7 @@ html_content = f"""<!DOCTYPE html>
         .view-panel {{ display: none; }}
         .view-active {{ display: block; }}
 
-        /* 折疊抽屜容器樣式 (純前端切換，無跳轉錨點) */
+        /* 折疊抽屜容器樣式 */
         .drawer-toggle {{
             background: #0f172a;
             border: 1px solid #334155;
@@ -1241,7 +1201,7 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 維運長官速報 (定性破除客訴迷思) -->
+        <!-- 維運長官速報 -->
         <div class="exec-briefing">
             <div class="exec-title">
                 <span>🛡️</span> NOC 觀測分析結論
@@ -1280,7 +1240,7 @@ html_content = f"""<!DOCTYPE html>
             {html_sla_cards}
         </div>
 
-        <!-- 區塊一：24 小時節點切換紀錄 (保留收合按鈕，純前端切換無錨點跳轉) -->
+        <!-- 區塊一：24 小時節點切換紀錄 (純前端收合，無跳轉錨點) -->
         <div class="drawer-toggle" onclick="toggleDrawer()">
             <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:16px; font-weight:bold; color:#f8fafc;">📋 近 24 小時節點切換紀錄</span>
@@ -1541,7 +1501,7 @@ html_content = f"""<!DOCTYPE html>
                         const statusColor = r.total < 150 ? '#34d399' : (r.total < 350 ? '#fde047' : '#f87171');
                         const statusText = r.total < 150 ? '✔ 順暢良好' : (r.total < 350 ? '⚠️ 輕微延遲' : '🚨 嚴重卡頓');
 
-                        // 即時回填更新背景卡片數據，高對比膠囊標籤
+                        // 即時回填更新背景卡片數據
                         const totalEl = document.getElementById(`total-${{t.mode}}-${{sid}}`);
                         const tcpEl = document.getElementById(`tcp-${{t.mode}}-${{sid}}`);
                         const statusEl = document.getElementById(`status-${{t.mode}}-${{sid}}`);
@@ -1556,7 +1516,7 @@ html_content = f"""<!DOCTYPE html>
                             statusEl.innerText = `● ${{statusText.replace('✔ ', '').replace('⚠️ ', '').replace('🚨 ', '')}}`;
                             statusEl.style.color = statusColor;
                         }}
-                        if (geoEl) geoEl.innerHTML = `<span class="geo-capsule">${{g.flag}} ${{g.name}}</span><span style='color:#38bdf8; font-size:11px; margin-left:4px;'>(即時校正)</span>`;
+                        if (geoEl) geoEl.innerHTML = `${{g.flag}} ${{g.name}}`;
 
                         // PK 頁面即時回填
                         const pkValEl = document.getElementById(`val-pk-${{t.mode}}-${{sid}}`);
@@ -1565,7 +1525,7 @@ html_content = f"""<!DOCTYPE html>
                             pkValEl.innerText = `${{r.total}} ms`;
                             pkValEl.style.color = statusColor;
                         }}
-                        if (pkGeoEl) pkGeoEl.innerHTML = `<span class="geo-capsule">${{g.flag}} ${{g.name}}</span><span style='color:#38bdf8; font-size:11px; margin-left:4px;'>(即時校正)</span>`;
+                        if (pkGeoEl) pkGeoEl.innerHTML = `${{g.flag}} ${{g.name}}`;
 
                         outHtml += `
                         <div style="margin-bottom:16px;background:#090d16;padding:14px;border-radius:8px;border:1px solid #334155;">
@@ -1603,4 +1563,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：雙軌分色折線圖（本地綠 vs 境外橘）、長官戰情速報卡、SLA 夜間忙時勝負定論、高對比簡潔膠囊。")
+print(f"[{now_str}] 成功更新：PK卡片地名獨立乾淨、SLA頁面純粹雙線降噪、分類統計杜絕JP硬編碼。")

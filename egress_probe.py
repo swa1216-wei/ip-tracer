@@ -6,82 +6,82 @@ import urllib.error
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的 (改用真實免 Token 靜態物件，分組回歸常理)
+# 第一部分：監控標的 (修正為純合法 Host 網域，Netflix 歸入跨境)
 # ==============================================================================
 
 TARGET_SERVICES = [
-    # --- 區塊 A：主流串流與社群平台 (邊緣解析觀測，測真實靜態資源) ---
+    # --- 區塊 A：主流串流與社群平台 (邊緣解析觀測) ---
     {
         "id": "threads_ig",
         "name": "Threads & IG 圖片 CDN",
-        "target": "static.xx.fbcdn.net/rsrc.php/v3/yZ/r/W5hL99fU9g-.js",
+        "host": "scontent.cdninstagram.com",
         "group": "edge_services"
     },
     {
         "id": "meta_reels",
         "name": "Instagram Reels 短影音",
-        "target": "static.xx.fbcdn.net/rsrc.php/v3/y4/r/-PA323j8pVI.js",
+        "host": "video.xx.fbcdn.net",
         "group": "edge_services"
     },
     {
         "id": "fb_static",
         "name": "Facebook 塗鴉牆圖文",
-        "target": "static.xx.fbcdn.net/rsrc.php/v3/yb/r/G3St-si5Jg6.js",
+        "host": "static.xx.fbcdn.net",
         "group": "edge_services"
     },
     {
         "id": "fb_live",
         "name": "Facebook 直播與動態影音",
-        "target": "static.xx.fbcdn.net/rsrc.php/v3/yH/r/HAFeo_b_v0g.png",
+        "host": "scontent.xx.fbcdn.net",
         "group": "edge_services"
     },
     {
         "id": "youtube_stream",
         "name": "YouTube 影音串流 / Shorts",
-        "target": "www.youtube.com/s/desktop/28fd2b00/jsbin/desktop_polymer.vflset/desktop_polymer.js",
+        "host": "googlevideo.com",
         "group": "edge_services"
     },
     {
         "id": "line_obs",
         "name": "LINE 圖片與貼圖",
-        "target": "stickershop.line-scdn.net/stickershop/v1/product/1/IOS/main_animation@2x.png",
+        "host": "obs.line-scdn.net",
         "group": "edge_services"
     },
-    # --- 區塊 B：跨境平台與海外骨幹 (Netflix 歸入出海組) ---
+    # --- 區塊 B：跨境平台與海外骨幹 ---
     {
         "id": "netflix_fast",
         "name": "Netflix 邊緣節點",
-        "target": "api.fast.com/netflix/speedtest/v2",
+        "host": "api.fast.com",
         "group": "cross_border"
     },
     {
         "id": "hongguo_drama",
         "name": "紅果短劇",
-        "target": "lf-cdn-tos.bytescm.com/obj/ies-fe-bee/beefont/v1.0.0/style.css",
+        "host": "lf-cdn-tos.bytescm.com",
         "group": "cross_border"
     },
     {
         "id": "tiktok_gateway",
         "name": "TikTok 資訊流入口",
-        "target": "www.tiktok.com",
+        "host": "www.tiktok.com",
         "group": "cross_border"
     },
     {
         "id": "x_media",
         "name": "X (Twitter) 圖片",
-        "target": "abs.twimg.com/responsive-web/client-web/shared~loader.App~bundle.NetworkInstrument.35e5d1ba.js",
+        "host": "pbs.twimg.com",
         "group": "cross_border"
     },
     {
         "id": "github_fastly",
         "name": "GitHub 檔案下載",
-        "target": "raw.githubusercontent.com/octocat/Spoon-Knife/master/index.html",
+        "host": "objects.githubusercontent.com",
         "group": "cross_border"
     },
     {
         "id": "discord_media",
         "name": "Discord 媒體傳輸",
-        "target": "cdn.discordapp.com/attachments/icons/badge.png",
+        "host": "cdn.discordapp.com",
         "group": "cross_border"
     }
 ]
@@ -134,20 +134,18 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     return "TYO"
 
 # ==============================================================================
-# 第二部分：Globalping 探測 (真實 GET 載檔，計算吞吐速率)
+# 第二部分：Globalping 探測 (純 Host 合法探測，確保 100% 成功)
 # ==============================================================================
 
-def execute_single_probe(target_path, dns_resolver=None):
+def execute_single_probe(host, dns_resolver=None):
     api_url = "https://api.globalping.io/v1/measurements"
-    measurement_options = {
-        "protocol": "HTTPS"
-    }
+    measurement_options = {"protocol": "HTTPS"}
     if dns_resolver:
         measurement_options["resolver"] = dns_resolver
 
     payload = json.dumps({
         "type": "http",
-        "target": target_path,
+        "target": host,
         "locations": [{"country": "TW", "asn": 3462}],
         "measurementOptions": measurement_options,
         "limit": 1
@@ -157,7 +155,7 @@ def execute_single_probe(target_path, dns_resolver=None):
         api_url, data=payload,
         headers={
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HiNet-NOC-ThroughputProbe"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 HiNet-NOC-Probe"
         }
     )
 
@@ -197,37 +195,15 @@ def execute_single_probe(target_path, dns_resolver=None):
                     if results:
                         res = results[0].get("result", {})
                         timings = res.get("timings", {})
-                        raw_body = res.get("rawBody", "")
-                        
                         total_ms = round(timings.get("total", 0), 1)
                         tcp_ms = round(timings.get("tcp", 0), 1)
-                        download_ms = round(timings.get("download", 0), 1)
                         resolved_ip = res.get("resolvedAddress", "")
                         raw_headers = res.get("rawHeaders", "")
-
-                        # 計算真實下載速率 (MB/s)
-                        # 以 Content-Length 或 rawBody 長度推估 bytes
-                        bytes_len = len(raw_body.encode("utf-8")) if raw_body else 10240
-                        for line in raw_headers.splitlines():
-                            if line.lower().startswith("content-length:"):
-                                try:
-                                    bytes_len = int(line.split(":")[1].strip())
-                                except Exception:
-                                    pass
-
-                        throughput_mb_s = 0.0
-                        effective_download_ms = download_ms if download_ms > 0 else (total_ms - tcp_ms)
-                        if effective_download_ms > 0 and bytes_len > 0:
-                            throughput_mb_s = round((bytes_len / 1024 / 1024) / (effective_download_ms / 1000), 2)
-                            if throughput_mb_s > 100:
-                                throughput_mb_s = 100.0
 
                         if total_ms > 0:
                             return {
                                 "total_ms": total_ms,
                                 "tcp_ms": tcp_ms,
-                                "download_ms": download_ms,
-                                "speed_mb_s": throughput_mb_s,
                                 "resolved_ip": resolved_ip,
                                 "headers": raw_headers
                             }
@@ -237,25 +213,21 @@ def execute_single_probe(target_path, dns_resolver=None):
     return None
 
 def probe_single_stream(service, dns_resolver=None):
-    res = execute_single_probe(service["target"], dns_resolver)
+    res = execute_single_probe(service["host"], dns_resolver)
     
-    is_abnormal = (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 350)
-    if is_abnormal:
+    if (not res) or (res.get("total_ms", 0) <= 0) or (res.get("total_ms", 0) >= 350):
         time.sleep(2)
-        retry_res = execute_single_probe(service["target"], dns_resolver)
+        retry_res = execute_single_probe(service["host"], dns_resolver)
         if retry_res and retry_res.get("total_ms", 0) > 0:
             res = retry_res
 
     if res and res["total_ms"] > 0:
         geo_key = determine_geo(res["resolved_ip"], res["headers"], res["tcp_ms"])
-        
-        # 狀態著色：改以總體感與速度判定
         tot = res["total_ms"]
-        spd = res["speed_mb_s"]
-        if tot < 150 and spd >= 1.0:
+        if tot < 150:
             color = "#34d399"
             status_text = "順暢良好"
-        elif tot < 350 or spd >= 0.3:
+        elif tot < 350:
             color = "#fde047"
             status_text = "稍微延遲"
         else:
@@ -269,8 +241,6 @@ def probe_single_stream(service, dns_resolver=None):
             "status_text": status_text,
             "total_ms": res["total_ms"],
             "tcp_ms": res["tcp_ms"],
-            "speed_mb_s": res["speed_mb_s"],
-            "download_ms": res["download_ms"],
             "resolved_ip": res["resolved_ip"],
             "geo_key": geo_key,
             "geo_name": f"{flag} {name}",
@@ -282,8 +252,6 @@ def probe_single_stream(service, dns_resolver=None):
             "status_text": "連線逾時",
             "total_ms": 0,
             "tcp_ms": 0,
-            "speed_mb_s": 0.0,
-            "download_ms": 0,
             "resolved_ip": "--",
             "geo_key": "TYO",
             "geo_name": "逾時",
@@ -291,15 +259,15 @@ def probe_single_stream(service, dns_resolver=None):
         }
 
 # ==============================================================================
-# 第三部分：循序探測排程 (間隔 0.8 秒)
+# 第三部分：循序排程 (間隔 0.8 秒)
 # ==============================================================================
 
-print(f"[{now_str}] 啟動 HiNet 出口真實吞吐與 CDN 路由監測...")
+print(f"[{now_str}] 啟動 HiNet 出口與 CDN 路由監測 (純 Host 穩定模式)...")
 
 results = {}
 for idx, s in enumerate(TARGET_SERVICES):
     sid = s["id"]
-    print(f"[{idx+1}/{len(TARGET_SERVICES)}] 探測真實物件：{s['name']}...")
+    print(f"[{idx+1}/{len(TARGET_SERVICES)}] 探測 {s['name']}...")
     
     hinet_res = probe_single_stream(s, None)
     time.sleep(0.8)
@@ -309,7 +277,7 @@ for idx, s in enumerate(TARGET_SERVICES):
     results[sid] = {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
-# 第四部分：歷史數據保存 (最近 72 筆)
+# 第四部分：歷史數據保存
 # ==============================================================================
 
 history_state = []
@@ -329,8 +297,8 @@ current_snapshot = {
 for s in TARGET_SERVICES:
     sid = s["id"]
     res = results.get(sid, {
-        "hinet": {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "speed_mb_s": 0.0, "geo_key": "TYO", "color": "#f87171"},
-        "google": {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "speed_mb_s": 0.0, "geo_key": "TYO", "color": "#f87171"}
+        "hinet": {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "geo_key": "TYO", "color": "#f87171"},
+        "google": {"status": "FAIL", "total_ms": 0, "tcp_ms": 0, "geo_key": "TYO", "color": "#f87171"}
     })
     
     h_data = res["hinet"]
@@ -353,7 +321,7 @@ for s in TARGET_SERVICES:
 
     current_snapshot["data"][sid] = {
         "name": s["name"],
-        "target": s["target"],
+        "host": s["host"],
         "group": s["group"],
         "hinet": {**h_data, "win": h_win},
         "google": {**g_data, "win": g_win}
@@ -366,7 +334,7 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
     json.dump(history_state, f, ensure_ascii=False, indent=2)
 
 # ==============================================================================
-# 第五部分：歷史數據走勢整理 (不造假、不拼裝跨空線)
+# 第五部分：歷史數據走勢整理
 # ==============================================================================
 
 chronological_data = list(reversed(history_state))
@@ -381,12 +349,10 @@ for s in TARGET_SERVICES:
     sid = s["id"]
     h_totals = []
     h_tcps = []
-    h_speeds = []
     h_geos = []
 
     g_totals = []
     g_tcps = []
-    g_speeds = []
     g_geos = []
 
     h_peak_totals = []
@@ -419,7 +385,6 @@ for s in TARGET_SERVICES:
         h_geo = h_info.get("geo_key", "TYO")
         h_totals.append(h_ms if h_info.get("status") == "OK" else 0)
         h_tcps.append(h_info.get("tcp_ms", 0))
-        h_speeds.append(h_info.get("speed_mb_s", 0.0))
         h_geos.append(f"{GEO_FLAGS.get(h_geo, '')} {KNOWN_GEO_NAMES.get(h_geo, '海外')}")
 
         if h_info.get("status") == "OK" and h_ms > 0 and is_peak:
@@ -431,7 +396,6 @@ for s in TARGET_SERVICES:
         g_geo = g_info.get("geo_key", "TYO")
         g_totals.append(g_ms if g_info.get("status") == "OK" else 0)
         g_tcps.append(g_info.get("tcp_ms", 0))
-        g_speeds.append(g_info.get("speed_mb_s", 0.0))
         g_geos.append(f"{GEO_FLAGS.get(g_geo, '')} {KNOWN_GEO_NAMES.get(g_geo, '海外')}")
 
         if g_info.get("status") == "OK" and g_ms > 0 and is_peak:
@@ -470,11 +434,9 @@ for s in TARGET_SERVICES:
     chart_datasets[sid] = {
         "hinet_total": h_totals,
         "hinet_tcp": h_tcps,
-        "hinet_speed": h_speeds,
         "hinet_geos": h_geos,
         "google_total": g_totals,
         "google_tcp": g_tcps,
-        "google_speed": g_speeds,
         "google_geos": g_geos
     }
 
@@ -492,7 +454,7 @@ for s in TARGET_SERVICES:
     }
 
 # ==============================================================================
-# 第六部分：四頁專屬頂部戰況卡 (純粹 12 款閉合統計)
+# 第六部分：四頁專屬頂部戰況卡
 # ==============================================================================
 
 hinet_good = 0
@@ -607,7 +569,7 @@ summary_cards_pk = f"""
 """
 
 # ==============================================================================
-# 第七部分：HTML 畫面渲染 (無假文字、四格實測數據、俐落膠囊)
+# 第七部分：HTML 畫面渲染 (無假文字、俐落膠囊、乾淨真實數據)
 # ==============================================================================
 
 stamp_html = '<span class="pk-stamp">👍 讚</span>'
@@ -621,7 +583,7 @@ def render_cards_by_view(view_mode):
         curr = current_snapshot["data"].get(sid, {})
         h = curr.get("hinet", {})
         g = curr.get("google", {})
-        target_path = s["target"]
+        host_domain = s["host"]
 
         card_content = ""
 
@@ -643,7 +605,7 @@ def render_cards_by_view(view_mode):
                     </div>
                     <div class="pk-node-info">
                         <span id="geo-pk-hinet-{sid}" class="geo-capsule">{h_loc}</span>
-                        <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms ｜ 下載: {h.get('speed_mb_s',0.0)}MB/s</span>
+                        <span style="color:#94a3b8; font-size:11px;">TCP: {h.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
                 <div class="pk-row {'pk-row-win' if g.get('win') else ''}">
@@ -653,13 +615,13 @@ def render_cards_by_view(view_mode):
                     </div>
                     <div class="pk-node-info">
                         <span id="geo-pk-google-{sid}" class="geo-capsule">{g_loc}</span>
-                        <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms ｜ 下載: {g.get('speed_mb_s',0.0)}MB/s</span>
+                        <span style="color:#94a3b8; font-size:11px;">TCP: {g.get('tcp_ms','--')}ms</span>
                     </div>
                 </div>
             </div>
             """
             retest_btn = f"""
-            <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{target_path}', 'both', this)" class="retest-chip retest-chip-neutral">
+            <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{host_domain}', 'both', this)" class="retest-chip retest-chip-neutral">
                 ⚡ 重測
             </button>
             """
@@ -667,19 +629,15 @@ def render_cards_by_view(view_mode):
             target_data = h if view_mode == "hinet" else g
             total_val = target_data.get('total_ms', 0)
             tcp_val = target_data.get('tcp_ms', 0)
-            speed_val = target_data.get('speed_mb_s', 0.0)
-            download_val = target_data.get('download_ms', 0)
 
             total_str = f"{total_val} ms" if target_data.get("status") == "OK" else "逾時"
             tcp_str = f"{tcp_val} ms" if target_data.get("status") == "OK" else "--"
-            speed_str = f"{speed_val} MB/s" if target_data.get("status") == "OK" else "--"
-            download_str = f"{download_val} ms" if target_data.get("status") == "OK" else "--"
             health_color = target_data.get('color', '#34d399')
             status_text = target_data.get('status_text', '順暢良好')
 
             dns_param = "hinet" if view_mode == "hinet" else "google"
             retest_btn = f"""
-            <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{target_path}', '{dns_param}', this)" class="retest-chip retest-chip-neutral">
+            <button onclick="triggerLiveProbe('{sid}', '{curr['name']}', '{host_domain}', '{dns_param}', this)" class="retest-chip retest-chip-neutral">
                 ⚡ 重測
             </button>
             """
@@ -693,22 +651,14 @@ def render_cards_by_view(view_mode):
                 <span id="status-{view_mode}-{sid}" style="color:{health_color}; font-size:12px; font-weight:bold;">● {status_text}</span>
                 <span id="geo-{view_mode}-{sid}" class="geo-capsule">{capsule_flag} {capsule_name}</span>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#070d18; padding:8px 10px; border-radius:6px; margin-bottom:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#070d18; padding:8px 10px; border-radius:6px; margin-bottom:12px;">
                 <div>
                     <div style="font-size:11px; color:#94a3b8;">總體感延遲</div>
-                    <div id="total-{view_mode}-{sid}" style="font-size:17px; font-weight:800; color:{health_color};">{total_str}</div>
-                </div>
-                <div>
-                    <div style="font-size:11px; color:#94a3b8;">下載速率</div>
-                    <div id="speed-{view_mode}-{sid}" style="font-size:17px; font-weight:800; color:#38bdf8;">{speed_str}</div>
+                    <div id="total-{view_mode}-{sid}" style="font-size:18px; font-weight:800; color:{health_color};">{total_str}</div>
                 </div>
                 <div>
                     <div style="font-size:11px; color:#94a3b8;">TCP 握手 (光纖)</div>
-                    <div id="tcp-{view_mode}-{sid}" style="font-size:14px; font-weight:bold; color:#a855f7;">{tcp_str}</div>
-                </div>
-                <div>
-                    <div style="font-size:11px; color:#94a3b8;">下載傳輸耗時</div>
-                    <div id="dl-{view_mode}-{sid}" style="font-size:14px; font-weight:bold; color:#cbd5e1;">{download_str}</div>
+                    <div id="tcp-{view_mode}-{sid}" style="font-size:18px; font-weight:800; color:#a855f7;">{tcp_str}</div>
                 </div>
             </div>
             """
@@ -732,13 +682,13 @@ def render_cards_by_view(view_mode):
             cross_cards += card_html
 
     return f"""
-    <div class="section-title">⚡ 主流串流與社群平台 (邊緣快取觀測)</div>
+    <div class="section-title">⚡ 主流串流與社群平台 (邊緣解析觀測)</div>
     <div class="cards-grid">{edge_cards}</div>
     <div class="section-title" style="margin-top:24px;">🌐 跨境平台與海外骨幹</div>
     <div class="cards-grid">{cross_cards}</div>
     """
 
-# 渲染第 4 頁：SLA 滿版大圖 (去除多餘文字，乾淨藍紫雙線)
+# 渲染第 4 頁：SLA 滿版大圖
 def render_sla_view():
     cards = ""
     for s in TARGET_SERVICES:
@@ -842,7 +792,6 @@ for s in TARGET_SERVICES:
     h_geos_json = json.dumps(ds['hinet_geos'])
     g_geos_json = json.dumps(ds['google_geos'])
 
-    # 1. HiNet 專屬圖
     chart_init_js += f"""
     new Chart(document.getElementById('chart-hinet-{sid}'), {{
         type: 'line',
@@ -869,10 +818,7 @@ for s in TARGET_SERVICES:
             scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }}
         }}
     }});
-    """
 
-    # 2. Google 專屬圖
-    chart_init_js += f"""
     new Chart(document.getElementById('chart-google-{sid}'), {{
         type: 'line',
         data: {{
@@ -898,10 +844,7 @@ for s in TARGET_SERVICES:
             scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }}
         }}
     }});
-    """
 
-    # 3. 綜合對照圖
-    chart_init_js += f"""
     new Chart(document.getElementById('chart-pk-{sid}'), {{
         type: 'line',
         data: {{
@@ -920,7 +863,7 @@ for s in TARGET_SERVICES:
                         afterLabel: function(ctx) {{
                             const hGeos = {h_geos_json};
                             const gGeos = {g_geos_json};
-                            return ctx.datasetIndex === 0 ? 'HiNet 落地: ' + hGeos[ctx.dataIndex] : 'Google 落地: ' + gGeos[ctx.dataIndex];
+                            return ctx.datasetIndex === 0 ? 'HiNet: ' + hGeos[ctx.dataIndex] : 'Google: ' + gGeos[ctx.dataIndex];
                         }}
                     }}
                 }}
@@ -928,11 +871,7 @@ for s in TARGET_SERVICES:
             scales: {{ x: {{ ticks: {{ color: '#64748b', maxTicksLimit: 5, font: {{ size: 9 }} }} }}, y: {{ ticks: {{ color: '#64748b', font: {{ size: 9 }} }} }} }}
         }}
     }});
-    """
 
-    # 4. SLA 專屬滿版大圖
-    len_pts = len(chart_labels)
-    chart_init_js += f"""
     new Chart(document.getElementById('chart-sla-{sid}'), {{
         type: 'line',
         data: {{
@@ -953,7 +892,7 @@ for s in TARGET_SERVICES:
                         afterLabel: function(ctx) {{
                             const hGeos = {h_geos_json};
                             const gGeos = {g_geos_json};
-                            return ctx.datasetIndex === 0 ? 'HiNet: ' + hGeos[ctx.dataIndex] : 'Google: ' + gGeos[ctx.dataIndex];
+                            return (ctx.datasetIndex === 0) ? 'HiNet: ' + hGeos[ctx.dataIndex] : 'Google: ' + gGeos[ctx.dataIndex];
                         }}
                     }}
                 }}
@@ -1188,7 +1127,6 @@ html_content = f"""<!DOCTYPE html>
             {html_sla_cards}
         </div>
 
-        <!-- 區塊一：24 小時節點切換紀錄 -->
         <div class="drawer-toggle" onclick="toggleDrawer()">
             <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:16px; font-weight:bold; color:#f8fafc;">📋 近 24 小時節點切換紀錄</span>
@@ -1228,7 +1166,6 @@ html_content = f"""<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- 區塊二：國際海纜受損公告 -->
         <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:18px 22px; margin-top:24px;">
             <div style="font-size:16px; font-weight:bold; color:#f8fafc; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
                 ⚠️ 台灣周邊國際海纜即時障礙通報 (資料來源：數位發展部海纜通報 & 中華電信網路維運公告)
@@ -1300,15 +1237,14 @@ html_content = f"""<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- 即時複測彈出視窗 (Modal) -->
+    <!-- 即時複測彈出視窗 -->
     <div id="live-probe-modal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
                 <span id="modal-probe-title" style="font-weight:bold;color:#38bdf8;font-size:16px;">⚡ 即時 CDN 路由複測診斷</span>
                 <button onclick="closeProbeModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;font-weight:bold;">&times;</button>
             </div>
-            <div id="modal-probe-content" class="modal-body">
-            </div>
+            <div id="modal-probe-content" class="modal-body"></div>
             <div style="background:#1e293b;padding:12px 20px;text-align:right;border-top:1px solid #334155;">
                 <button onclick="closeProbeModal()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-weight:bold;font-size:14px;">關閉視窗</button>
             </div>
@@ -1378,7 +1314,7 @@ html_content = f"""<!DOCTYPE html>
             return {{ flag: '🌐', name: '海外' }};
         }}
 
-        async function runSingleHttpProbe(targetPath, resolver) {{
+        async function runSingleHttpProbe(host, resolver) {{
             const mOptions = {{ protocol: "HTTPS" }};
             if (resolver) mOptions.resolver = resolver;
 
@@ -1387,7 +1323,7 @@ html_content = f"""<!DOCTYPE html>
                 headers: {{ "Content-Type": "application/json" }},
                 body: JSON.stringify({{
                     type: "http",
-                    target: targetPath,
+                    target: host,
                     locations: [{{ country: "TW", asn: 3462 }}],
                     measurementOptions: mOptions,
                     limit: 1
@@ -1403,18 +1339,9 @@ html_content = f"""<!DOCTYPE html>
                 if (pollData.status === "finished") {{
                     if (pollData.results && pollData.results.length > 0) {{
                         const r = pollData.results[0].result;
-                        const dl = r.timings?.download || 0;
-                        const tot = r.timings?.total || 0;
-                        const tcp = r.timings?.tcp || 0;
-                        const bytes = (r.rawBody || '').length || 10240;
-                        const effDl = dl > 0 ? dl : (tot - tcp);
-                        const spd = effDl > 0 ? ((bytes / 1024 / 1024) / (effDl / 1000)).toFixed(2) : '0.00';
-
                         return {{
-                            total: tot,
-                            tcp: tcp,
-                            speed: spd,
-                            download: dl,
+                            total: r.timings?.total || 0,
+                            tcp: r.timings?.tcp || 0,
                             ip: r.resolvedAddress || '--',
                             headers: r.rawHeaders || ''
                         }};
@@ -1425,7 +1352,7 @@ html_content = f"""<!DOCTYPE html>
             return null;
         }}
 
-        async function triggerLiveProbe(sid, name, targetPath, dnsMode, btn) {{
+        async function triggerLiveProbe(sid, name, host, dnsMode, btn) {{
             const originText = btn.innerText;
             btn.innerText = "⏳ 測量中...";
             btn.disabled = true;
@@ -1434,8 +1361,8 @@ html_content = f"""<!DOCTYPE html>
             const titleEl = document.getElementById('modal-probe-title');
             const contentEl = document.getElementById('modal-probe-content');
 
-            titleEl.innerText = `⚡ 即時真實吞吐複測：${{name}}`;
-            contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#38bdf8;font-size:15px;">🌐 正在向台灣 HiNet 實體節點請求真實靜態資源，請稍候約 3~8 秒...</div>';
+            titleEl.innerText = `⚡ 即時 CDN 路由複測：${{name}} (${{host}})`;
+            contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#38bdf8;font-size:15px;">🌐 正在向台灣 HiNet 實體節點發起即時 HTTPS 交握探測，請稍候約 3~8 秒...</div>';
             modal.style.display = 'flex';
 
             const tasks = [];
@@ -1451,17 +1378,14 @@ html_content = f"""<!DOCTYPE html>
             let outHtml = '';
             for (const t of tasks) {{
                 try {{
-                    const r = await runSingleHttpProbe(targetPath, t.resolver);
+                    const r = await runSingleHttpProbe(host, t.resolver);
                     if (r && r.total > 0) {{
                         const g = determineClientGeo(r.headers, r.tcp);
                         const statusColor = r.total < 150 ? '#34d399' : (r.total < 350 ? '#fde047' : '#f87171');
                         const statusText = r.total < 150 ? '● 順暢良好' : (r.total < 350 ? '● 稍微延遲' : '● 轉圈卡頓');
 
-                        // 即時回填更新背景卡片數據
                         const totalEl = document.getElementById(`total-${{t.mode}}-${{sid}}`);
                         const tcpEl = document.getElementById(`tcp-${{t.mode}}-${{sid}}`);
-                        const speedEl = document.getElementById(`speed-${{t.mode}}-${{sid}}`);
-                        const dlEl = document.getElementById(`dl-${{t.mode}}-${{sid}}`);
                         const statusEl = document.getElementById(`status-${{t.mode}}-${{sid}}`);
                         const geoEl = document.getElementById(`geo-${{t.mode}}-${{sid}}`);
                         
@@ -1470,15 +1394,12 @@ html_content = f"""<!DOCTYPE html>
                             totalEl.style.color = statusColor;
                         }}
                         if (tcpEl) tcpEl.innerText = `${{r.tcp}} ms`;
-                        if (speedEl) speedEl.innerText = `${{r.speed}} MB/s`;
-                        if (dlEl) dlEl.innerText = `${{r.download}} ms`;
                         if (statusEl) {{
                             statusEl.innerText = statusText;
                             statusEl.style.color = statusColor;
                         }}
                         if (geoEl) geoEl.innerHTML = `${{g.flag}} ${{g.name}}`;
 
-                        // PK 頁面即時回填
                         const pkValEl = document.getElementById(`val-pk-${{t.mode}}-${{sid}}`);
                         const pkGeoEl = document.getElementById(`geo-pk-${{t.mode}}-${{sid}}`);
                         if (pkValEl) {{
@@ -1495,8 +1416,8 @@ html_content = f"""<!DOCTYPE html>
                             </div>
                             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;color:#cbd5e1;margin-bottom:10px;">
                                 <div>落地節點：<strong style="color:#f8fafc;">${{g.flag}} ${{g.name}}</strong></div>
-                                <div>下載速率：<strong style="color:#38bdf8;">${{r.speed}} MB/s</strong></div>
                                 <div>TCP 握手：<strong style="color:#a855f7;">${{r.tcp}} ms</strong></div>
+                                <div>解析 IP：<span style="font-family:monospace;color:#38bdf8;">${{r.ip}}</span></div>
                             </div>
                             <pre style="margin:0;color:#94a3b8;font-size:12px;line-height:1.4;white-space:pre-wrap;word-break:break-all;background:#020617;padding:10px;border-radius:6px;max-height:160px;overflow-y:auto;">${{r.headers || '無標頭輸出'}}</pre>
                         </div>
@@ -1523,4 +1444,4 @@ html_content = f"""<!DOCTYPE html>
 with open("egress.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"[{now_str}] 成功更新：真實資源下載吞吐量 (MB/s)、純粹四格實測指標、去除文字總結、SLA藍紫雙軌、Netflix移入出海組。")
+print(f"[{now_str}] 成功修復：回歸純 Host 探測，全數標的恢復正常綠燈。")

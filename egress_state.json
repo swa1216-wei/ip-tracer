@@ -1,5 +1,383 @@
 [
   {
+    "timestamp": "2026-11-06 13:38:49",
+    "time_short": "13:38",
+    "data": {
+      "threads_ig": {
+        "name": "Threads & IG 圖片 CDN",
+        "target": "static.xx.fbcdn.net/rsrc.php/v3/yZ/r/W5hL99fU9g-.js",
+        "group": "edge_services",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "meta_reels": {
+        "name": "Instagram Reels 短影音",
+        "target": "static.xx.fbcdn.net/rsrc.php/v3/y4/r/-PA323j8pVI.js",
+        "group": "edge_services",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "fb_static": {
+        "name": "Facebook 塗鴉牆圖文",
+        "target": "static.xx.fbcdn.net/rsrc.php/v3/yb/r/G3St-si5Jg6.js",
+        "group": "edge_services",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "fb_live": {
+        "name": "Facebook 直播與動態影音",
+        "target": "static.xx.fbcdn.net/rsrc.php/v3/yH/r/HAFeo_b_v0g.png",
+        "group": "edge_services",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "youtube_stream": {
+        "name": "YouTube 影音串流 / Shorts",
+        "target": "www.youtube.com/s/desktop/28fd2b00/jsbin/desktop_polymer.vflset/desktop_polymer.js",
+        "group": "edge_services",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "line_obs": {
+        "name": "LINE 圖片與貼圖",
+        "target": "stickershop.line-scdn.net/stickershop/v1/product/1/IOS/main_animation@2x.png",
+        "group": "edge_services",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "netflix_fast": {
+        "name": "Netflix 邊緣節點",
+        "target": "api.fast.com/netflix/speedtest/v2",
+        "group": "cross_border",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "hongguo_drama": {
+        "name": "紅果短劇",
+        "target": "lf-cdn-tos.bytescm.com/obj/ies-fe-bee/beefont/v1.0.0/style.css",
+        "group": "cross_border",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "tiktok_gateway": {
+        "name": "TikTok 資訊流入口",
+        "target": "www.tiktok.com",
+        "group": "cross_border",
+        "hinet": {
+          "status": "OK",
+          "status_text": "稍微延遲",
+          "total_ms": 150,
+          "tcp_ms": 25,
+          "speed_mb_s": 0.0,
+          "download_ms": 1,
+          "resolved_ip": "23.210.7.165",
+          "geo_key": "SIN",
+          "geo_name": "🇸🇬 新加坡",
+          "color": "#fde047",
+          "win": true
+        },
+        "google": {
+          "status": "OK",
+          "status_text": "稍微延遲",
+          "total_ms": 229,
+          "tcp_ms": 27,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "23.49.104.52",
+          "geo_key": "SIN",
+          "geo_name": "🇸🇬 新加坡",
+          "color": "#fde047",
+          "win": false
+        }
+      },
+      "x_media": {
+        "name": "X (Twitter) 圖片",
+        "target": "abs.twimg.com/responsive-web/client-web/shared~loader.App~bundle.NetworkInstrument.35e5d1ba.js",
+        "group": "cross_border",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "github_fastly": {
+        "name": "GitHub 檔案下載",
+        "target": "raw.githubusercontent.com/octocat/Spoon-Knife/master/index.html",
+        "group": "cross_border",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      },
+      "discord_media": {
+        "name": "Discord 媒體傳輸",
+        "target": "cdn.discordapp.com/attachments/icons/badge.png",
+        "group": "cross_border",
+        "hinet": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        },
+        "google": {
+          "status": "FAIL",
+          "status_text": "連線逾時",
+          "total_ms": 0,
+          "tcp_ms": 0,
+          "speed_mb_s": 0.0,
+          "download_ms": 0,
+          "resolved_ip": "--",
+          "geo_key": "TYO",
+          "geo_name": "逾時",
+          "color": "#f87171",
+          "win": false
+        }
+      }
+    }
+  },
+  {
     "timestamp": "2026-11-06 12:46:54",
     "time_short": "12:46",
     "data": {

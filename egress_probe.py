@@ -6,7 +6,7 @@ import urllib.error
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 第一部分：監控標的 (修正為純合法 Host 網域，Netflix 歸入跨境)
+# 第一部分：監控標的 (純 Domain 穩定探測，Netflix 歸入跨境)
 # ==============================================================================
 
 TARGET_SERVICES = [
@@ -134,7 +134,7 @@ def determine_geo(resolved_ip, headers_str, tcp_ms):
     return "TYO"
 
 # ==============================================================================
-# 第二部分：Globalping 探測 (純 Host 合法探測，確保 100% 成功)
+# 第二部分：Globalping 探測 (純 Host 查詢)
 # ==============================================================================
 
 def execute_single_probe(host, dns_resolver=None):
@@ -277,7 +277,7 @@ for idx, s in enumerate(TARGET_SERVICES):
     results[sid] = {"hinet": hinet_res, "google": google_res}
 
 # ==============================================================================
-# 第四部分：歷史數據保存
+# 第四部分：歷史數據保存 (最近 72 筆)
 # ==============================================================================
 
 history_state = []
@@ -780,8 +780,13 @@ else:
     </tr>
     """
 
-# 圖表渲染 JS
+# ==============================================================================
+# 第八部分：圖表渲染 JS (修復 len_pts 定義缺失)
+# ==============================================================================
+
 chart_init_js = ""
+len_pts = len(chart_labels)
+
 for s in TARGET_SERVICES:
     sid = s["id"]
     ds = chart_datasets[sid]
@@ -863,7 +868,7 @@ for s in TARGET_SERVICES:
                         afterLabel: function(ctx) {{
                             const hGeos = {h_geos_json};
                             const gGeos = {g_geos_json};
-                            return ctx.datasetIndex === 0 ? 'HiNet: ' + hGeos[ctx.dataIndex] : 'Google: ' + gGeos[ctx.dataIndex];
+                            return ctx.datasetIndex === 0 ? 'HiNet 落地: ' + hGeos[ctx.dataIndex] : 'Google 落地: ' + gGeos[ctx.dataIndex];
                         }}
                     }}
                 }}

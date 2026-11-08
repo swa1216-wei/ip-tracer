@@ -1613,17 +1613,21 @@
       "target": "223.139.0.8",
       "elem": "G-7L2-1",
       "desc": "抵達 B-7L2-1"
-    },
-    {
-      "time": "2026-11-01 09:56:38",
-      "badge": "🔴 香港告警",
-      "type": "ALERT",
-      "target": "223.139.0.8",
-      "elem": "G-7L2-1",
-      "desc": "🚨 香港丟包 (未達節點)"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-11-08 10:24:50",
+      "nodes": "台灣 ＋ 新加坡",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "新加坡",
+      "failures": []
+    },
     {
       "time": "2026-11-08 09:23:47",
       "nodes": "台灣 ＋ 香港",
@@ -4142,27 +4146,9 @@
       "ov_priv": 0,
       "ov_city": "新加坡",
       "failures": []
-    },
-    {
-      "time": "2026-11-01 09:56:38",
-      "nodes": "台灣 ＋ 香港",
-      "total": 102,
-      "ok": 101,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 1,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": [
-        {
-          "target": "223.139.0.8",
-          "elem": "G-7L2-1",
-          "reason": "香港丟包 (第 0 跳斷在 無回應)"
-        }
-      ]
     }
   ],
-  "overseas_idx": 2,
+  "overseas_idx": 0,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

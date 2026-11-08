@@ -1613,17 +1613,21 @@
       "target": "223.139.0.8",
       "elem": "G-7L2-1",
       "desc": "🚨 香港丟包 (未達節點)"
-    },
-    {
-      "time": "2026-11-01 07:46:11",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "42.77.192.8",
-      "elem": "G-7L2-2",
-      "desc": "抵達 B-7L2-2"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-11-08 08:03:58",
+      "nodes": "台灣 ＋ 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
     {
       "time": "2026-11-08 07:16:36",
       "nodes": "台灣 ＋ 新加坡",
@@ -4142,21 +4146,9 @@
       "ov_priv": 0,
       "ov_city": "東京",
       "failures": []
-    },
-    {
-      "time": "2026-11-01 07:46:11",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",
@@ -4366,5 +4358,5 @@
     "42.78.224.8": 7
   },
   "teams_tested": true,
-  "last_heartbeat_date": "2026-11-07"
+  "last_heartbeat_date": "2026-11-08"
 }

@@ -4193,6 +4193,18 @@
   ],
   "history_snapshots": [
     {
+      "time": "2026-11-11 16:56:53",
+      "nodes": "台灣 ＋ 香港",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "香港",
+      "failures": []
+    },
+    {
       "time": "2026-11-11 15:59:57",
       "nodes": "台灣 ＋ 東京",
       "total": 102,
@@ -7086,21 +7098,9 @@
           "reason": "香港丟包 (第 0 跳斷在 無回應)"
         }
       ]
-    },
-    {
-      "time": "2026-11-04 16:56:25",
-      "nodes": "台灣 ＋ 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
     }
   ],
-  "overseas_idx": 1,
+  "overseas_idx": 2,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

@@ -4149,17 +4149,21 @@
       "target": "223.143.242.8",
       "elem": "G-2L3-4",
       "desc": "抵達 B-2L3-4"
-    },
-    {
-      "time": "2026-11-05 01:36:20",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "223.138.192.8",
-      "elem": "G-4L1-3",
-      "desc": "抵達 B-4L1-4"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-11-12 02:25:22",
+      "nodes": "台灣 ＋ 香港",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "香港",
+      "failures": []
+    },
     {
       "time": "2026-11-12 01:29:59",
       "nodes": "台灣 ＋ 東京",
@@ -7049,21 +7053,9 @@
       "ov_priv": 0,
       "ov_city": "東京",
       "failures": []
-    },
-    {
-      "time": "2026-11-05 01:36:20",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
     }
   ],
-  "overseas_idx": 1,
+  "overseas_idx": 2,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

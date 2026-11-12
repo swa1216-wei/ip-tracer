@@ -4045,57 +4045,21 @@
       "target": "42.79.160.8",
       "elem": "G-2L3-4",
       "desc": "🚨 台灣丟包 (未達節點)"
-    },
-    {
-      "time": "2026-11-06 02:54:55",
-      "badge": "🟢 香港恢復",
-      "type": "OK",
-      "target": "42.78.160.8",
-      "elem": "G-TNE-12U",
-      "desc": "抵達 B-TNE-2D"
-    },
-    {
-      "time": "2026-11-06 01:11:20",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "42.77.0.8",
-      "elem": "G-7L2-1",
-      "desc": "抵達 B-7L2-1"
-    },
-    {
-      "time": "2026-11-05 23:57:53",
-      "badge": "🔴 香港告警",
-      "type": "ALERT",
-      "target": "42.78.160.8",
-      "elem": "G-TNE-12U",
-      "desc": "🚨 香港丟包 (未達節點)"
-    },
-    {
-      "time": "2026-11-05 23:57:53",
-      "badge": "🔴 台灣告警",
-      "type": "ALERT",
-      "target": "42.77.0.8",
-      "elem": "G-7L2-1",
-      "desc": "🚨 台灣丟包 (未達節點)"
-    },
-    {
-      "time": "2026-11-05 22:31:48",
-      "badge": "🟢 台灣恢復",
-      "type": "OK",
-      "target": "111.71.215.8",
-      "elem": "G-4L1-1",
-      "desc": "抵達 B-4L1-4"
-    },
-    {
-      "time": "2026-11-05 21:58:54",
-      "badge": "🔴 台灣告警",
-      "type": "ALERT",
-      "target": "111.71.215.8",
-      "elem": "G-4L1-1",
-      "desc": "🚨 台灣丟包 (未達節點)"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-11-13 04:29:44",
+      "nodes": "台灣 ＋ 東京",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "東京",
+      "failures": []
+    },
     {
       "time": "2026-11-12 20:44:10",
       "nodes": "台灣 ＋ 新加坡",
@@ -6724,122 +6688,9 @@
       "ov_priv": 0,
       "ov_city": "東京",
       "failures": []
-    },
-    {
-      "time": "2026-11-06 03:49:38",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
-    },
-    {
-      "time": "2026-11-06 02:54:55",
-      "nodes": "台灣 ＋ 香港",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": []
-    },
-    {
-      "time": "2026-11-06 01:59:51",
-      "nodes": "台灣 ＋ 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
-    },
-    {
-      "time": "2026-11-06 01:11:20",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
-    },
-    {
-      "time": "2026-11-05 23:57:53",
-      "nodes": "台灣 ＋ 香港",
-      "total": 102,
-      "ok": 100,
-      "tw_nobr": 1,
-      "tw_priv": 0,
-      "ov_nobr": 1,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": [
-        {
-          "target": "42.77.0.8",
-          "elem": "G-7L2-1",
-          "reason": "台灣丟包 (第 6 跳斷在 220.128.24.61)"
-        },
-        {
-          "target": "42.78.160.8",
-          "elem": "G-TNE-12U",
-          "reason": "香港丟包 (第 0 跳斷在 無回應)"
-        }
-      ]
-    },
-    {
-      "time": "2026-11-05 22:57:29",
-      "nodes": "台灣 ＋ 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
-    },
-    {
-      "time": "2026-11-05 22:31:48",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
-    },
-    {
-      "time": "2026-11-05 21:58:54",
-      "nodes": "台灣 ＋ 香港",
-      "total": 102,
-      "ok": 101,
-      "tw_nobr": 1,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": [
-        {
-          "target": "111.71.215.8",
-          "elem": "G-4L1-1",
-          "reason": "台灣丟包 (第 6 跳斷在 220.128.17.221)"
-        }
-      ]
     }
   ],
-  "overseas_idx": 0,
+  "overseas_idx": 1,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

@@ -4097,6 +4097,18 @@
   ],
   "history_snapshots": [
     {
+      "time": "2026-11-12 20:44:10",
+      "nodes": "台灣 ＋ 新加坡",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "新加坡",
+      "failures": []
+    },
+    {
       "time": "2026-11-12 19:42:23",
       "nodes": "台灣 ＋ 香港",
       "total": 102,
@@ -6825,21 +6837,9 @@
           "reason": "台灣丟包 (第 6 跳斷在 220.128.17.221)"
         }
       ]
-    },
-    {
-      "time": "2026-11-05 20:41:37",
-      "nodes": "台灣 ＋ 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
     }
   ],
-  "overseas_idx": 2,
+  "overseas_idx": 0,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",

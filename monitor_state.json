@@ -4645,17 +4645,21 @@
       "target": "111.71.213.8",
       "elem": "G-2L3-1",
       "desc": "抵達 B-2L3-4"
-    },
-    {
-      "time": "2026-11-09 07:48:27",
-      "badge": "🔴 台灣告警",
-      "type": "ALERT",
-      "target": "111.71.213.8",
-      "elem": "G-2L3-1",
-      "desc": "🚨 台灣丟包 (未達節點)"
     }
   ],
   "history_snapshots": [
+    {
+      "time": "2026-11-16 08:14:45",
+      "nodes": "台灣 ＋ 香港",
+      "total": 102,
+      "ok": 102,
+      "tw_nobr": 0,
+      "tw_priv": 0,
+      "ov_nobr": 0,
+      "ov_priv": 0,
+      "ov_city": "香港",
+      "failures": []
+    },
     {
       "time": "2026-11-16 04:16:33",
       "nodes": "台灣 ＋ 東京",
@@ -6604,75 +6608,9 @@
       "ov_priv": 0,
       "ov_city": "東京",
       "failures": []
-    },
-    {
-      "time": "2026-11-09 07:48:27",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 101,
-      "tw_nobr": 1,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": [
-        {
-          "target": "111.71.213.8",
-          "elem": "G-2L3-1",
-          "reason": "台灣丟包 (第 3 跳斷在 168.95.85.118)"
-        }
-      ]
-    },
-    {
-      "time": "2026-11-09 07:07:22",
-      "nodes": "台灣 ＋ 香港",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": []
-    },
-    {
-      "time": "2026-11-09 06:18:11",
-      "nodes": "台灣 ＋ 東京",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "東京",
-      "failures": []
-    },
-    {
-      "time": "2026-11-09 05:32:15",
-      "nodes": "台灣 ＋ 新加坡",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "新加坡",
-      "failures": []
-    },
-    {
-      "time": "2026-11-09 04:51:43",
-      "nodes": "台灣 ＋ 香港",
-      "total": 102,
-      "ok": 102,
-      "tw_nobr": 0,
-      "tw_priv": 0,
-      "ov_nobr": 0,
-      "ov_priv": 0,
-      "ov_city": "香港",
-      "failures": []
     }
   ],
-  "overseas_idx": 1,
+  "overseas_idx": 2,
   "last_status": {
     "42.77.128.8": "OK",
     "42.77.192.8": "OK",
@@ -6882,5 +6820,5 @@
     "42.78.224.8": 7
   },
   "teams_tested": true,
-  "last_heartbeat_date": "2026-11-15"
+  "last_heartbeat_date": "2026-11-16"
 }
